@@ -60,27 +60,40 @@ bool insidePillar(vec2 p) {
 }
 
 // bends a floating particle's straight path around the pillars: its sideways offset from each pillar's centre line
-// (relative to the flow) is constant along the path, so widening it near the pillar gives smooth streamlines that go
-// around it, always on the same side. lift returns how far the water's lip raises the surface where it ends up
-vec2 flowAroundPillars(vec2 p, vec2 flow, out float lift) {
+// (relative to the flow) is constant along the straight path, so widening it near the pillar gives smooth streamlines
+// that go around it, always on the same side. Every push is worked out from the straight path (not from a position
+// another pillar already moved, which could flip the side) and fades to zero within 2 radii, inside the cells
+// searched, so nothing switches on or off suddenly. lift returns how far the water's lip raises the surface there
+vec2 flowAroundPillars(vec2 straight, vec2 flow, out float lift) {
     lift = 0.0;
     float speed = length(flow);
     vec2 dir = speed < 1e-6 ? vec2(1.0, 0.0) : flow / speed;
     vec2 perp = vec2(-dir.y, dir.x);
-    ivec2 cell = ivec2(floor((p - particlePillarOrigin) / particlePillarCell + 0.5));
-    for (int dx = -2; dx <= 2; dx++) {
-        for (int dz = -2; dz <= 2; dz++) {
+    vec2 offset = vec2(0.0);
+    ivec2 cell = ivec2(floor((straight - particlePillarOrigin) / particlePillarCell + 0.5));
+    // 3 cells covers the push of even the thickest, most leaning pillars (2 radii, stretched by the lean)
+    for (int dx = -3; dx <= 3; dx++) {
+        for (int dz = -3; dz <= 3; dz++) {
             vec2 centre;
             float rock = pillarClearance(cell + ivec2(dx, dz), centre);
-            if (rock <= 0.0) continue;
+            if (rock <= 0.0 || speed < 1e-6) continue;
             float r = rock + particlePillarMargin;
-            vec2 rel = p - centre;
+            vec2 rel = straight - centre;
             float along = dot(rel, dir);
             float across = dot(rel, perp);
-            float around = 1.0 - smoothstep(r, r * 3.0, abs(along));
+            float around = (1.0 - smoothstep(r, 2.0 * r, abs(along))) * (1.0 - smoothstep(1.2 * r, 2.0 * r, abs(across)));
             float side = across >= 0.0 ? 1.0 : -1.0;
-            if (speed >= 1e-6) p += perp * (side * sqrt(across * across + r * r * around) - across);
-            lift += particleLiftHeight * exp(-max(distance(p, centre) - rock, 0.0) / particleLiftWidth);
+            offset += perp * (side * sqrt(across * across + r * r * around) - across);
+        }
+    }
+    vec2 p = straight + offset;
+
+    // the raised lip is at the rock, a few centimetres wide
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -1; dz <= 1; dz++) {
+            vec2 centre;
+            float rock = pillarClearance(ivec2(floor((p - particlePillarOrigin) / particlePillarCell + 0.5)) + ivec2(dx, dz), centre);
+            if (rock > 0.0) lift += particleLiftHeight * exp(-max(distance(p, centre) - rock, 0.0) / particleLiftWidth);
         }
     }
     // the lip is only really raised in the patch around the camera, easing out towards its edge like the water
