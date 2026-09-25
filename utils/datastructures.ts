@@ -25,7 +25,7 @@ class QueueIterator<T> {
             };
         }
 
-        const next: T = this.q.pop();
+        const next: T = this.q.pop()!;
         this.q.push(next); // add back to back
         this.nextElement++;
 

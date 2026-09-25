@@ -1,4 +1,4 @@
-import { AnimatedEntity } from "entity/animated-entity";
+import { AnimatedEntity } from "../entity/animated-entity";
 import { Camera, Clock, DoubleSide, InstancedBufferAttribute, InstancedMesh, LoadingManager, Matrix4, Mesh, MeshBasicMaterial, Object3DEventMap, PlaneGeometry, Quaternion, Scene, Texture, Vector3 } from "three";
 import { randFloat } from "three/src/math/MathUtils.js";
 import { Queue } from "../utils/datastructures";
@@ -178,7 +178,7 @@ export class DustEmitter implements AnimatedEntity {
 
             if (this.fifoUnits.size() == this.maxAmount) {
                 // reuse last to first
-                const particle = this.fifoUnits.pop();
+                const particle = this.fifoUnits.pop()!;
                 particle.replace(velocity, pos, clock.oldTime, opacity);
                 this.fifoUnits.push(particle); // move to front as "newest"
 

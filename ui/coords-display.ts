@@ -1,5 +1,5 @@
 import { Camera } from "three";
-import './coords-display.css' assert { type: "css" };
+import './coords-display.css' with { type: "css" };
 
 const DIGITS_CUTOFF = 4;
 

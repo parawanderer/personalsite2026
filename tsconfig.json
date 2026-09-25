@@ -110,16 +110,16 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true,                                 /* Skip type checking all .d.ts files. */
-    "baseUrl": "./",
+    "types": ["vite/client"],
     "paths": {
-        "three/webgpu": ["node_modules/three/build/three.webgpu.js"],
-        "three/tsl": ["node_modules/three/build/three.tsl.js"],
-        "three/addons/controls/*": ["node_modules/@types/three/examples/jsm/controls/*"],
-        "three/addons/objects/*": ["node_modules/@types/three/examples/jsm/objects/*"],
-        "three/addons/libs/*": ["node_modules/@types/three/examples/jsm/libs/*"],
-        "three/addons/effects/*": ["node_modules/@types/three/examples/jsm/effects/*"],
-        "three/addons/utils/*": ["node_modules/@types/three/examples/jsm/utils/*"],
-        "three/addons/postprocessing/*": ["node_modules/@types/three/examples/jsm/postprocessing/*"]
+        "three/webgpu": ["./node_modules/three/build/three.webgpu.js"],
+        "three/tsl": ["./node_modules/three/build/three.tsl.js"],
+        "three/addons/controls/*": ["./node_modules/@types/three/examples/jsm/controls/*"],
+        "three/addons/objects/*": ["./node_modules/@types/three/examples/jsm/objects/*"],
+        "three/addons/libs/*": ["./node_modules/@types/three/examples/jsm/libs/*"],
+        "three/addons/effects/*": ["./node_modules/@types/three/examples/jsm/effects/*"],
+        "three/addons/utils/*": ["./node_modules/@types/three/examples/jsm/utils/*"],
+        "three/addons/postprocessing/*": ["./node_modules/@types/three/examples/jsm/postprocessing/*"]
     }
   }
 }

@@ -12,11 +12,11 @@
     "@datastructures-js/queue": "^4.2.3",
     "datastructures-js": "^13.0.0",
     "gsap": "^3.12.7",
-    "three": "^0.174.0"
+    "three": "^0.186.1"
   },
   "devDependencies": {
-    "@types/three": "^0.175.0",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.3"
+    "@types/three": "^0.186.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1"
   }
 }

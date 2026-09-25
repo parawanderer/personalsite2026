@@ -256,7 +256,7 @@ export class WallsFactory {
 
         // basic BFS
         while (q.size() > 0) {
-            const {i, j, distance} = q.pop();
+            const {i, j, distance} = q.pop()!;
             const neighbors: QueueElement[] = getNeighbors(i, j, grid);
 
             if (distance !== -1) {
