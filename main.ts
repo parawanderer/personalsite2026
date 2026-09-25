@@ -240,6 +240,9 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => particles.setShown('flakeColor2', v), () => 1, 'nightOrangeParticles')
         .number((v) => water.setRimNight(v), () => 1, 'nightRimScale')
         .number((v) => water.setReflectionFloor(v), () => 0.1, 'nightReflectionFloor')
+        .number((v) => water.surface.surfaceOpacity.value = v, () => w.surfaceOpacity, 'nightSurfaceOpacity')
+        .number((v) => water.surface.fresnelPower.value = v, () => w.fresnelPower, 'nightFresnelPower')
+        .number((v) => water.surface.reflectionStrength.value = v, () => 1, 'nightReflectionStrength')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
         .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')
@@ -257,7 +260,7 @@ scheduler.add(aurora);
 
 // shooting stars at night, now and then one coming down into the channel
 const starTweaks = tweaks.addFolder('Shooting stars', SHOOTING_STARS);
-const shootingStars = new ShootingStars(scene, starTweaks.params);
+const shootingStars = new ShootingStars(scene, starTweaks.params, water);
 if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(shootingStars);

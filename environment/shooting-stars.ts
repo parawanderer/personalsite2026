@@ -3,7 +3,7 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
 import { ShootingStarSettings } from '../constants';
-import { WATER_LEVEL_Y } from './water';
+import { Water, WATER_LEVEL_Y } from './water';
 
 // the far end of the channel, where splashdowns land (x across the channel, z along it)
 const SPLASH_X = [-2, 1];
@@ -16,6 +16,9 @@ const streakMaterial = () => new ShaderMaterial({
         width: { value: 0.1 },
         color: { value: new Color() },
         intensity: { value: 0 },
+        time: { value: 0 },
+        // 0 while the meteor flies, rising to 1 as its train lingers and breaks up
+        sparkle: { value: 0 },
     },
     vertexShader: /* glsl */ `
         uniform vec3 head;
@@ -35,11 +38,17 @@ const streakMaterial = () => new ShaderMaterial({
     fragmentShader: /* glsl */ `
         uniform vec3 color;
         uniform float intensity;
+        uniform float time;
+        uniform float sparkle;
         varying vec2 vStreak;
         void main() {
             float core = 1.0 - smoothstep(0.0, 1.0, abs(vStreak.y));
-            float glow = pow(vStreak.x, 3.0) * core * core;
-            gl_FragColor = vec4(color * glow * intensity, 1.0);
+            // bright at the head while flying; the lingering train glows along its length instead
+            float along = mix(pow(vStreak.x, 3.0), 0.35 + 0.65 * vStreak.x, sparkle);
+            // the train breaks up into flickering bits
+            float bit = fract(sin(floor(vStreak.x * 70.0) * 91.3 + floor(time * 24.0) * 17.1) * 43758.5453);
+            float flicker = mix(1.0, step(0.5, bit) * 2.0, sparkle);
+            gl_FragColor = vec4(color * along * core * core * flicker * intensity, 1.0);
         }
     `,
     transparent: true,
@@ -66,12 +75,16 @@ interface Meteor {
 export class ShootingStars implements AnimatedEntity {
     private readonly streak: Mesh<PlaneGeometry, ShaderMaterial>;
     private readonly flash = new PointLight(0xffffff, 0, 12, 1.5);
+    private readonly flashColor = new Color();
+    /** the last meteor's streak, lingering and fading */
+    private trainStart = -1e3;
+    private trainIntensity = 0;
     private meteor?: Meteor;
     private nextAt = 0;
     private flashStart = -1;
     private nightAmount = 0;
 
-    constructor(scene: Scene, private readonly settings: ShootingStarSettings) {
+    constructor(scene: Scene, private readonly settings: ShootingStarSettings, private readonly water: Water) {
         this.streak = new Mesh(new PlaneGeometry(1, 1, 16, 1), streakMaterial());
         this.streak.frustumCulled = false;
         this.streak.visible = false;
@@ -129,16 +142,20 @@ export class ShootingStars implements AnimatedEntity {
         }
 
         const m = this.meteor;
+        u.time.value = now;
         if (m) {
             const t = now - m.startTime;
             if (t > m.duration) {
+                // the streak stays where it ended and lingers as a fading, sparkling train
+                this.trainStart = now;
+                this.trainIntensity = u.intensity.value;
                 if (m.splash) {
-                    this.flash.position.copy(m.start).addScaledVector(m.direction, m.speed * m.duration);
-                    this.flash.position.y = WATER_LEVEL_Y + 0.3;
+                    const impact = m.start.clone().addScaledVector(m.direction, m.speed * m.duration);
+                    this.flash.position.set(impact.x, WATER_LEVEL_Y + 0.4, impact.z);
                     this.flashStart = now;
+                    this.water.splash(impact.x, impact.z);
                 }
                 this.meteor = undefined;
-                this.streak.visible = false;
             } else {
                 u.head.value.copy(m.start).addScaledVector(m.direction, m.speed * t);
                 // the tail grows in at the start
@@ -146,18 +163,34 @@ export class ShootingStars implements AnimatedEntity {
                 u.width.value = s.width;
                 u.color.value.set(s.color);
                 // splashdowns stay bright to the end; the rest burn out
-                const fade = m.splash ? Math.min(1, t / (m.duration * 0.2)) : Math.sin(Math.PI * t / m.duration);
+                const fade = m.splash ? Math.min(1, t / (m.duration * 0.2)) : Math.sin(Math.PI * Math.min(t / m.duration, 0.85));
                 u.intensity.value = s.brightness * fade * this.nightAmount;
+                u.sparkle.value = 0;
                 this.streak.visible = true;
             }
         }
 
+        if (!this.meteor) {
+            const age = (now - this.trainStart) / Math.max(s.trainSeconds, 1e-3);
+            if (age < 1) {
+                u.sparkle.value = Math.min(1, age * 4);
+                u.intensity.value = this.trainIntensity * 0.6 * Math.pow(1 - age, 1.5);
+                this.streak.visible = true;
+            } else {
+                this.streak.visible = false;
+            }
+        }
+
+        // the impact: an instant, bright flash that dies away quickly, lighting the pillars and the water
         const sinceFlash = now - this.flashStart;
-        this.flash.intensity = this.flashStart >= 0 && sinceFlash < s.splashSeconds
-            ? s.splashLight * Math.pow(1 - sinceFlash / s.splashSeconds, 2)
+        const flash = this.flashStart >= 0 && sinceFlash < s.splashSeconds
+            ? Math.exp(-sinceFlash / (s.splashSeconds * 0.22)) * (1 - sinceFlash / s.splashSeconds)
             : 0;
-        this.flash.color.set(s.color);
-        this.flash.visible = this.flash.intensity > 0;
+        this.flashColor.set(s.color);
+        this.flash.intensity = s.splashLight * flash;
+        this.flash.color.copy(this.flashColor);
+        this.flash.visible = flash > 0;
+        this.water.setSplashGlow(this.flashColor, s.splashLight * 0.04 * flash);
     }
 
     public bindTweaks(folder: GUI, now: () => number): void {
@@ -171,8 +204,9 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'length', 0.5, 40, 0.5);
         folder.add(s, 'width', 0.02, 1, 0.01);
         folder.add(s, 'splashChance', 0, 1, 0.01);
-        folder.add(s, 'splashLight', 0, 50, 0.5);
+        folder.add(s, 'splashLight', 0, 300, 1);
         folder.add(s, 'splashSeconds', 0.1, 5, 0.1);
+        folder.add(s, 'trainSeconds', 0, 5, 0.05);
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
     }
 }

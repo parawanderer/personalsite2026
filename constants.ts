@@ -165,6 +165,11 @@ export interface DayNightSettings {
     nightReflectionFloor: number;
     /** how much of the aurora shows at night (0 by day) */
     nightAurora: number;
+    /** the water turns more mirror-like at night: its opacity looking straight down, how fast it turns reflective, and
+     * how bright the reflections are (1 = as by day) */
+    nightSurfaceOpacity: number;
+    nightFresnelPower: number;
+    nightReflectionStrength: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -189,6 +194,9 @@ export const DAY_NIGHT: DayNightSettings = {
     nightRimScale: 0.01,
     nightReflectionFloor: 0.01,
     nightAurora: 1,
+    nightSurfaceOpacity: 0.5,
+    nightFresnelPower: 1.2,
+    nightReflectionStrength: 2.5,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
@@ -296,6 +304,8 @@ export interface ShootingStarSettings {
     /** the light where it hits the water, and how long it lasts */
     splashLight: number;
     splashSeconds: number;
+    /** how long the glowing train lingers after the meteor itself is gone, breaking up into sparkles */
+    trainSeconds: number;
 }
 
 export const SHOOTING_STARS: ShootingStarSettings = {
@@ -308,8 +318,9 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     length: 10,
     width: 0.25,
     splashChance: 0.25,
-    splashLight: 20,
-    splashSeconds: 1.2,
+    splashLight: 80,
+    splashSeconds: 0.9,
+    trainSeconds: 1.4,
 };
 
 // fog
@@ -385,6 +396,13 @@ export interface WaterLook {
     causticSpeed: number;
     /** higher = thinner, brighter lines; lower = soft glow */
     causticSharpness: number;
+    /** ripples from a meteor landing in the water: height, how fast and far apart the rings are, how long they last */
+    splashRippleHeight: number;
+    splashRippleSpeed: number;
+    splashWavelength: number;
+    splashRippleSeconds: number;
+    /** how far the impact's light spreads over the water */
+    splashGlowRadius: number;
     /** darker, wet band on the pillars just above the surface */
     wetBandHeight: number;
     wetBandDarkness: number;
@@ -418,6 +436,11 @@ export const WATER_LOOK: WaterLook = {
     causticScale: 7.5,
     causticSpeed: 0.17,
     causticSharpness: 8,
+    splashRippleHeight: 0.02,
+    splashRippleSpeed: 1.2,
+    splashWavelength: 0.18,
+    splashRippleSeconds: 5,
+    splashGlowRadius: 1.2,
     wetBandHeight: 0.09,
     wetBandDarkness: 0,
 };

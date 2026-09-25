@@ -108,6 +108,32 @@ vec3 pillarSurface(vec2 p, float lift, out float damp, out float rim) {
     return vec3(h, grad);
 }
 
+uniform vec2 splashCenter;
+uniform float splashAge;
+uniform float splashRippleHeight;
+uniform float splashRippleSpeed;
+uniform float splashWavelength;
+uniform float splashRippleSeconds;
+uniform vec3 splashGlow;
+uniform float splashGlowRadius;
+
+// rings spreading from a meteor impact: a wave packet travelling outwards, fading with time and distance.
+// Returns (height, gradient x, z)
+vec3 splashRipple(vec2 p) {
+    if (splashAge >= splashRippleSeconds) return vec3(0.0);
+    vec2 d = p - splashCenter;
+    float r = length(d);
+    float x = r - splashAge * splashRippleSpeed;
+    float packetWidth = splashWavelength * 1.5;
+    float packet = exp(-x * x / (packetWidth * packetWidth));
+    float fade = (1.0 - splashAge / splashRippleSeconds) / (1.0 + r * 1.5);
+    float k = 6.2831853 / splashWavelength;
+    float h = splashRippleHeight * packet * fade * cos(k * x);
+    float dhdr = -splashRippleHeight * packet * fade * k * sin(k * x);
+    vec2 g = r > 1e-4 ? d / r * dhdr : vec2(0.0);
+    return vec3(h, g);
+}
+
 // 1 in the middle of the displaced patch, easing to 0 at its edges so it meets the flat plane seamlessly
 float patchFade(vec2 p) {
     if (patchHalfSize <= 0.0) return 0.0;
@@ -132,6 +158,7 @@ vec4 displaced = modelMatrix * vec4( position, 1.0 );
     float unusedRim;
     float lift = displacementScale * patchFade(displaced.xz);
     displaced.y += pillarSurface(displaced.xz, lift, unusedDamp, unusedRim).x * lift;
+    displaced.y += splashRipple(displaced.xz).x * patchFade(displaced.xz);
 #endif
 mirrorCoord = displaced;
 worldPosition = displaced;
@@ -150,6 +177,10 @@ export const interactionMain = /* glsl */ `
     if (insidePatch(worldPosition.xz)) discard;
     float heightScale = 1.0;
 #endif
+
+// meteor ripples, near or far
+vec3 splashWaves = splashRipple(worldPosition.xz);
+surfaceNormal = normalize(surfaceNormal - vec3(splashWaves.y, 0.0, splashWaves.z));
 
 float pillarRim = 0.0;
 float interactionFade = 1.0 - smoothstep(interactionDistance * 0.7, interactionDistance, length(eye - worldPosition.xyz));

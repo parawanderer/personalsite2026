@@ -51,7 +51,7 @@ const WATER_EDITS: [string, string][] = [
     [
         "gl_FragColor = vec4( outgoingLight, alpha );",
         `gl_FragColor = vec4(
-            outgoingLight + rimColor * rimStrength * pillarRim,
+            outgoingLight + rimColor * rimStrength * pillarRim + splashGlow * exp(-length(worldPosition.xz - splashCenter) / splashGlowRadius),
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
     ],
@@ -101,7 +101,7 @@ const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
     ],
     [
         "reflectionSample + specularLight, reflectance );",
-        "( vec3( reflectionFloor ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance );"
+        "( vec3( reflectionFloor ) + reflectionSample * 0.9 * reflectionStrength + reflectionSample * specularLight ), reflectance );"
     ],
 ];
 
@@ -110,7 +110,7 @@ const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
  * otherwise turns the water into the brightest thing on screen
  */
 const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) => {
-    params.fragmentShader = params.fragmentShader.replace("uniform float alpha;", "uniform float alpha;\nuniform float reflectionFloor;");
+    params.fragmentShader = params.fragmentShader.replace("uniform float alpha;", "uniform float alpha;\nuniform float reflectionFloor;\nuniform float reflectionStrength;");
     for (const [search, replacement] of LEGACY_REFLECTANCE_EDITS) {
         if (!params.fragmentShader.includes(search)) {
             console.warn(`Water shader no longer contains "${search}"; reflectance edit not applied.`);
@@ -261,6 +261,24 @@ export class Water implements AnimatedEntity {
         (this.surfaceUniforms.patchCentre.value as Vector2).set(x, z);
     }
 
+    private splashStart = -1e3;
+
+    /** a meteor hit the water here: rings of ripples spread out from it */
+    public splash(x: number, z: number): void {
+        (this.surfaceUniforms.splashCenter.value as Vector2).set(x, z);
+        this.splashStart = this.lastElapsed;
+    }
+
+    /** light from the impact on the water around it (point lights don't reach the water shader) */
+    public setSplashGlow(color: Color, intensity: number): void {
+        (this.surfaceUniforms.splashGlow.value as Color).copy(color).multiplyScalar(intensity);
+    }
+
+    /** the water's surface uniforms, for the day/night cycle */
+    public get surface() {
+        return this.surfaceUniforms;
+    }
+
     /** the flat grey in every reflection, set by the day/night cycle */
     public setReflectionFloor(floor: number): void {
         this.surfaceUniforms.reflectionFloor.value = floor;
@@ -278,6 +296,11 @@ export class Water implements AnimatedEntity {
         const l = this.look;
         const u = this.surfaceUniforms;
         u.displacementScale.value = l.displacementScale;
+        u.splashRippleHeight.value = l.splashRippleHeight;
+        u.splashRippleSpeed.value = l.splashRippleSpeed;
+        u.splashWavelength.value = Math.max(l.splashWavelength, 1e-3);
+        u.splashRippleSeconds.value = Math.max(l.splashRippleSeconds, 1e-3);
+        u.splashGlowRadius.value = Math.max(l.splashGlowRadius, 1e-3);
         this.updatePatch();
         u.surfaceOpacity.value = l.surfaceOpacity;
         u.fresnelPower.value = l.fresnelPower;
@@ -342,6 +365,11 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'causticScale', 0.5, 30, 0.1).onChange(apply);
         folder.add(this.look, 'causticSpeed', 0, 2, 0.01).onChange(apply);
         folder.add(this.look, 'causticSharpness', 1, 12, 0.1).onChange(apply);
+        folder.add(this.look, 'splashRippleHeight', 0, 0.1, 0.001).onChange(apply);
+        folder.add(this.look, 'splashRippleSpeed', 0.1, 5, 0.05).onChange(apply);
+        folder.add(this.look, 'splashWavelength', 0.02, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'splashRippleSeconds', 0.5, 15, 0.1).onChange(apply);
+        folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
     }
@@ -349,8 +377,12 @@ export class Water implements AnimatedEntity {
     /**
      * Deals with higher than 60 FPS refresh rates... hopefully
      */
+    private lastElapsed = 0;
+
     public update(clock: Clock): void {
         this.followCamera();
+        this.lastElapsed = clock.elapsedTime;
+        this.surfaceUniforms.splashAge.value = clock.elapsedTime - this.splashStart;
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
             this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
             this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000;
@@ -410,6 +442,16 @@ export class WaterFactory {
             surfaceOpacity: { value: 1 },
             fresnelPower: { value: 1 },
             reflectionFloor: { value: 0.1 },
+            reflectionStrength: { value: 1 },
+            splashCenter: { value: new Vector2() },
+            // seconds since the last splash, large while there's none
+            splashAge: { value: 1e3 },
+            splashRippleHeight: { value: 0 },
+            splashRippleSpeed: { value: 1 },
+            splashWavelength: { value: 1 },
+            splashRippleSeconds: { value: 1 },
+            splashGlow: { value: new Color(0, 0, 0) },
+            splashGlowRadius: { value: 1 },
             pillarDataA: { value: emptyField },
             pillarDataB: { value: emptyField },
             pillarGridOrigin: { value: new Vector2() },
