@@ -42,7 +42,6 @@ import {
     CAMERA_HOME_POS,
     CAMERA_HOME_DIR,
     DUST_CENTER,
-    ROTATING_DUST_CENTER,
     TWEAKS_ENABLED,
     PILLAR_LAYOUT,
     PILLAR_SHAPE,
@@ -143,10 +142,11 @@ scheduler.add(dust1);
 const dust2 = dustFactory.makeDust(TEXTURE_PARTICLE_RED, DUST_CENTER.clone(), DUST_RADIUS, DUST_AMOUNT_RED, DUST_SIZE_RED, DUST_SPAWN_INITIALLY);
 scheduler.add(dust2);
 
-const rotatingParticles1 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_CYAN, ROTATING_DUST_CENTER.clone(), 0.5, DUST_AMOUNT_CYAN, DUST_SIZE_CYAN);
-scheduler.add(rotatingParticles1);
-const rotatingParticles2 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_RED, ROTATING_DUST_CENTER.clone(), 0.5, DUST_AMOUNT_RED, DUST_SIZE_RED);
-scheduler.add(rotatingParticles2);
+// the swirl of particles in the middle of the scene belonged to the glass pane, off until the pane has a new place
+// const rotatingParticles1 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_CYAN, ROTATING_DUST_CENTER.clone(), 0.5, DUST_AMOUNT_CYAN, DUST_SIZE_CYAN);
+// scheduler.add(rotatingParticles1);
+// const rotatingParticles2 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_RED, ROTATING_DUST_CENTER.clone(), 0.5, DUST_AMOUNT_RED, DUST_SIZE_RED);
+// scheduler.add(rotatingParticles2);
 
 // walls
 const pillarTweaks = tweaks.addFolder('Pillars', PILLAR_LAYOUT);
