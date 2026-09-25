@@ -44,8 +44,8 @@ Mind me, I'm a generalist SWE that lately mostly did distributed systems/backend
 Clone it:
 
 ```bash
-git clone https://github.com/parawanderer/personalsite2025.git
-cd personalsite2025
+git clone https://github.com/parawanderer/personalsite2026.git
+cd personalsite2026
 ```
 
 Run it:
