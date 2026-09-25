@@ -121,94 +121,6 @@ https://github.com/vineethtrv/css-loader
     padding: 1em;
 }
 
-.logo-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    min-width: 60%;
-    width: auto;
-    margin-top: 40vh;
-    margin-left: 20%;
-    margin-right: 20%;
-    transition:
-        min-width 2s ease-in-out,
-        margin-top 2s ease-in-out,
-        margin-left 2s ease-in-out,
-        margin-right 2s ease-in-out;
-}
-
-.logo-primary {
-    cursor: pointer;
-    width: 100%;
-    transition:
-        width 2s ease-in-out;
-}
-
-.logo-primary.animate-appear {
-    animation-iteration-count: 1;
-    animation-delay: 1s;
-    animation: generic-appear 1s ease-in-out;
-    -webkit-animation: generic-appear 1s ease-in-out;
-}
-
-.line {
-    display: block;
-    width: 100%;
-    height: 0pt;
-    border-top: 1.5pt solid #ffffff33;
-    background: #ffffff33;
-    border-radius: 4pt;
-    position: relative;
-    margin-bottom: 2em;
-}
-
-.name-title.animate-appear {
-    animation-iteration-count: 1;
-    animation-delay: 1.5s;
-    animation: generic-appear 1s ease-in-out;
-    -webkit-animation: generic-appear 1s ease-in-out;
-}
-
-.text-sep {
-    width: 3pt;
-    height: 3pt;
-    display: inline-block;
-    background: white;
-    margin: 0 25pt;
-    border-radius: 10pt;
-    transition:
-        margin 2s ease-in-out;
-}
-
-.name-title {
-    position: relative;
-    font-family: 'Montserrat', sans-serif;
-    color: white;
-    font-weight: 200;
-    font-size: 27pt;
-    margin-left: 10pt;
-    margin-right: 10pt;
-    text-align: center;
-    min-width: 100%;
-    width: auto;
-    margin-top: 1em;
-    transition:
-        font-size 2s ease-in-out,
-        font-weight 2s ease-in-out,
-        min-width 2s ease-in-out,
-        margin-top 2s ease-in-out;
-}
-
-.animated-line {
-    opacity: 1;
-    margin-top: 3em;
-    width: 100%;
-    transition:
-        margin-top 2s ease-in-out,
-        opacity 1s ease-in-out,
-        width 1s ease-in-out;
-}
-
 /* reference for this: https://letswp.justifiedgrid.com/animate-svg-lines-closed-paths-dash-attributes/ */
 
 @keyframes inside-out {
@@ -225,118 +137,6 @@ svg .anim * {
     stroke-dashoffset: 0%;
     animation: inside-out 5s ease-in-out;
 }
-
-.overlay-wrapper {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 100vw;
-}
-
-.button-set {
-    flex: 1;
-    padding: 0 3em;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding-bottom: 1em;
-    margin-top: 1em;
-}
-
-.middle-set {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.left-set {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: start;
-}
-
-.right-set {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: end;
-}
-
-.button {
-    background-color: white;
-    color: black;
-    mix-blend-mode: screen;
-    position: relative;
-    font-family: 'Montserrat', sans-serif;
-    outline: none;
-    border: 0;
-    margin: 1em;
-    font-size: 1.1em;
-    cursor: pointer;
-    text-transform: uppercase;
-    height: 2.2em;
-    width: 10em;
-
-}
-
-.button.animate-appear {
-    animation-iteration-count: 1;
-    animation-delay: 2.5s;
-    animation: generic-appear 1s ease-in-out;
-    -webkit-animation: generic-appear 1s ease-in-out;
-}
-
-.side-button {
-    outline: 0;
-    border: 1pt solid white;
-    background-color: transparent;
-    font-family: 'Montserrat', sans-serif;
-    font-weight: 200;
-    color: white;
-    border-radius: 40pt;
-    font-size: 8pt;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 0.5em;
-    padding-right: 1em;
-    padding-bottom: 0.5em;
-    padding-left: 1em;
-    cursor: pointer;
-    width: max-content;
-    text-decoration: none;
-    text-align: center;
-}
-
-.side-button-text {
-    margin-left: auto;
-    margin-right: auto;
-}
-.side-button.github .side-button-text {
-    width: 68pt;
-}
-
-.side-button.animate-appear {
-    animation-iteration-count: 1;
-    animation-delay: 2.75s;
-    animation: generic-appear 1s ease-in-out;
-    -webkit-animation: generic-appear 1s ease-in-out;
-}
-
-.side-button img {
-    width: 2em;
-    margin-right: auto;
-    padding-right: 0.75em;
-}
-
-.button-container {
-    position: relative;
-    cursor: pointer;
-    width: min-content;
-}
-
 
 @keyframes generic-appear {
     0% {
@@ -407,25 +207,6 @@ svg .anim * {
 }
 
 
-.icon-button-container {
-    cursor: pointer;
-}
-
-.icon-button {
-    background-color: transparent;
-    outline: 0;
-    border-radius: 100pt;
-    border: 1pt solid white;
-    cursor: pointer;
-    width: 3.5rem;
-    height: 3.5rem;
-}
-
-.icon-button img {
-    width: 100%;
-    height: 100%;
-}
-
 .controls-explain {
     display: flex;
     justify-content: center;
@@ -433,12 +214,14 @@ svg .anim * {
 }
 
 .col {
-    flex: 1;
+    flex: 0 0 auto;
 }
 
 .control-explanation {
     color: white;
-    margin-left: 1em;
+    margin-left: 0.6em;
+    margin-right: 1.4em;
+    white-space: nowrap;
 }
 
 .key-display {
@@ -458,50 +241,29 @@ svg .anim * {
 }
 
 
-/** while looking at the "about me" page */
-
-.logo-container.panel-shown {
-    margin-top: 7vh;
-    margin-left: 31%;
-    margin-right: auto;
-    min-width: 0%;
-    width: auto;
-}
-
-.logo-container.panel-shown .logo-primary {
-    width: 120%;
-}
-
-.logo-container.panel-shown .name-title {
-    font-size: 16pt;
-    font-weight: 300;
-    min-width: 0%;
-    margin-top: 0.5em;
-}
-
-.logo-container.panel-shown .animated-line {
-    margin-top: 0em;
-    width: 0%;
-    opacity: 0;
-}
-
-.logo-container.panel-shown .text-sep {
-    margin: 0 10pt;
-}
-
 /* Generic text panel */
 
 .text-panel {
     background: #3434341c;
     /* box-shadow: 0px 20px 20px #59272742; */
     line-height: 20pt;
-    margin: auto;
     backdrop-filter: blur(14px);
     border-radius: 2pt;
 }
 
 .text-panel-content {
-    padding: 2.5em 5em;
+    padding: 2.25rem 2.75rem;
+}
+
+.line {
+    display: block;
+    width: 100%;
+    height: 0pt;
+    border-top: 1.5pt solid #ffffff33;
+    background: #ffffff33;
+    border-radius: 4pt;
+    position: relative;
+    margin-bottom: 2em;
 }
 
 .about-me-title {
@@ -509,23 +271,20 @@ svg .anim * {
 }
 
 .hidden-panel {
-    /* overflow: hidden; */
-    clip-path: xywh(0 -20% 100% 120%);
-    position: relative;
-    opacity: 1;
-    display: block;
-    height: 0vh;
-    width: 40%;
-    margin: auto;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(1.5rem);
     transition:
-        opacity 2s ease-in-out,
-        height 2s ease-in-out;
+        opacity 1s ease-in-out,
+        transform 1s ease-in-out,
+        visibility 0s linear 1s;
 }
 
 .hidden-panel.show {
-    display: block;
     opacity: 1;
-    height: 69vh;
+    visibility: visible;
+    transform: none;
+    transition-delay: 0s;
 }
 
 .profile-pic img {
@@ -534,15 +293,12 @@ svg .anim * {
 }
 
 .profile-pic {
-    position: absolute;
-    right: 0;
-    top: 0;
+    float: right;
     border-radius: 100%;
     overflow: hidden;
-    transform: translate(-50%, -40%);
-    z-index: 100;
-    width: 10rem;
-    height: 10rem;
+    width: 5.5rem;
+    height: 5.5rem;
+    margin: 0 0 1rem 1.5rem;
 }
 
 h1 {
@@ -608,979 +364,276 @@ a.contact-item:hover .contact-text:after {
 
 
 .flip-panel {
-  background-color: transparent;
-  perspective: 1000px; /* Remove this if you don't want the 3D effect */
-  transition: all 2s ease-in-out;
+    perspective: 1600px;
 }
 
 .flip-panel-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
+    display: grid;
     transition: transform 0.8s;
     transform-style: preserve-3d;
-    transform-origin: center right;
 }
 
 .flip-panel.flipped .flip-panel-inner {
-    transform: translateX(-100%) rotateY(-180deg);
+    transform: rotateY(-180deg);
 }
 
 .flip-panel-front, .flip-panel-back {
-    position: absolute;
-    width: 100%;
-    height: 100%;
+    /* both faces share one grid cell so the panel sizes to the taller one */
+    grid-area: 1 / 1;
     -webkit-backface-visibility: hidden; /* Safari */
     backface-visibility: hidden;
 }
 
-/* .flip-panel-front {
-    background-color: red;
-} */
-
 .flip-panel-back {
-    /* background-color: dodgerblue; */
     color: white;
     transform: rotateY(180deg);
 }
 
 
-/*
-reference: https://codepen.io/fearOfCode/pen/PoMyKQ
-*/
+/* HUD layout: wordmark top-right, nav bottom-right, panels bottom-left */
 
-.glitch .glitch-target {
-    transform: skewX(0deg) scaleY(1);
-    /* -webkit-animation: glitch-target-anim 4s linear infinite;
-    animation: glitch-target-anim 4s linear infinite; */
+.hud {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    padding: 3.5rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
+    column-gap: 3rem;
+    row-gap: 2rem;
+    /* only the actual UI takes clicks, the rest falls through to the scene */
+    pointer-events: none;
 }
 
-.glitch:hover .glitch-target {
-    -webkit-animation: glitch-target-anim 4s linear infinite;
-    animation: glitch-target-anim 4s linear infinite;
+.hud > * {
+    pointer-events: auto;
 }
 
-@-webkit-keyframes glitch-target-anim {
-    0% {
-      transform: translate(5px, 2px);
-    }
-    2% {
-      transform: translate(1px, 5px);
-    }
-    4% {
-      transform: translate(1px, 5px);
-    }
-    6% {
-      transform: translate(3px, 4px);
-    }
-    8% {
-      transform: translate(2px, 1px);
-    }
-    10% {
-      transform: translate(5px, 5px);
-    }
-    12% {
-      transform: translate(5px, 3px);
-    }
-    14.000000000000002% {
-      transform: translate(2px, 4px);
-    }
-    16% {
-      transform: translate(2px, 1px);
-    }
-    18% {
-      transform: translate(4px, 5px);
-    }
-    20% {
-      transform: translate(3px, 1px);
-    }
-    22% {
-      transform: translate(3px, 5px);
-    }
-    24% {
-      transform: translate(4px, 3px);
-    }
-    26% {
-      transform: translate(5px, 3px);
-    }
-    28.000000000000004% {
-      transform: translate(5px, 5px);
-    }
-    30% {
-      transform: translate(2px, 5px);
-    }
-    32% {
-      transform: translate(5px, 4px);
-    }
-    34% {
-      transform: translate(2px, 4px);
-    }
-    36% {
-      transform: translate(1px, 3px);
-    }
-    38% {
-      transform: translate(3px, 5px);
-    }
-    40% {
-      transform: translate(1px, 5px);
-    }
-    42% {
-      transform: translate(4px, 5px);
-    }
-    44% {
-      transform: translate(3px, 1px);
-    }
-    46.00000000000001% {
-      transform: translate(3px, 2px);
-    }
-    48% {
-      transform: translate(4px, 5px);
-    }
-    50% {
-      transform: translate(1px, 1px);
-    }
-    52% {
-      transform: translate(1px, 1px);
-    }
-    54% {
-      transform: translate(4px, 1px);
-    }
-    56.00000000000001% {
-      transform: translate(1px, 1px);
-    }
-    58% {
-      transform: translate(2px, 2px);
-    }
-    60% {
-      transform: translate(5px, 5px);
-    }
-    62% {
-      transform: translate(4px, 1px);
-    }
-    64% {
-      transform: translate(2px, 3px);
-    }
-    66% {
-      transform: translate(3px, 4px);
-    }
-    68% {
-      transform: translate(4px, 2px);
-    }
-    70.00000000000001% {
-      transform: translate(3px, 2px);
-    }
-    72% {
-      transform: translate(3px, 3px);
-    }
-    74% {
-      transform: translate(2px, 4px);
-    }
-    76% {
-      transform: translate(4px, 2px);
-    }
-    78% {
-      transform: translate(1px, 5px);
-    }
-    80% {
-      transform: translate(2px, 1px);
-    }
-    82.00000000000001% {
-      transform: translate(5px, 5px);
-    }
-    84% {
-      transform: translate(2px, 1px);
-    }
-    86% {
-      transform: translate(2px, 2px);
-    }
-    88% {
-      transform: translate(4px, 4px);
-    }
-    90% {
-      transform: translate(4px, 1px);
-    }
-    92.00000000000001% {
-      transform: translate(4px, 2px);
-    }
-    94% {
-      transform: translate(3px, 1px);
-    }
-    96% {
-      transform: translate(1px, 3px);
-    }
-    98% {
-      transform: translate(2px, 4px);
-    }
-    100% {
-      transform: translate(4px, 2px);
-    }
-    1% {
-      transform: scaleY(1) skewX(0deg);
-    }
-    1.5% {
-      transform: scaleY(3) skewX(-60deg);
-    }
-    2% {
-      transform: scaleY(1) skewX(0deg);
-    }
-    51% {
-      transform: scaleX(1) scaleY(1) skewX(0deg);
-    }
-    52% {
-      transform: scaleX(1.5) scaleY(0.2) skewX(80deg);
-    }
-    53% {
-      transform: scaleX(1) scaleY(1) skewX(0deg);
-    }
-  }
-@keyframes glitch-target-anim {
-    0% {
-      transform: translate(5px, 2px);
-    }
-    2% {
-      transform: translate(1px, 5px);
-    }
-    4% {
-      transform: translate(1px, 5px);
-    }
-    6% {
-      transform: translate(3px, 4px);
-    }
-    8% {
-      transform: translate(2px, 1px);
-    }
-    10% {
-      transform: translate(5px, 5px);
-    }
-    12% {
-      transform: translate(5px, 3px);
-    }
-    14.000000000000002% {
-      transform: translate(2px, 4px);
-    }
-    16% {
-      transform: translate(2px, 1px);
-    }
-    18% {
-      transform: translate(4px, 5px);
-    }
-    20% {
-      transform: translate(3px, 1px);
-    }
-    22% {
-      transform: translate(3px, 5px);
-    }
-    24% {
-      transform: translate(4px, 3px);
-    }
-    26% {
-      transform: translate(5px, 3px);
-    }
-    28.000000000000004% {
-      transform: translate(5px, 5px);
-    }
-    30% {
-      transform: translate(2px, 5px);
-    }
-    32% {
-      transform: translate(5px, 4px);
-    }
-    34% {
-      transform: translate(2px, 4px);
-    }
-    36% {
-      transform: translate(1px, 3px);
-    }
-    38% {
-      transform: translate(3px, 5px);
-    }
-    40% {
-      transform: translate(1px, 5px);
-    }
-    42% {
-      transform: translate(4px, 5px);
-    }
-    44% {
-      transform: translate(3px, 1px);
-    }
-    46.00000000000001% {
-      transform: translate(3px, 2px);
-    }
-    48% {
-      transform: translate(4px, 5px);
-    }
-    50% {
-      transform: translate(1px, 1px);
-    }
-    52% {
-      transform: translate(1px, 1px);
-    }
-    54% {
-      transform: translate(4px, 1px);
-    }
-    56.00000000000001% {
-      transform: translate(1px, 1px);
-    }
-    58% {
-      transform: translate(2px, 2px);
-    }
-    60% {
-      transform: translate(5px, 5px);
-    }
-    62% {
-      transform: translate(4px, 1px);
-    }
-    64% {
-      transform: translate(2px, 3px);
-    }
-    66% {
-      transform: translate(3px, 4px);
-    }
-    68% {
-      transform: translate(4px, 2px);
-    }
-    70.00000000000001% {
-      transform: translate(3px, 2px);
-    }
-    72% {
-      transform: translate(3px, 3px);
-    }
-    74% {
-      transform: translate(2px, 4px);
-    }
-    76% {
-      transform: translate(4px, 2px);
-    }
-    78% {
-      transform: translate(1px, 5px);
-    }
-    80% {
-      transform: translate(2px, 1px);
-    }
-    82.00000000000001% {
-      transform: translate(5px, 5px);
-    }
-    84% {
-      transform: translate(2px, 1px);
-    }
-    86% {
-      transform: translate(2px, 2px);
-    }
-    88% {
-      transform: translate(4px, 4px);
-    }
-    90% {
-      transform: translate(4px, 1px);
-    }
-    92.00000000000001% {
-      transform: translate(4px, 2px);
-    }
-    94% {
-      transform: translate(3px, 1px);
-    }
-    96% {
-      transform: translate(1px, 3px);
-    }
-    98% {
-      transform: translate(2px, 4px);
-    }
-    100% {
-      transform: translate(4px, 2px);
-    }
-    1% {
-      transform: scaleY(1) skewX(0deg);
-    }
-    1.5% {
-      transform: scaleY(3) skewX(-60deg);
-    }
-    2% {
-      transform: scaleY(1) skewX(0deg);
-    }
-    51% {
-      transform: scaleX(1) scaleY(1) skewX(0deg);
-    }
-    52% {
-      transform: scaleX(1.5) scaleY(0.2) skewX(80deg);
-    }
-    53% {
-      transform: scaleX(1) scaleY(1) skewX(0deg);
-    }
+.hud .hidden-panel {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    align-self: end;
+    justify-self: start;
+    width: min(44rem, 100%);
+    max-height: 100%;
+    overflow-y: auto;
 }
 
-.glitch .clone-1,
-.glitch .clone-2 {
-  display: block;
-  content: "";
-  position: absolute;
-  top: 0;
-  color: #fff;
-  overflow: hidden;
-  width: 100%;
-  height: 100%;
-  clip: rect(0, 900px, 0, 0);
+.hud .hidden-panel:not(.show) {
+    pointer-events: none;
 }
 
-.glitch .clone-1 {
-    left: -2px;
-    text-shadow: 2px 0 #00f7ff;
+.logo-container {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+    justify-self: end;
+    width: min(30rem, 40vw);
 }
 
-.glitch:hover .clone-1 {
-    -webkit-animation: c2 1s infinite linear alternate-reverse;
-    animation: c2 1s infinite linear alternate-reverse;
+.logo-primary {
+    display: block;
+    cursor: pointer;
+    width: 100%;
 }
 
-.glitch .clone-1 img {
-    filter: drop-shadow(3px 0px 0px #00f7ff);
+.logo-primary.animate-appear, .name-title.animate-appear, .nav .animate-appear {
+    animation: generic-appear 1s ease-in-out;
+    -webkit-animation: generic-appear 1s ease-in-out;
 }
 
-.clone-1 .button.glitch-target {
-    box-shadow: 7px 2px 0 2px #00f7ff;
-    mix-blend-mode: unset;
-    background-color: white;
-    color: #00f7ff;
-    font-weight: 900;
+.name-title {
+    color: white;
+    font-weight: 300;
+    font-size: 1.35rem;
+    letter-spacing: 0.02em;
+    margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
 }
 
-.glitch .clone-1, .glitch .clone-2 {
-    overflow: visible;
+.text-sep {
+    width: 3pt;
+    height: 3pt;
+    display: inline-block;
+    background: white;
+    margin: 0 0.9rem;
+    border-radius: 10pt;
 }
 
-.clone-1 .side-button {
-    box-shadow: 7px 1px 0 1px #00f7ff;
+.nav {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
 }
 
-.glitch .clone-2 {
-    left: 3px;
-    text-shadow: -2px 0 #ff4800;
-}
-
-.clone-2 .button.glitch-target {
-    box-shadow: 2px 2px 0 2px #ff4800;
-    mix-blend-mode: unset;
-    background-color: white;
-    color: #ff4800;
-}
-
-.clone-2 .side-button {
-    box-shadow: 2px -2px 0 1px #ff4800;
+.nav-primary, .nav-secondary {
+    display: flex;
+    gap: 1rem;
 }
 
 
-.glitch:hover .clone-2 {
-    -webkit-animation: c1 2s infinite linear alternate-reverse;
-    animation: c1 2s infinite linear alternate-reverse;
+/* Grainy buttons: the fill is run through the #grain-edge SVG filter (index.html) so its edges dissolve into grain */
+
+.grain-button {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6em;
+    padding: 0.75em 1.5em;
+    border: 0;
+    outline: 0;
+    background: none;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 400;
+    font-size: 0.9rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
 }
 
-.glitch .clone-2 img {
-    filter: drop-shadow(3px 0px 0px #ff4800);
+/* ::before is the grainy idle fill, ::after the crisp hover fill; CSS can't animate between filters, so they crossfade */
+.grain-button::before, .grain-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--grain-fill-color, #4e5256);
+    transition: opacity var(--grain-hover-transition, 400ms) ease;
 }
 
-@-webkit-keyframes c1 {
-    0% {
-      clip: rect(18px, 9999px, 26px, 0);
-    }
-    5% {
-      clip: rect(96px, 9999px, 28px, 0);
-    }
-    10% {
-      clip: rect(31px, 9999px, 50px, 0);
-    }
-    15.000000000000002% {
-      clip: rect(16px, 9999px, 22px, 0);
-    }
-    20% {
-      clip: rect(58px, 9999px, 41px, 0);
-    }
-    25% {
-      clip: rect(90px, 9999px, 67px, 0);
-    }
-    30.000000000000004% {
-      clip: rect(62px, 9999px, 53px, 0);
-    }
-    35.00000000000001% {
-      clip: rect(88px, 9999px, 71px, 0);
-    }
-    40% {
-      clip: rect(82px, 9999px, 34px, 0);
-    }
-    45% {
-      clip: rect(69px, 9999px, 28px, 0);
-    }
-    50% {
-      clip: rect(47px, 9999px, 74px, 0);
-    }
-    55% {
-      clip: rect(76px, 9999px, 84px, 0);
-    }
-    60.00000000000001% {
-      clip: rect(66px, 9999px, 34px, 0);
-    }
-    65% {
-      clip: rect(16px, 9999px, 61px, 0);
-    }
-    70.00000000000001% {
-      clip: rect(42px, 9999px, 67px, 0);
-    }
-    75% {
-      clip: rect(22px, 9999px, 62px, 0);
-    }
-    80% {
-      clip: rect(83px, 9999px, 6px, 0);
-    }
-    85% {
-      clip: rect(3px, 9999px, 37px, 0);
-    }
-    90% {
-      clip: rect(33px, 9999px, 4px, 0);
-    }
-    95% {
-      clip: rect(78px, 9999px, 55px, 0);
-    }
-    100% {
-      clip: rect(93px, 9999px, 94px, 0);
-    }
-}
-@keyframes c1 {
-    0% {
-      clip: rect(18px, 9999px, 26px, 0);
-    }
-    5% {
-      clip: rect(96px, 9999px, 28px, 0);
-    }
-    10% {
-      clip: rect(31px, 9999px, 50px, 0);
-    }
-    15.000000000000002% {
-      clip: rect(16px, 9999px, 22px, 0);
-    }
-    20% {
-      clip: rect(58px, 9999px, 41px, 0);
-    }
-    25% {
-      clip: rect(90px, 9999px, 67px, 0);
-    }
-    30.000000000000004% {
-      clip: rect(62px, 9999px, 53px, 0);
-    }
-    35.00000000000001% {
-      clip: rect(88px, 9999px, 71px, 0);
-    }
-    40% {
-      clip: rect(82px, 9999px, 34px, 0);
-    }
-    45% {
-      clip: rect(69px, 9999px, 28px, 0);
-    }
-    50% {
-      clip: rect(47px, 9999px, 74px, 0);
-    }
-    55% {
-      clip: rect(76px, 9999px, 84px, 0);
-    }
-    60.00000000000001% {
-      clip: rect(66px, 9999px, 34px, 0);
-    }
-    65% {
-      clip: rect(16px, 9999px, 61px, 0);
-    }
-    70.00000000000001% {
-      clip: rect(42px, 9999px, 67px, 0);
-    }
-    75% {
-      clip: rect(22px, 9999px, 62px, 0);
-    }
-    80% {
-      clip: rect(83px, 9999px, 6px, 0);
-    }
-    85% {
-      clip: rect(3px, 9999px, 37px, 0);
-    }
-    90% {
-      clip: rect(33px, 9999px, 4px, 0);
-    }
-    95% {
-      clip: rect(78px, 9999px, 55px, 0);
-    }
-    100% {
-      clip: rect(93px, 9999px, 94px, 0);
-    }
-}
-@-webkit-keyframes c2 {
-    0% {
-      clip: rect(97px, 9999px, 2px, 0);
-    }
-    5% {
-      clip: rect(54px, 9999px, 95px, 0);
-    }
-    10% {
-      clip: rect(1px, 9999px, 1px, 0);
-    }
-    15.000000000000002% {
-      clip: rect(12px, 9999px, 84px, 0);
-    }
-    20% {
-      clip: rect(55px, 9999px, 48px, 0);
-    }
-    25% {
-      clip: rect(15px, 9999px, 18px, 0);
-    }
-    30.000000000000004% {
-      clip: rect(12px, 9999px, 31px, 0);
-    }
-    35.00000000000001% {
-      clip: rect(65px, 9999px, 80px, 0);
-    }
-    40% {
-      clip: rect(61px, 9999px, 21px, 0);
-    }
-    45% {
-      clip: rect(47px, 9999px, 54px, 0);
-    }
-    50% {
-      clip: rect(77px, 9999px, 85px, 0);
-    }
-    55% {
-      clip: rect(12px, 9999px, 17px, 0);
-    }
-    60.00000000000001% {
-      clip: rect(37px, 9999px, 64px, 0);
-    }
-    65% {
-      clip: rect(7px, 9999px, 64px, 0);
-    }
-    70.00000000000001% {
-      clip: rect(92px, 9999px, 82px, 0);
-    }
-    75% {
-      clip: rect(57px, 9999px, 94px, 0);
-    }
-    80% {
-      clip: rect(20px, 9999px, 7px, 0);
-    }
-    85% {
-      clip: rect(85px, 9999px, 100px, 0);
-    }
-    90% {
-      clip: rect(67px, 9999px, 2px, 0);
-    }
-    95% {
-      clip: rect(22px, 9999px, 64px, 0);
-    }
-    100% {
-      clip: rect(9px, 9999px, 76px, 0);
-    }
-    23% {
-      transform: scaleX(0.8);
-    }
-}
-@keyframes c2 {
-    0% {
-      clip: rect(97px, 9999px, 2px, 0);
-    }
-    5% {
-      clip: rect(54px, 9999px, 95px, 0);
-    }
-    10% {
-      clip: rect(1px, 9999px, 1px, 0);
-    }
-    15.000000000000002% {
-      clip: rect(12px, 9999px, 84px, 0);
-    }
-    20% {
-      clip: rect(55px, 9999px, 48px, 0);
-    }
-    25% {
-      clip: rect(15px, 9999px, 18px, 0);
-    }
-    30.000000000000004% {
-      clip: rect(12px, 9999px, 31px, 0);
-    }
-    35.00000000000001% {
-      clip: rect(65px, 9999px, 80px, 0);
-    }
-    40% {
-      clip: rect(61px, 9999px, 21px, 0);
-    }
-    45% {
-      clip: rect(47px, 9999px, 54px, 0);
-    }
-    50% {
-      clip: rect(77px, 9999px, 85px, 0);
-    }
-    55% {
-      clip: rect(12px, 9999px, 17px, 0);
-    }
-    60.00000000000001% {
-      clip: rect(37px, 9999px, 64px, 0);
-    }
-    65% {
-      clip: rect(7px, 9999px, 64px, 0);
-    }
-    70.00000000000001% {
-      clip: rect(92px, 9999px, 82px, 0);
-    }
-    75% {
-      clip: rect(57px, 9999px, 94px, 0);
-    }
-    80% {
-      clip: rect(20px, 9999px, 7px, 0);
-    }
-    85% {
-      clip: rect(85px, 9999px, 100px, 0);
-    }
-    90% {
-      clip: rect(67px, 9999px, 2px, 0);
-    }
-    95% {
-      clip: rect(22px, 9999px, 64px, 0);
-    }
-    100% {
-      clip: rect(9px, 9999px, 76px, 0);
-    }
-    23% {
-      transform: scaleX(0.8);
-    }
+.grain-button::before {
+    opacity: var(--grain-fill-opacity, 0.45);
+    filter: url(#grain-edge);
 }
 
-/* Mobile support, kind of */
-
-@media (max-width: 1890px) {
-    .hidden-panel {
-        width: 50%;
-    }
-
-    .logo-container.panel-shown {
-        margin-left: 26%;
-    }
+.grain-button::after {
+    opacity: 0;
+    filter: url(#grain-edge-crisp);
 }
 
-@media (max-width: 1600px) {
-    .hidden-panel {
-        width: 60%;
-    }
-
-    .logo-container.panel-shown {
-        margin-left: 20%;
-    }
-
-    .side-button-text {
-        font-size: 10pt;
-    }
-
-    .side-button.github .side-button-text {
-        width: 100pt;
-    }
+.grain-button[aria-current="page"]::before {
+    opacity: var(--grain-fill-opacity-hover, 0.7);
 }
 
-@media (max-width: 1320px) {
-    .hidden-panel {
-        width: 75%;
-    }
-
-    .logo-container.panel-shown {
-        margin-left: 15%;
-    }
-
-    .side-button {
-        font-size: 10pt;
-    }
-
-    .button {
-        font-size: 14pt;
-    }
+.grain-button:hover::before, .grain-button:focus-visible::before {
+    opacity: 0;
 }
 
-@media (max-width: 1080px) {
-    .button {
-        font-size: 16pt;
-    }
-
-    .hidden-panel {
-        width: 90%;
-    }
-
-    .logo-container.panel-shown {
-        margin-left: 5%;
-    }
-
-    .button-set {
-        flex-wrap: wrap;
-    }
-
-    .button-set > .middle-set {
-        order: 1;
-        flex-basis: 100%;
-    }
-
-    .button-set > .left-set {
-        order: 2;
-        flex-basis: 50%;
-        justify-content: center;
-    }
-
-    .button-set > .right-set {
-        order: 3;
-        flex-basis: 50%;
-        justify-content: center;
-    }
-
-    .left-set > .button-container, .right-set > .button-container {
-        width: 100%;
-        margin-top: 0.5em;
-        margin-bottom: 0.5em;
-        margin-left: 8em;
-        margin-right: 8em;
-        display: flex;
-    }
-
-    .left-set > .button-container {
-        margin-right: 1em;
-    }
-
-    .right-set > .button-container {
-        margin-left: 1em;
-    }
-
-    .side-button {
-        width: 100%;
-    }
-
-    .side-button.github .side-button-text {
-        width: 100%;
-    }
-
-    .side-button img {
-        margin-right: initial;
-    }
+.grain-button:hover::after, .grain-button:focus-visible::after {
+    opacity: var(--grain-fill-opacity-hover, 0.7);
 }
 
-@media (max-width: 1000px) {
+.grain-button[aria-current="page"] {
+    font-weight: 500;
+}
 
-    .left-set > .button-container {
-        margin-left: 2em;
-        margin-bottom: 2em;
-    }
+/* wide, letterboxed main nav */
+.grain-button.wide {
+    min-width: 11.5rem;
+    justify-content: center;
+    padding: 0.85em 1.5em;
+    font-weight: 300;
+    letter-spacing: 0.32em;
+    /* letter-spacing adds trailing space after the last letter, pull it back so the text stays centred */
+    text-indent: 0.32em;
+}
 
-    .right-set > .button-container {
-        margin-right: 2em;
-        margin-bottom: 2em;
+.grain-button.small {
+    font-size: 0.72rem;
+    padding: 0.6em 1.2em;
+    letter-spacing: 0.1em;
+}
+
+.grain-button img {
+    width: 1.3em;
+    height: 1.3em;
+}
+
+.grain-button.round {
+    width: 3.5rem;
+    height: 3.5rem;
+    padding: 0.9rem;
+    justify-content: center;
+}
+
+.grain-button.round::before, .grain-button.round::after {
+    border-radius: 100%;
+}
+
+.grain-button.round img {
+    width: 100%;
+    height: 100%;
+}
+
+
+/* Smaller screens: stack everything in one column */
+
+@media (max-width: 900px) {
+    .hud {
+        padding: 2rem 1.75rem;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr) auto;
+        row-gap: 1.5rem;
     }
 
     .logo-container {
-        margin-left: 5%;
-        margin-right: 5%;
-        min-width: 90%;
+        grid-column: 1;
+        width: min(30rem, 100%);
     }
 
-    .button {
-        font-size: 20pt;
-        margin: 1em;
+    .hud .hidden-panel {
+        grid-row: 2;
     }
 
-    .button-set {
-        padding: 0;
+    .nav {
+        grid-column: 1;
+        grid-row: 3;
+        align-items: flex-start;
     }
 
-    .side-button {
-        font-size: 14pt;
-    }
-
-    .button-set {
-        overflow: hidden;
-        margin-top: 2em;
-    }
-
-    .hidden-panel.show {
-        height: 65vh;
-    }
-
-    .text-panel-content p, .text-panel-content .contact-text {
-        font-size: 14pt;
-    }
-
-    .logo-container.panel-shown .logo-primary {
-        width: 150%;
-    }
-}
-
-@media (max-width: 860px) {
-    .profile-pic {
-        transform: translate(-20%, -35%);
-    }
-
-    .logo-container.panel-shown {
-        margin-top: 4vh;
-    }
-    .text-panel-content {
-        padding: 1em 2em;
-    }
-
-    .text-panel-content p, .text-panel-content .contact-text {
-        font-size: 14pt;
-    }
-
-    .logo-container.panel-shown .name-title {
-        font-size: 20pt;
-    }
-
-    .button {
-        margin: 0 0.25em;
-        font-size: 17pt;
-    }
-
-    .side-button {
-        font-size: 12pt;
-    }
-
-    .left-set > .button-container {
-        margin-right: 0.5em;
-    }
-
-    .right-set > .button-container {
-        margin-left: 0.5em;
-    }
-
-    .left-set > .button-container, .right-set > .button-container {
-        margin-top: 1em;
-    }
-
-    .hidden-panel.show {
-        height: 56vh;
-    }
-
-    .profile-pic {
-        width: 8rem;
-        height: 8rem;
-    }
-}
-
-@media (max-width: 660px) {
-    .text-panel-content p, .text-panel-content .contact-text {
-        font-size: 14pt;
-    }
-
-    .middle-set {
+    .nav-primary {
         flex-wrap: wrap;
-        margin-bottom: 1em;
     }
 
-    .middle-set > .button-container {
-        flex-basis: 100%;
-        margin: 0.25em 1em;
-        display: flex;
+    .grain-button.wide {
+        min-width: 0;
+        flex: 1;
     }
 
-    .middle-set > .button-container .button {
-        width: 100%;
+    .text-panel-content {
+        padding: 1.5rem;
     }
 
-    .left-set, .right-set {
-        display: none;
+    .profile-pic {
+        width: 4rem;
+        height: 4rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .name-title {
+        font-size: 1rem;
     }
 
-    .button {
-        font-size: 14pt;
+    .grain-button {
+        font-size: 0.8rem;
+        padding: 0.7em 1.1em;
+    }
+
+    .grain-button.wide {
+        letter-spacing: 0.18em;
+        text-indent: 0.18em;
     }
 
     .text-panel-content p, .text-panel-content .contact-text {
@@ -1588,129 +641,11 @@ reference: https://codepen.io/fearOfCode/pen/PoMyKQ
         line-height: 1.6;
     }
 
-    .about-me-title {
-        margin-bottom: 0.6em;
-    }
-
-    .line {
-        margin-bottom: 0.5em;
-    }
-
-    .text-panel-content {
-        padding: 1.5em;
-    }
-
-    .button-set {
-        margin-top: 1.5em;
-    }
-
     h1 {
         font-size: 18pt;
     }
-
-    .profile-pic {
-        width: 6rem;
-        height: 6rem;
-        transform: translate(-20%, -25%);
-    }
-
-    .logo-container.panel-shown {
-        margin-top: 4vh;
-        margin-left: 4%;
-    }
-
-    .logo-container.panel-shown .name-title {
-        font-size: 14pt;
-    }
-
-    .logo-container.panel-shown .logo-primary {
-        width: 110%;
-    }
-
-    .name-title {
-        font-size: 15pt;
-        margin-left: 0pt;
-        margin-right: 0pt;
-        margin-top: 0.5em;
-    }
-
-    .text-sep {
-        margin: 0 8pt;
-    }
-
-    .animated-line {
-        margin-top: 1em;
-    }
-
-    .logo-container {
-        margin-top: 30vh;
-    }
 }
 
-@media (max-width: 380px) {
-
-    .text-panel-content p, .text-panel-content .contact-text {
-        font-size: 9pt;
-        line-height: 1.6;
-    }
-
-    .button-set {
-        margin-top: 0.5em;
-    }
-
-    .button {
-        font-size: 12pt;
-    }
-
-    .contact-items {
-        margin-top: 1em;
-    }
-
-    .text-panel-content {
-        padding: 1.1em;
-    }
-
-    .profile-pic {
-        width: 4rem;
-        height: 4rem;
-        transform: translate(-40%, -20%);
-    }
-
-    .contact-item {
-        margin-bottom: 0.5em;
-    }
-
-    .hidden-panel.show {
-        height: 62vh;
-    }
-
-    .about-me-title {
-        margin-top: 0.2em;
-    }
-
-    .logo-container.panel-shown .name-title {
-        font-size: 12pt;
-    }
-
-    .logo-container.panel-shown .text-sep {
-        margin: 0 5pt;
-        width: 1.5pt;
-        height: 1.5pt;
-    }
-
-    .logo-container {
-        margin-top: 25vh;
-    }
-
-    .logo-container.panel-shown .logo-primary {
-        width: 100%;
-    }
-
-    .logo-container.panel-shown {
-        width: 92vw;
-    }
-
-    .contact-me-title {
-        margin-top: 0.25em;
-    }
+.svg-defs {
+    position: absolute;
 }

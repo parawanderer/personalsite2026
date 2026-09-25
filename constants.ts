@@ -4,6 +4,9 @@ import { Color } from "./utils/color";
 // show debug stuff
 export const DEBUG = false;
 
+// hand-tweaking panel, also available via ?tweaks in the URL
+export const TWEAKS_ENABLED = DEBUG || new URLSearchParams(window.location.search).has('tweaks');
+
 export const TITLE_HOME = "Home";
 export const TITLE_ABOUT_ME = "About Me";
 export const TITLE_CONTACT = "Contact";
@@ -20,14 +23,29 @@ export const CAMERA_INITIAL_X = 0;
 export const CAMERA_INITIAL_Y = -0.53;
 export const CAMERA_INITIAL_Z = 5.24;
 
-export const CAMERA_SPEED = 2;
-export const CAMERA_LOOK_SPEED = 0.2;
+export interface FlightSettings {
+    /** horizontal speed, units per second */
+    moveSpeed: number;
+    verticalSpeed: number;
+    lookSensitivity: number;
+    /** seconds to ease into/out of movement */
+    smoothing: number;
+}
+
+export const FLIGHT_SETTINGS: FlightSettings = {
+    moveSpeed: 2,
+    verticalSpeed: 1.5,
+    lookSensitivity: 1,
+    smoothing: 0.15,
+};
 
 
 // camera:scene
 
-export const CAMERA_HOME_POS = new Vector3(CAMERA_INITIAL_X, CAMERA_INITIAL_Y, CAMERA_INITIAL_Z);
-export const CAMERA_HOME_DIR = new Vector3(CAMERA_INITIAL_X, CAMERA_INITIAL_Y, CAMERA_INITIAL_Z-1);
+// where the page loads and "Home" returns to; paste new values from the Camera folder of the tweak panel (?tweaks)
+export const CAMERA_HOME_POS = new Vector3(-2.4503, -0.4283, 4.6432);
+/** point the camera looks at */
+export const CAMERA_HOME_DIR = new Vector3(-1.8385, -0.6989, 3.9000);
 
 export const CAMERA_ABOUT_ME_X = -0.8113;
 export const CAMERA_ABOUT_ME_Y = -0.5845;
@@ -50,6 +68,48 @@ export const CAMERA_CONTACT_DIR = new Vector3(CAMERA_CONTACT_DIRECTION_X, CAMERA
 
 // VISUALS
 export const BACKGROUND_COLOR = Color.fromHex("#8dd1cd");
+
+// UI grain (see ui/grain.ts)
+export interface GrainStyle {
+    fillColor: string;
+    fillOpacity: number;
+    fillOpacityHover: number;
+    /** blur radius (px) the edge fades over */
+    edgeSoftness: number;
+    /** how hard the dithered edge is, higher = crisper grains */
+    edgeContrast: number;
+    /** how much the noise eats into the edge */
+    edgeGrain: number;
+    edgeGrainScale: number;
+    /** grain across the whole fill */
+    fineGrain: number;
+    fineGrainScale: number;
+    /** the hovered button pulls into focus: same knobs, crisper values */
+    hoverEdgeSoftness: number;
+    hoverEdgeGrain: number;
+    hoverFineGrain: number;
+    hoverTransitionMs: number;
+    animate: boolean;
+    animateFps: number;
+}
+
+export const GRAIN_STYLE: GrainStyle = {
+    fillColor: '#4e5256',
+    fillOpacity: 0.45,
+    fillOpacityHover: 0.7,
+    edgeSoftness: 5,
+    edgeContrast: 9,
+    edgeGrain: 0.8,
+    edgeGrainScale: 0.8,
+    fineGrain: 0.5,
+    fineGrainScale: 1.4,
+    hoverEdgeSoftness: 1,
+    hoverEdgeGrain: 0.2,
+    hoverFineGrain: 0.15,
+    hoverTransitionMs: 400,
+    animate: true,
+    animateFps: 12,
+};
 
 // fog
 export const FOG_COLOR = Color.fromHex('#1c1c1c');
@@ -84,6 +144,64 @@ export const PILLARS_FOG_FAR_COLOR = Color.fromHex("#8dd1cd");
 export const PILLARS_FOG_NOISE_FREQ = 0.26;
 export const PILLARS_FOG_NOISE_IMPACT = 0.3;
 export const PILLARS_FOG_NOISE_SPEED = 100;
+
+export interface PillarLayout {
+    /** when set, a new seed is rolled on every page load */
+    randomSeed: boolean;
+    seed: number;
+    /** random offset from the grid cell centre, as a fraction of the cell size */
+    jitter: number;
+    skipChance: number;
+    /** perturbs the distance to the water (in cells) so height bands don't follow the grid */
+    distanceNoise: number;
+    /** frequency of the noise fields, per cell */
+    noiseScale: number;
+    /** 0 = every pillar varies independently, 1 = neighbours lean/turn together */
+    clumpiness: number;
+    baseYVariance: number;
+    radiusMin: number;
+    radiusMax: number;
+    leanDeg: number;
+    leanVarianceDeg: number;
+    yawVarianceDeg: number;
+    rollVarianceDeg: number;
+    selfRotateDeg: number;
+    /** pillars passing within this distance of the home camera are cut down, so none fill the landing view */
+    cameraClearRadius: number;
+    cameraClearMaxHeight: number;
+    /** back-row pillars that pass behind the title in the home view are raised just enough to clear the top of the text, up to this */
+    titleFillMaxHeight: number;
+    /** extra room around the title, in normalised screen units (2 = full screen) */
+    titleFillMargin: number;
+    /** raised pillars get up to this fraction of extra height on top, so the skyline above the text stays ragged */
+    titleFillExtra: number;
+    /** raised pillars are thickened by this to close the gaps between them */
+    titleFillRadiusScale: number;
+}
+
+export const PILLAR_LAYOUT: PillarLayout = {
+    randomSeed: true,
+    seed: 1,
+    jitter: 0.35,
+    skipChance: 0.03,
+    distanceNoise: 1.0,
+    noiseScale: 0.15,
+    clumpiness: 0.6,
+    baseYVariance: 0.1,
+    radiusMin: 0.085,
+    radiusMax: 0.115,
+    leanDeg: 35,
+    leanVarianceDeg: 10,
+    yawVarianceDeg: 15,
+    rollVarianceDeg: 1,
+    selfRotateDeg: 10,
+    cameraClearRadius: 1.5,
+    cameraClearMaxHeight: 0.5,
+    titleFillMaxHeight: 16,
+    titleFillMargin: 0.05,
+    titleFillExtra: 0.3,
+    titleFillRadiusScale: 1.3,
+};
 
 
 // cube

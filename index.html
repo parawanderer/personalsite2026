@@ -33,38 +33,52 @@
             </svg>
         </div>
     </div>
-    <div id="logo" class="logo-container hideable-ui">
-        <div>
-            <img id="logo-img" class="logo-primary animate-appear glitch-target" src="wanderdev2_white.svg" alt="Wander.Dev Logo"/>
-        </div>
-        <div class="name-title animate-appear">
-            Shane B. <span class="text-sep"></span> Computer Scientist
-        </div>
-        <div class="animated-line">
-            <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 120 1">
-                <defs>
-                  <g id="gg">
-                    <line id="line" x1="10" y1="0" x2="110" y2="0"></line>
-                  </g>
-                </defs>
-                <g class="anim" fill="none" stroke="#FFFFFF" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round">
-                  <use xlink:href="#line" class="line" />
-                </g>
-            </svg>
-        </div>
-    </div>
-    <div class="overlay-wrapper hideable-ui">
-        <div id="hiddenPanel" class="flip-panel hidden-panel">
+    <svg class="svg-defs" width="0" height="0" aria-hidden="true">
+        <!-- grainy edges for .grain-button fills (idle, and the crisper hover state), values are driven from ui/grain.ts -->
+        <filter id="grain-edge" x="-25%" y="-60%" width="150%" height="220%" color-interpolation-filters="sRGB">
+            <!-- soft version of the shape, and its colour spread out past the edges -->
+            <feGaussianBlur data-role="soft" in="SourceAlpha" stdDeviation="5" result="soft"/>
+            <feGaussianBlur data-role="color-blur" in="SourceGraphic" stdDeviation="5" result="colorBlur"/>
+            <feColorMatrix in="colorBlur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1000 0" result="color"/>
+            <!-- dither the soft edge against coarse noise -->
+            <feTurbulence data-role="edge-noise" type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="1" result="edgeNoiseRaw"/>
+            <feColorMatrix in="edgeNoiseRaw" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="edgeNoise"/>
+            <feComposite data-role="mask" in="soft" in2="edgeNoise" operator="arithmetic" k1="0" k2="9" k3="-7.2" k4="-0.4" result="mask"/>
+            <!-- fine grain across the whole fill -->
+            <feTurbulence data-role="fine-noise" type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="2" result="fineNoiseRaw"/>
+            <feColorMatrix in="fineNoiseRaw" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="fineNoise"/>
+            <feComposite data-role="texture" in="mask" in2="fineNoise" operator="arithmetic" k1="-0.5" k2="1" k3="0" k4="0" result="texturedMask"/>
+            <feComposite in="color" in2="texturedMask" operator="in"/>
+        </filter>
+        <filter id="grain-edge-crisp" x="-25%" y="-60%" width="150%" height="220%" color-interpolation-filters="sRGB">
+            <!-- soft version of the shape, and its colour spread out past the edges -->
+            <feGaussianBlur data-role="soft" in="SourceAlpha" stdDeviation="1" result="soft"/>
+            <feGaussianBlur data-role="color-blur" in="SourceGraphic" stdDeviation="1" result="colorBlur"/>
+            <feColorMatrix in="colorBlur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1000 0" result="color"/>
+            <!-- dither the soft edge against coarse noise -->
+            <feTurbulence data-role="edge-noise" type="fractalNoise" baseFrequency="0.8" numOctaves="2" seed="1" result="edgeNoiseRaw"/>
+            <feColorMatrix in="edgeNoiseRaw" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="edgeNoise"/>
+            <feComposite data-role="mask" in="soft" in2="edgeNoise" operator="arithmetic" k1="0" k2="9" k3="-1.8" k4="-3.1" result="mask"/>
+            <!-- fine grain across the whole fill -->
+            <feTurbulence data-role="fine-noise" type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="2" result="fineNoiseRaw"/>
+            <feColorMatrix in="fineNoiseRaw" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  1 0 0 0 0" result="fineNoise"/>
+            <feComposite data-role="texture" in="mask" in2="fineNoise" operator="arithmetic" k1="-0.15" k2="1" k3="0" k4="0" result="texturedMask"/>
+            <feComposite in="color" in2="texturedMask" operator="in"/>
+        </filter>
+    </svg>
+    <main class="hud hideable-ui">
+        <section id="hiddenPanel" class="flip-panel hidden-panel">
             <div class="flip-panel-inner">
                 <div class="flip-panel-front text-panel about-me-panel">
-                    <div class="profile-pic">
-                        <img src="https://avatars.githubusercontent.com/u/37834723" alt="Shane B.'s Github Profile Picture">
-                    </div>
                     <div class="text-panel-content">
+                        <div class="profile-pic">
+                            <img src="https://avatars.githubusercontent.com/u/37834723" alt="Shane B.'s Github Profile Picture">
+                        </div>
                         <h1 class="about-me-title">Title</h1>
                         <span class="line"></span>
                         <p>
                             Body text
+                        </p>
                     </div>
                 </div>
                 <div class="flip-panel-back text-panel contact-panel">
@@ -90,58 +104,41 @@
                         </div>
                         <p>
                             © Shane B. 2026
-                    </p>
+                        </p>
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="buttonSet" class="button-set">
-            <div class="left-set">
-                <div class="button-container">
-                    <button id="freeFlightButton" class="side-button animate-appear glitch-target">
-                        <img src="/lock_open_right_materialicons3_google.svg" alt="Unlock Icon">
-                        <span class="side-button-text">Fly Free!</span>
-                    </button>
-                </div>
+        <header id="logo" class="logo-container">
+            <img id="logo-img" class="logo-primary animate-appear" src="wanderdev2_white.svg" alt="Wander.Dev Logo"/>
+            <div class="name-title animate-appear">
+                Shane B. <span class="text-sep"></span> Computer Scientist
             </div>
+        </header>
 
-            <div class="middle-set">
-                <div class="button-container">
-                    <button class="button glitch-target animate-appear" id="homeButton">
-                        <span>Home</span>
-                    </button>
-                </div>
-
-                <div class="button-container">
-                    <button class="button glitch-target animate-appear" id="aboutMeButton">
-                        <span>About Me</span>
-                    </button>
-                </div>
-
-                <div class="button-container">
-                    <button class="button glitch-target animate-appear" id="contactButton">
-                        <span>Contact</span>
-                    </button>
-                </div>
+        <nav class="nav">
+            <div class="nav-primary">
+                <button class="grain-button wide animate-appear" id="homeButton" aria-current="page">Home</button>
+                <button class="grain-button wide animate-appear" id="aboutMeButton">About</button>
+                <button class="grain-button wide animate-appear" id="contactButton">Contact</button>
             </div>
-
-            <div class="right-set">
-                <div class="button-container">
-                    <a class="side-button github animate-appear glitch-target" href="https://github.com/parawanderer/personalsite2026">
-                        <img src="/github-mark-white.svg" target="_blank" alt="Github Logo">
-                        <span class="side-button-text">View Source Code on Github</span>
-                    </a>
-                </div>
+            <div class="nav-secondary">
+                <button id="freeFlightButton" class="grain-button small animate-appear">
+                    <img src="/lock_open_right_materialicons3_google.svg" alt="">
+                    <span>Fly free</span>
+                </button>
+                <a class="grain-button small animate-appear" href="https://github.com/parawanderer/personalsite2026" target="_blank" rel="noopener">
+                    <img src="/github-mark-white.svg" alt="">
+                    <span>Source</span>
+                </a>
             </div>
-        </div>
-    </div>
+        </nav>
+    </main>
     <div class="overlay-container-lb no-display" id="freeFlightUi">
-        <div class="icon-button-container glitch">
-            <button id="returnFromFreeFlight" class="icon-button glitch-target">
-                <img src="/arrow_back_materialicons3_google.svg"/>
-            </button>
-        </div>
+        <button id="returnFromFreeFlight" class="grain-button round" aria-label="Back">
+            <img src="/arrow_back_materialicons3_google.svg" alt=""/>
+        </button>
     </div>
     <div class="overlay-container-rb no-display" id="controlsHintsUi">
         <div class="controls-explain" id="controlsDesktopExplain">
@@ -149,7 +146,7 @@
                 <img src="/mouse_materialicons3_google.svg" alt="Mouse Icon">
             </div>
             <div class="control-explanation col">
-                to rotate
+                click to look
             </div>
             <div class="col">
                 <table>
@@ -174,7 +171,19 @@
                 <span class="key-display wide">⎵</span>
             </div>
             <div class="control-explanation col">
-                to pause movement
+                up
+            </div>
+            <div class="col">
+                <span class="key-display wide">⇧</span>
+            </div>
+            <div class="control-explanation col">
+                down
+            </div>
+            <div class="col">
+                <span class="key-display wide">esc</span>
+            </div>
+            <div class="control-explanation col">
+                release mouse
             </div>
         </div>
         <div class="controls-explain" id="controlsMobileExplain">

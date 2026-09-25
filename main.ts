@@ -1,15 +1,16 @@
 
 import {
+    Box2,
     Clock,
     Color,
     FogExp2,
     PerspectiveCamera,
     Scene,
     SRGBColorSpace,
+    Vector2,
     WebGLRenderer,
     CineonToneMapping
 } from 'three';
-import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
@@ -18,9 +19,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import {
     CAMERA_INITIAL_Z,
     ROW_LENGTH_Z,
-    CAMERA_SPEED,
     WATER_TEXTURE,
-    CAMERA_LOOK_SPEED,
     CAMERA_INITIAL_X,
     CAMERA_INITIAL_Y,
     FOG_COLOR,
@@ -42,9 +41,14 @@ import {
     CAMERA_HOME_POS,
     CAMERA_HOME_DIR,
     DUST_CENTER,
-    ROTATING_DUST_CENTER
+    ROTATING_DUST_CENTER,
+    TWEAKS_ENABLED,
+    PILLAR_LAYOUT,
+    GRAIN_STYLE,
+    FLIGHT_SETTINGS
 } from './constants';
-import { WallsFactory } from './environment/walls';
+import { ScreenZone, WallsFactory } from './environment/walls';
+import { getByIdOrThrow } from './utils/document';
 import { GenericObjectFactory } from './environment/factory';
 import { InteractionManager } from './interact';
 import { WaterFactory } from './environment/water';
@@ -56,6 +60,9 @@ import { ForegroundManager } from './ui/foreground-manager';
 import { moveCameraTo } from './animate/camera';
 import { FilmPass } from './postprocessing/filmpass';
 import { LoadingManager } from './ui/loading-manager';
+import { Tweaks } from './ui/tweaks';
+import { Grain } from './ui/grain';
+import { CameraTweaks } from './ui/camera-tweaks';
 
 (async () => { // <- stupid hack to allow using "await" in this body
 
@@ -64,6 +71,9 @@ let height = window.innerHeight;
 
 // clock
 const clock = new Clock();
+
+// hand-tweaking panel (?tweaks)
+const tweaks = new Tweaks(TWEAKS_ENABLED);
 
 // scene
 const scene: Scene = new Scene();
@@ -75,9 +85,8 @@ const loadingMgr = new LoadingManager();
 
 // camera
 const camera = new PerspectiveCamera(75, width / height, 0.1, 1000);
-camera.position.x = CAMERA_INITIAL_X;
-camera.position.y = CAMERA_INITIAL_Y;
-camera.position.z = CAMERA_INITIAL_Z;
+camera.position.copy(CAMERA_HOME_POS);
+camera.lookAt(CAMERA_HOME_DIR);
 
 
 // renderer
@@ -91,10 +100,9 @@ document.body.appendChild(renderer.domElement);
 
 
 // controls
-const controls = new FirstPersonControls(camera, renderer.domElement);
-controls.movementSpeed = CAMERA_SPEED;
-controls.lookSpeed = CAMERA_LOOK_SPEED;
-const interactionMgr = new InteractionManager(controls);
+const flightTweaks = tweaks.addFolder('Flight', FLIGHT_SETTINGS);
+const interactionMgr = new InteractionManager(camera, renderer.domElement, flightTweaks.params);
+if (flightTweaks.folder) interactionMgr.bindTweaks(flightTweaks.folder);
 
 const scheduler = new Scheduler();
 const factory = new GenericObjectFactory(loadingMgr, scene);
@@ -103,7 +111,6 @@ const dustFactory = new DustFactory(loadingMgr, scene, camera);
 // background pane
 const pane = factory.makeGlassPane();
 pane.position.set(CAMERA_INITIAL_X, CAMERA_INITIAL_Y, CAMERA_INITIAL_Z-1);
-
 // cube light
 const cubeLight = factory.makeObjectLight(0, 0, 0, 20, CUBE_LIGHT_COLOR);
 
@@ -137,7 +144,23 @@ const rotatingParticles2 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_RED, RO
 scheduler.add(rotatingParticles2);
 
 // walls
-const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z);
+const pillarTweaks = tweaks.addFolder('Pillars', PILLAR_LAYOUT);
+// where the title sits on screen, seen from the home view, so the pillars behind it can be kept solid
+const getTitleZone = (): ScreenZone => {
+    const homeCamera = new PerspectiveCamera(camera.fov, width / height, camera.near, camera.far);
+    homeCamera.position.copy(CAMERA_HOME_POS);
+    homeCamera.lookAt(CAMERA_HOME_DIR);
+    homeCamera.updateMatrixWorld();
+
+    const r = getByIdOrThrow('logo').getBoundingClientRect();
+    const ndc = new Box2(
+        new Vector2(r.left / width * 2 - 1, 1 - r.bottom / height * 2),
+        new Vector2(r.right / width * 2 - 1, 1 - r.top / height * 2)
+    );
+    return { camera: homeCamera, ndc };
+};
+const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z, pillarTweaks.params, getTitleZone());
+if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 scheduler.add(walls);
 
 
@@ -166,7 +189,12 @@ const onWindowResize = () => {
     renderer.setSize(width, height);
 
     fxaaPass.uniforms['resolution'].value.set(1 / width, 1 / height);
+
+    // the title moves relative to the scene when the window changes shape
+    window.clearTimeout(titleZoneTimer);
+    titleZoneTimer = window.setTimeout(() => walls.setTitleZone(getTitleZone()), 300);
 }
+let titleZoneTimer: number | undefined;
 window.addEventListener('resize', onWindowResize);
 
 
@@ -190,10 +218,18 @@ renderer.setAnimationLoop(animate);
 const fgMngr = new ForegroundManager(interactionMgr);
 fgMngr.init();
 
+const grainTweaks = tweaks.addFolder('UI grain', GRAIN_STYLE);
+const grain = new Grain(grainTweaks.params);
+if (grainTweaks.folder) grain.bindTweaks(grainTweaks.folder);
+
 // some positions that look nice
-fgMngr.setHomeCallback(() => moveCameraTo(camera, CAMERA_HOME_POS.clone(), CAMERA_HOME_DIR.clone()));
+const goHome = () => moveCameraTo(camera, CAMERA_HOME_POS.clone(), CAMERA_HOME_DIR.clone());
+fgMngr.setHomeCallback(goHome);
 fgMngr.setAboutMeCallback(() => moveCameraTo(camera, CAMERA_ABOUT_ME_POS.clone(), CAMERA_ABOUT_ME_DIR.clone()));
 fgMngr.setContactCallback(() => moveCameraTo(camera, CAMERA_CONTACT_POS.clone(), CAMERA_CONTACT_DIR.clone()));
+
+const cameraTweaks = tweaks.addFolder('Camera', {});
+if (cameraTweaks.folder) new CameraTweaks(camera, goHome).bind(cameraTweaks.folder);
 
 
 })();

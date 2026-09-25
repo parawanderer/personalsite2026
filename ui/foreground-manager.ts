@@ -6,30 +6,10 @@ import { TITLE_HOME, TITLE_ABOUT_ME, TITLE_CONTACT } from '../constants';
 
 const ANIMATE_APPEAR = 'animate-appear';
 
-const PANEL_SHOWN = "panel-shown";
 const SHOW = "show";
 const FLIPPED = "flipped";
 const HIDDEN = "hidden";
 const NO_DISPLAY = "no-display";
-
-const addClones = (element: Element) => {
-    const clone1 = element.cloneNode(true) as Element;
-    clone1.removeAttribute('id');
-    const spanTop = document.createElement('span');
-    spanTop.classList.add('clone-1');
-    spanTop.appendChild(clone1);
-
-    element.parentElement!.prepend(spanTop);
-
-    const clone2 = element.cloneNode(true) as Element;
-    clone2.removeAttribute('id');
-    const spanBottom = document.createElement('span');
-    spanBottom.classList.add('clone-2');
-    spanBottom.appendChild(clone2);
-
-    element.parentElement!.append(spanBottom);
-};
-
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia
 const isPrimaryInputMethodTouch = (): boolean => {
@@ -47,8 +27,7 @@ export class ForegroundManager {
     private readonly contactButton: HTMLButtonElement;
     private onPressContactButtonCallback?: () => void;
 
-    private readonly logo: HTMLDivElement;
-    private readonly hiddenPanel: HTMLDivElement;
+    private readonly hiddenPanel: HTMLElement;
     private readonly freeFlightButton: HTMLButtonElement;
     private readonly freeFlightUi: HTMLDivElement;
     private readonly freeFlightUiHints: HTMLDivElement;
@@ -62,8 +41,7 @@ export class ForegroundManager {
     constructor(private interactionManager: InteractionManager) {
         this.isMobile = isPrimaryInputMethodTouch();
 
-        this.logo = getByIdOrThrow('logo');
-        getByIdOrThrow('logo-img').parentElement!.addEventListener("click", () => this.onPressHome());
+        getByIdOrThrow('logo-img').addEventListener("click", () => this.onPressHome());
 
         this.hiddenPanel = getByIdOrThrow('hiddenPanel');
         this.freeFlightButton = getByIdOrThrow("freeFlightButton");
@@ -75,14 +53,14 @@ export class ForegroundManager {
         this.aboutMeButton = getByIdOrThrow('aboutMeButton');
         this.contactButton = getByIdOrThrow('contactButton');
 
-        this.homeButton.parentElement!.addEventListener("click", () => this.onPressHome());
+        this.homeButton.addEventListener("click", () => this.onPressHome());
 
-        this.aboutMeButton.parentElement!.addEventListener("click", () => this.onPressAboutMe());
+        this.aboutMeButton.addEventListener("click", () => this.onPressAboutMe());
 
-        this.contactButton.parentElement!.addEventListener("click", () => this.onPressContact());
+        this.contactButton.addEventListener("click", () => this.onPressContact());
 
-        this.freeFlightButton.parentElement!.addEventListener("click", () => this.handleFreeFlight());
-        this.returnFromFreeFlightButton.parentElement!.addEventListener("click", () => this.handleFreeFlight());
+        this.freeFlightButton.addEventListener("click", () => this.handleFreeFlight());
+        this.returnFromFreeFlightButton.addEventListener("click", () => this.handleFreeFlight());
 
         document.title = TITLE_HOME;
 
@@ -116,7 +94,6 @@ export class ForegroundManager {
                 this.freeFlightUiHints.classList.remove(NO_DISPLAY);
 
                 this.interactionManager.setMovementEnabled(true);
-                this.interactionManager.setAllowToggle(true);
 
                 // add to end of event queue
                 setTimeout(() => {
@@ -134,7 +111,6 @@ export class ForegroundManager {
             this.freeFlightUiHints.classList.remove(SHOW);
 
             this.interactionManager.setMovementEnabled(false);
-            this.interactionManager.setAllowToggle(false);
 
             setTimeout(() => {
                 for (const element of toBeEdited) {
@@ -154,8 +130,8 @@ export class ForegroundManager {
     private onPressHome() {
         console.log("Clicked home button!");
 
-        this.logo.classList.remove(PANEL_SHOWN);
         this.hiddenPanel.classList.remove(SHOW);
+        this.setCurrent(this.homeButton);
 
         document.title = TITLE_HOME;
 
@@ -166,9 +142,9 @@ export class ForegroundManager {
     private onPressAboutMe() {
         console.log("Clicked about me button!");
 
-        this.logo.classList.add(PANEL_SHOWN);
         this.hiddenPanel.classList.add(SHOW);
         this.hiddenPanel.classList.remove(FLIPPED);
+        this.setCurrent(this.aboutMeButton);
 
         document.title = TITLE_ABOUT_ME;
 
@@ -179,9 +155,9 @@ export class ForegroundManager {
     private onPressContact() {
         console.log("Clicked contact button!");
 
-        this.logo.classList.add(PANEL_SHOWN);
         this.hiddenPanel.classList.add(SHOW);
         this.hiddenPanel.classList.add(FLIPPED);
+        this.setCurrent(this.contactButton);
 
         document.title = TITLE_CONTACT;
 
@@ -191,8 +167,17 @@ export class ForegroundManager {
 
 
     public init() {
-        ForegroundManager.addGlitchEffect();
         ForegroundManager.handleAnimateIn();
+    }
+
+    private setCurrent(current: HTMLElement) {
+        for (const button of [this.homeButton, this.aboutMeButton, this.contactButton]) {
+            if (button === current) {
+                button.setAttribute('aria-current', 'page');
+            } else {
+                button.removeAttribute('aria-current');
+            }
+        }
     }
 
     public setAboutMeCallback(callback: () => void) {
@@ -207,47 +192,22 @@ export class ForegroundManager {
         this.onPressContactButtonCallback = callback;
     }
 
-    private static addGlitchEffect() {
-        const targets = document.querySelectorAll(".glitch");
-        for (const target of targets) {
-            addClones(target!.firstElementChild!);
-        }
-    }
-
     private static handleAnimateIn() {
         setTimeout(() => {
             for (const item of document.querySelectorAll(".logo-primary.animate-appear")) {
                 item.classList.remove(ANIMATE_APPEAR);
-
-                item.parentElement!.classList.add("glitch");
-                addClones(item);
             }
-
         }, 1000);
 
         setTimeout(() => {
             for (const item of document.querySelectorAll(".name-title.animate-appear")) {
                 item.classList.remove(ANIMATE_APPEAR);
             }
-
         }, 1500);
 
         setTimeout(() => {
-            for (const item of document.querySelectorAll(".button.animate-appear")) {
+            for (const item of document.querySelectorAll(".nav .animate-appear")) {
                 item.classList.remove(ANIMATE_APPEAR);
-
-                item.parentElement!.classList.add("glitch");
-                addClones(item);
-            }
-
-        }, 1500);
-
-        setTimeout(() => {
-            for (const item of document.querySelectorAll(".side-button.animate-appear")) {
-                item.classList.remove(ANIMATE_APPEAR);
-
-                item.parentElement!.classList.add("glitch");
-                addClones(item);
             }
         }, 1750);
     }

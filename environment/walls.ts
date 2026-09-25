@@ -1,110 +1,144 @@
-import { Queue } from '@datastructures-js/queue';
+import { Box2, BufferGeometry, Camera, Clock, CylinderGeometry, Line3, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
+import { degToRad, lerp } from 'three/src/math/MathUtils.js';
+import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
-import { BufferGeometry, Clock, CylinderGeometry, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace } from 'three';
-import { degToRad, randFloat, randInt } from 'three/src/math/MathUtils.js';
-
-import { CAMERA_INITIAL_Z, FOG_UPDATE_BY, FOG_UPDATE_EVERY_MS, PILLARS_FOG_FAR_COLOR, PILLARS_FOG_NEAR_COLOR, PILLARS_FOG_NOISE_FREQ, PILLARS_FOG_NOISE_IMPACT, PILLARS_FOG_NOISE_SPEED, PILLARS_GEOGRAPHY_MAP, ROW_LENGTH_X, ROW_LENGTH_Z, SCALE_FACTOR, WALLS_OFFSET  } from '../constants';
+import { CAMERA_HOME_POS, FOG_UPDATE_BY, FOG_UPDATE_EVERY_MS, PillarLayout, PILLARS_FOG_FAR_COLOR, PILLARS_FOG_NEAR_COLOR, PILLARS_FOG_NOISE_FREQ, PILLARS_FOG_NOISE_IMPACT, PILLARS_FOG_NOISE_SPEED, PILLARS_GEOGRAPHY_MAP, SCALE_FACTOR } from '../constants';
 import { ImageLoader } from '../utils/image-utils';
 import { TextureLoader, PLACEHOLDER } from '../utils/texture-utils';
 import { customFogExtension, ShaderExtension } from './animated-fog';
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/fogedits.glsl";
 import { AnimatedEntity } from '../entity/animated-entity';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { fbm2D, makeRng } from '../utils/random';
 
 
-const UNPOPULATED = 0.0;
-const VISITED = -2.0;
-const INACCESSIBLE = -1.0;
+const WATER = -1.0;
+const LAND = 0.0;
 const RADIUS = 0.1;
-const BASE_ANGLE_X = degToRad(35);
-const ANGLE_VARIANCE_X = degToRad(10);
-const ANGLE_SELF_ROTATE = degToRad(10); // literally any rotation around Y
-const ANGLE_VARIANCE_Y_MIN = degToRad(-15);
-const ANGLE_VARIANCE_Y_MAX = degToRad(15);
-const ANGLE_VARIANCE_Z_MIN = degToRad(-1);
-const ANGLE_VARIANCE_Z_MAX = degToRad(1);
 const CYLINDER_RADIAL_SEGMENTS_HEXAGON = 6;
+// per-band height roll, same odds as the old randInt(0, 20)
+const HEIGHT_ROLL_SIDES = 21;
 
 
-interface QueueElement {
-    i: number;
-    j: number;
-    distance?: number;
-}
+const randomSeed = () => Math.floor(Math.random() * 10000);
 
-const getNeighbors = (i: number, j: number, matrix: number[][]): QueueElement[] => {
-    const res: QueueElement[] = [];
-    if (i >= 0 && i < matrix.length - 1) {
-        res.push({i : i + 1, j});
+// u1 picks the height class, u2 picks the height within it
+const getHeightDistanceOne = (u1: number, u2: number) => {
+    if (Math.floor(u1 * HEIGHT_ROLL_SIDES) < 20) {
+        return lerp(0.1, 0.5, u2);
     }
-    if (i > 0) {
-        res.push({i : i - 1, j});
-    }
-    if (j >= 0 && j < matrix[0].length - 1) {
-        res.push({i, j: j + 1});
-    }
-    if (j > 0) {
-        res.push({i, j: j - 1});
-    }
-    return res;
-}
-
-const getHeightDistanceOne = () => {
-    if (randInt(0, 20) < 20) {
-        return randFloat(0.1, 0.5);
-    }
-    return randFloat(1, 1.5);
+    return lerp(1, 1.5, u2);
 };
 
 
-const getHeightDistanceTwo = () => {
-    const r = randInt(0, 20);
+const getHeightDistanceTwo = (u1: number, u2: number) => {
+    const r = Math.floor(u1 * HEIGHT_ROLL_SIDES);
     if (r <= 1) {
-        return randFloat(0.5, 0.75);
+        return lerp(0.5, 0.75, u2);
     }
 
     if (r < 20) {
-        return randFloat(0.75, 1.0);
+        return lerp(0.75, 1.0, u2);
     }
 
-    return randFloat(1.5, 3);
+    return lerp(1.5, 3, u2);
 };
 
 
-const getHeightDistanceThree = () => {
-    const r = randInt(0, 20);
+const getHeightDistanceThree = (u1: number, u2: number) => {
+    const r = Math.floor(u1 * HEIGHT_ROLL_SIDES);
     if (r <= 4) {
-        return randFloat(0.75, 1.0);
+        return lerp(0.75, 1.0, u2);
     }
 
-    return randFloat(1.5, 3);
+    return lerp(1.5, 3, u2);
 }
 
 
-const getHeightDistanceX = () => {
-    return randFloat(3, 8);
+const getHeightDistanceX = (_u1: number, u2: number) => {
+    return lerp(3, 8, u2);
 }
 
 
-const getHeightForDistance = (distance: number): number => {
+const getHeightForDistance = (distance: number, u1: number, u2: number): number => {
     if (distance <= 1) {
-        return getHeightDistanceOne();
+        return getHeightDistanceOne(u1, u2);
     }
     if (distance <= 2) {
-        return getHeightDistanceTwo();
+        return getHeightDistanceTwo(u1, u2);
     }
     if (distance <= 3) {
-        return getHeightDistanceThree();
+        return getHeightDistanceThree(u1, u2);
     }
-    return getHeightDistanceX();
+    return getHeightDistanceX(u1, u2);
 };
+
+/**
+ * Water cells that touch land. Distances to the water only need to be measured against these.
+ */
+const getShoreCells = (mask: number[][]): [number, number][] => {
+    const res: [number, number][] = [];
+    for (let i = 0; i < mask.length; ++i) {
+        for (let j = 0; j < mask[0].length; ++j) {
+            if (mask[i][j] !== WATER) continue;
+            const touchesLand =
+                (i > 0 && mask[i - 1][j] !== WATER) ||
+                (i < mask.length - 1 && mask[i + 1][j] !== WATER) ||
+                (j > 0 && mask[i][j - 1] !== WATER) ||
+                (j < mask[0].length - 1 && mask[i][j + 1] !== WATER);
+            if (touchesLand) res.push([i, j]);
+        }
+    }
+    return res;
+};
+
+/**
+ * Euclidean distance (in cells) to the nearest water cell, offset so that land directly next to the water is 0
+ * (matches the old BFS step distance)
+ */
+const distanceToWater = (x: number, z: number, shore: [number, number][]): number => {
+    let best = Infinity;
+    for (const [i, j] of shore) {
+        const dx = x - i;
+        const dz = z - j;
+        best = Math.min(best, dx * dx + dz * dz);
+    }
+    return Math.sqrt(best) - 1;
+};
+
+
+/**
+ * A screen area (normalised device coordinates) as seen from a camera, used to keep the wall solid behind the title
+ */
+export interface ScreenZone {
+    camera: Camera;
+    ndc: Box2;
+}
+
+// pillars at least this far from the water (in cells) count as back rows
+const BACK_ROW_DISTANCE = 3;
+
+const X_AXIS = new Vector3(1, 0, 0);
+const Z_AXIS = new Vector3(0, 0, 1);
+
+/**
+ * Closest distance between a point and a pillar's centre line
+ */
+const distanceToPillar = (point: Vector3, centre: Vector3, axis: Vector3, height: number): number => {
+    const half = axis.clone().multiplyScalar(height / 2);
+    const segment = new Line3(centre.clone().sub(half), centre.clone().add(half));
+    return segment.closestPointToPoint(point, true, new Vector3()).distanceTo(point);
+};
+
 
 export class Walls implements AnimatedEntity {
     private lastFogUpdate: number = 0;
 
     constructor(
-        private readonly width: number,
-        private readonly depth: number,
+        private readonly mask: number[][],
+        private readonly extraOffsetZ: number,
+        private layout: PillarLayout,
+        private titleZone: ScreenZone | undefined,
         private walls: Mesh<BufferGeometry, MeshPhysicalMaterial, Object3DEventMap>,
         private fog: ShaderExtension) {}
 
@@ -117,13 +151,157 @@ export class Walls implements AnimatedEntity {
             this.lastFogUpdate = clock.oldTime;
         }
     }
+
+    public rebuild(): void {
+        const old = this.walls.geometry;
+        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.extraOffsetZ, this.titleZone);
+        old.dispose();
+    }
+
+    public setTitleZone(zone: ScreenZone | undefined): void {
+        this.titleZone = zone;
+        this.rebuild();
+    }
+
+    public bindTweaks(folder: GUI): void {
+        const rebuild = () => this.rebuild();
+        const l = this.layout;
+
+        folder.add(l, 'randomSeed').name('random seed per load');
+        const seed = folder.add(l, 'seed', 0, 9999, 1).onFinishChange(rebuild);
+        // setValue only fires onChange, so rebuild explicitly
+        folder.add({ reroll: () => { seed.setValue(randomSeed()); rebuild(); } }, 'reroll').name('Reroll seed');
+        folder.add(l, 'jitter', 0, 0.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'skipChance', 0, 0.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'distanceNoise', 0, 4, 0.05).onFinishChange(rebuild);
+        folder.add(l, 'noiseScale', 0.01, 0.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'clumpiness', 0, 1, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'baseYVariance', 0, 0.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'radiusMin', 0.03, 0.2, 0.005).onFinishChange(rebuild);
+        folder.add(l, 'radiusMax', 0.03, 0.2, 0.005).onFinishChange(rebuild);
+        folder.add(l, 'leanDeg', 0, 60, 0.5).onFinishChange(rebuild);
+        folder.add(l, 'leanVarianceDeg', 0, 30, 0.5).onFinishChange(rebuild);
+        folder.add(l, 'yawVarianceDeg', 0, 45, 0.5).onFinishChange(rebuild);
+        folder.add(l, 'rollVarianceDeg', 0, 10, 0.1).onFinishChange(rebuild);
+        folder.add(l, 'selfRotateDeg', 0, 60, 0.5).onFinishChange(rebuild);
+        folder.add(l, 'cameraClearRadius', 0, 5, 0.05).onFinishChange(rebuild);
+        folder.add(l, 'cameraClearMaxHeight', 0.1, 3, 0.05).onFinishChange(rebuild);
+        folder.add(l, 'titleFillMaxHeight', 0, 24, 0.25).onFinishChange(rebuild);
+        folder.add(l, 'titleFillMargin', 0, 0.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'titleFillExtra', 0, 1, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'titleFillRadiusScale', 1, 2.5, 0.05).onFinishChange(rebuild);
+    }
 }
+
+
+// how finely pillar growth is sampled when checking what ends up behind the title
+const FILL_STEP = 0.25;
+
+/**
+ * Grows a pillar from its own height and follows its top on screen. If the top passes behind the title, returns the height
+ * at which it clears the top of the text; otherwise the pillar never covers the text and null is returned.
+ */
+const heightToCoverTitle = (centre: Vector3, axis: Vector3, height: number, zone: ScreenZone, layout: PillarLayout): number | null => {
+    const m = layout.titleFillMargin;
+    const minX = zone.ndc.min.x - m, maxX = zone.ndc.max.x + m;
+    const minY = zone.ndc.min.y - m, maxY = zone.ndc.max.y + m;
+
+    let crossesTitle = false;
+    for (let h = height; h <= layout.titleFillMaxHeight; h += FILL_STEP) {
+        const top = centre.clone().addScaledVector(axis, h / 2).project(zone.camera);
+        if (top.z >= 1) return null; // behind the camera
+        if (top.x >= minX && top.x <= maxX && top.y >= minY && top.y <= maxY) crossesTitle = true;
+        if (top.y > maxY) return crossesTitle ? h : null;
+    }
+    return crossesTitle ? layout.titleFillMaxHeight : null;
+};
+
+const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, extraOffsetZ: number, titleZone?: ScreenZone): BufferGeometry => {
+    const geometry = new CylinderGeometry(RADIUS, RADIUS, 1, CYLINDER_RADIAL_SEGMENTS_HEXAGON);
+    const rng = makeRng(layout.seed);
+    const shore = getShoreCells(mask);
+
+    const plannedWidth = mask.length*SCALE_FACTOR;
+    const plannedDepth = mask[0].length*SCALE_FACTOR;
+
+    const offsetX = -plannedWidth/2;
+    const offsetZ = extraOffsetZ - plannedDepth;
+
+    const f = layout.noiseScale;
+    const geometries: CylinderGeometry[] = [];
+
+    for (let i = 0; i < mask.length; ++i) {
+        for (let j = 0; j < mask[0].length; ++j) {
+            if (mask[i][j] === WATER) continue;
+
+            // always draw the same amount of numbers per cell so changing one setting doesn't reshuffle the rest
+            const [jx, jz, skip, h1, h2, rad, lean, yaw, roll, self, baseY, fillExtraRoll] = Array.from({ length: 12 }, rng);
+
+            const x = i + (jx * 2 - 1) * layout.jitter;
+            const z = j + (jz * 2 - 1) * layout.jitter;
+
+            const distance = distanceToWater(x, z, shore) + fbm2D(x * f, z * f, layout.seed) * layout.distanceNoise;
+            let height = getHeightForDistance(distance, h1, h2);
+
+            // blend per-pillar randomness with a shared noise field so neighbours lean/turn together
+            const leanT = lerp(lean, fbm2D(x * f, z * f, layout.seed + 1) * 0.5 + 0.5, layout.clumpiness);
+            const yawT = lerp(yaw * 2 - 1, fbm2D(x * f, z * f, layout.seed + 2), layout.clumpiness);
+            let radiusScale = lerp(layout.radiusMin, layout.radiusMax, rad) / RADIUS;
+            const leanRad = degToRad(layout.leanDeg + leanT * layout.leanVarianceDeg);
+            const rollRad = degToRad((roll * 2 - 1) * layout.rollVarianceDeg);
+
+            const centre = new Vector3(
+                (x*SCALE_FACTOR) + offsetX,
+                -1 + (baseY * 2 - 1) * layout.baseYVariance,
+                (z*SCALE_FACTOR) + offsetZ
+            );
+
+            const axis = new Vector3(0, 1, 0).applyAxisAngle(X_AXIS, leanRad).applyAxisAngle(Z_AXIS, rollRad);
+
+            // back rows that pass behind the title are raised just past the top of the text (and thickened) so there's no sky
+            // behind it. Everything else keeps its height, so the wall keeps the same variety as elsewhere
+            const cover = titleZone && distance > BACK_ROW_DISTANCE ? heightToCoverTitle(centre, axis, height, titleZone, layout) : null;
+            if (cover !== null) {
+                height = Math.min(cover * (1 + fillExtraRoll * layout.titleFillExtra), layout.titleFillMaxHeight);
+                radiusScale *= layout.titleFillRadiusScale;
+            } else if (skip < layout.skipChance) {
+                continue;
+            }
+
+            // keep big pillars out of the landing view, the stubs can stay
+            if (height > layout.cameraClearMaxHeight && distanceToPillar(CAMERA_HOME_POS, centre, axis, height) < layout.cameraClearRadius) {
+                height = layout.cameraClearMaxHeight;
+            }
+
+            const instanceGeo = geometry.clone();
+
+            instanceGeo.rotateY(degToRad(self * layout.selfRotateDeg));
+
+            instanceGeo.scale(radiusScale, height, radiusScale);
+
+            instanceGeo.rotateY(degToRad(yawT * layout.yawVarianceDeg));
+            instanceGeo.rotateX(leanRad);
+            instanceGeo.rotateZ(rollRad);
+
+            instanceGeo.translate(centre.x, centre.y, centre.z);
+
+            geometries.push(instanceGeo);
+        }
+    }
+
+    const merged = mergeGeometries(geometries);
+    geometry.dispose();
+    for (const g of geometries) g.dispose();
+    return merged;
+};
 
 export class WallsFactory {
     constructor(private loadingMgr: LoadingManager, private scene: Scene) {}
 
-    public async makeWalls(extraOffsetZ: number): Promise<Walls> {
-        const geometry = new CylinderGeometry(RADIUS, RADIUS, 1, CYLINDER_RADIAL_SEGMENTS_HEXAGON);
+    public async makeWalls(extraOffsetZ: number, layout: PillarLayout, titleZone?: ScreenZone): Promise<Walls> {
+        if (layout.randomSeed) {
+            layout.seed = randomSeed();
+        }
 
         const materialTextures = new TextureLoader(this.loadingMgr).getPBRMaterialTextures(
             `storm_marble_2-1K/1K_storm___honed___marble_2_${PLACEHOLDER}.png`,
@@ -159,55 +337,23 @@ export class WallsFactory {
 
         material.onBeforeCompile = fogShader.handle;
 
-        const grid = await this.createRandomColumnsHeightMap();
+        const mask = await this.parseMapTemplate(PILLARS_GEOGRAPHY_MAP);
 
-        const geometries: CylinderGeometry[] = [];
-
-        const plannedWidth = grid.length*SCALE_FACTOR;
-        const plannedDepth = grid[0].length*SCALE_FACTOR;
-
-        const offsetX = -plannedWidth/2;
-        const offsetZ = extraOffsetZ - plannedDepth;
-
-        for (let i = 0; i < grid.length; ++i) {
-            for (let j = 0; j < grid[0].length; ++j) {
-                if (grid[i][j] <= 0.0) continue;
-                const requiredHeight = grid[i][j];
-
-                const instanceGeo = geometry.clone();
-
-                instanceGeo.rotateY(randFloat(0, ANGLE_SELF_ROTATE));
-
-                instanceGeo.scale(1, requiredHeight, 1);
-
-                instanceGeo.rotateY(randFloat(ANGLE_VARIANCE_Y_MIN, ANGLE_VARIANCE_Y_MAX));
-                instanceGeo.rotateX(BASE_ANGLE_X + randFloat(0, ANGLE_VARIANCE_X));
-                instanceGeo.rotateZ(randFloat(ANGLE_VARIANCE_Z_MIN, ANGLE_VARIANCE_Z_MAX));
-
-                instanceGeo.translate(
-                    (i*SCALE_FACTOR) + offsetX,
-                    -1,
-                    (j*SCALE_FACTOR) + offsetZ
-                );
-
-                geometries.push(instanceGeo);
-            }
-        }
-
-        const mergedGeometry = mergeGeometries(geometries);
-        const mergedMesh = new Mesh(mergedGeometry, material);
-        this.scene.add(mergedMesh);
+        const mesh = new Mesh(buildPillarsGeometry(mask, layout, extraOffsetZ, titleZone), material);
+        this.scene.add(mesh);
 
         return new Walls(
-            plannedWidth,
-            plannedDepth,
-            mergedMesh,
-            fogShader!
+            mask,
+            extraOffsetZ,
+            layout,
+            titleZone,
+            mesh,
+            fogShader
         );
     }
 
     /**
-     * Converts png image to pillar height map
+     * Converts png image to a water (transparent pixels) / land mask
      */
     private async parseMapTemplate(path: string): Promise<number[][]> {
         const image = await new ImageLoader(this.loadingMgr).loadImage(path);
@@ -225,76 +371,16 @@ export class WallsFactory {
 
         const grid: number[][] = new Array(image.width);
         for (let i = 0; i < image.width; ++i) {
-            grid[i] = new Array(image.height).fill(UNPOPULATED);
+            grid[i] = new Array(image.height).fill(LAND);
             for (let j = 0; j < image.height; ++j) {
 
                 const index = ImageLoader.pixelPosOffsetPNG(image.width, j, i);
                 const a = imageData.data[index + 3];
 
-                grid[i][j] = a === 0 ? INACCESSIBLE : UNPOPULATED;
+                grid[i][j] = a === 0 ? WATER : LAND;
             }
         }
 
         return grid;
-    }
-
-    private async createRandomColumnsHeightMap() : Promise<number[][]> {
-        //const grid = createMapTemplateBasic();
-        const grid: number[][] = await this.parseMapTemplate(PILLARS_GEOGRAPHY_MAP);
-
-        // do: BFS random fill based on some rules that look nice
-        // general idea is to "grow outwards" and give pillars a random height
-        // based on how far away they are from the inaccessible "water" area
-        const q = new Queue<QueueElement>();
-        for (let i = 0; i < grid.length; ++i) {
-            for (let j = 0; j < grid[0].length; ++j) {
-                if (grid[i][j] === INACCESSIBLE) {
-                    q.push({i, j, distance: -1});
-                }
-            }
-        }
-
-        // basic BFS
-        while (q.size() > 0) {
-            const {i, j, distance} = q.pop()!;
-            const neighbors: QueueElement[] = getNeighbors(i, j, grid);
-
-            if (distance !== -1) {
-                // only generate a height for non-"water" slots
-                grid[i][j] = getHeightForDistance(distance!);
-            }
-
-            for (const neighbor of neighbors) {
-                if (grid[neighbor.i][neighbor.j] === UNPOPULATED) {
-                    grid[neighbor.i][neighbor.j] = VISITED;
-                    q.push({i: neighbor.i, j: neighbor.j, distance: distance! + 1});
-                }
-            }
-
-        }
-
-        return grid;
-    }
-
-    private createMapTemplateGeneric(): Promise<number[][]> {
-        const width = 2*ROW_LENGTH_X + 2*WALLS_OFFSET;
-        const depth = CAMERA_INITIAL_Z + ROW_LENGTH_Z;
-
-        // init
-        const grid: number[][] = new Array(width);
-        for (let i = 0; i < width; ++i) {
-            grid[i] = new Array(depth).fill(UNPOPULATED);
-        }
-
-        // mark "central" area as inaccessible
-
-        const inaccessibleArea = 2*WALLS_OFFSET;
-        for (let i = 0; i < inaccessibleArea; ++i) {
-            for (let j = 0; j < depth; ++j) {
-                grid[ROW_LENGTH_X + i][j] = INACCESSIBLE;
-            }
-        }
-
-        return Promise.resolve(grid);
     }
 }
