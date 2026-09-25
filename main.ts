@@ -49,7 +49,8 @@ import {
     BACKGROUND_COLOR,
     SUN_LARGE,
     SUN_SMALL,
-    SUN_THROUGH_FOG
+    SUN_THROUGH_FOG,
+    AURORA
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -60,6 +61,7 @@ import { DustFactory } from './environment/dust-particles';
 import { ParticleField } from './environment/particle-field';
 import { DayNight } from './environment/day-night';
 import { Celestial } from './environment/celestial';
+import { Aurora } from './environment/aurora';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
@@ -243,6 +245,13 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => renderer.toneMappingExposure = exposure * v, () => 1, 'nightExposureScale');
 }
 scheduler.add(dayNight);
+
+// aurora on the night sky
+const auroraTweaks = tweaks.addFolder('Aurora', AURORA);
+const aurora = new Aurora(scene, sky.material, auroraTweaks.params);
+if (auroraTweaks.folder) aurora.bindTweaks(auroraTweaks.folder);
+dayNight.number((v) => aurora.setNight(v), () => 0, 'nightAurora');
+scheduler.add(aurora);
 
 // two suns/moons, following the time of day
 const fogGlowTweaks = tweaks.addFolder('Suns through fog', { fogStart: SUN_THROUGH_FOG });

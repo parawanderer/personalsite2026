@@ -163,6 +163,8 @@ export interface DayNightSettings {
     nightRimScale: number;
     /** the flat grey the water adds to its reflection (0.1 by day) */
     nightReflectionFloor: number;
+    /** how much of the aurora shows at night (0 by day) */
+    nightAurora: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -186,6 +188,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightOrangeParticles: 0,
     nightRimScale: 0.01,
     nightReflectionFloor: 0.01,
+    nightAurora: 1,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
@@ -242,6 +245,38 @@ export const SUN_SMALL: CelestialBody = {
     azimuthSet: 60,
     peakElevation: 40,
     lightIntensity: 0.3,
+};
+
+// aurora on the night sky (environment/aurora.ts)
+export interface AuroraSettings {
+    /** colour of the lowest and highest curtains */
+    colorLow: string;
+    colorHigh: string;
+    /** at full night */
+    brightness: number;
+    /** how high the curtains hang, relative units */
+    height: number;
+    /** pattern size, higher = more, narrower curtains */
+    scale: number;
+    /** higher = thinner ribbons */
+    sharpness: number;
+    speed: number;
+    /** how far above the horizon it fades in (as the sine of the angle) */
+    horizonFade: number;
+    /** faint coloured light it casts from above at night */
+    lightIntensity: number;
+}
+
+export const AURORA: AuroraSettings = {
+    colorLow: '#20e0b0',
+    colorHigh: '#b040ff',
+    brightness: 0.6,
+    height: 1,
+    scale: 0.6,
+    sharpness: 10,
+    speed: 0.3,
+    horizonFade: 0.15,
+    lightIntensity: 0.6,
 };
 
 // fog
