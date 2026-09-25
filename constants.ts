@@ -279,6 +279,39 @@ export const AURORA: AuroraSettings = {
     lightIntensity: 0.6,
 };
 
+// shooting stars at night (environment/shooting-stars.ts)
+export interface ShootingStarSettings {
+    color: string;
+    brightness: number;
+    /** seconds between meteors, picked at random in this range */
+    minInterval: number;
+    maxInterval: number;
+    /** world units per second, and how long one lasts */
+    speed: number;
+    duration: number;
+    length: number;
+    width: number;
+    /** chance one comes down into the far end of the channel instead */
+    splashChance: number;
+    /** the light where it hits the water, and how long it lasts */
+    splashLight: number;
+    splashSeconds: number;
+}
+
+export const SHOOTING_STARS: ShootingStarSettings = {
+    color: '#bff8ff',
+    brightness: 3,
+    minInterval: 20,
+    maxInterval: 60,
+    speed: 40,
+    duration: 0.7,
+    length: 10,
+    width: 0.25,
+    splashChance: 0.25,
+    splashLight: 20,
+    splashSeconds: 1.2,
+};
+
 // fog
 export const FOG_COLOR = Color.fromHex('#1c1c1c');
 export const FOG_INTENSITY = 0.08;

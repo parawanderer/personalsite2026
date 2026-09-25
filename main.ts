@@ -50,7 +50,8 @@ import {
     SUN_LARGE,
     SUN_SMALL,
     SUN_THROUGH_FOG,
-    AURORA
+    AURORA,
+    SHOOTING_STARS
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -62,6 +63,7 @@ import { ParticleField } from './environment/particle-field';
 import { DayNight } from './environment/day-night';
 import { Celestial } from './environment/celestial';
 import { Aurora } from './environment/aurora';
+import { ShootingStars } from './environment/shooting-stars';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
@@ -252,6 +254,13 @@ const aurora = new Aurora(scene, sky.material, auroraTweaks.params);
 if (auroraTweaks.folder) aurora.bindTweaks(auroraTweaks.folder);
 dayNight.number((v) => aurora.setNight(v), () => 0, 'nightAurora');
 scheduler.add(aurora);
+
+// shooting stars at night, now and then one coming down into the channel
+const starTweaks = tweaks.addFolder('Shooting stars', SHOOTING_STARS);
+const shootingStars = new ShootingStars(scene, starTweaks.params);
+if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
+dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
+scheduler.add(shootingStars);
 
 // two suns/moons, following the time of day
 const fogGlowTweaks = tweaks.addFolder('Suns through fog', { fogStart: SUN_THROUGH_FOG });
