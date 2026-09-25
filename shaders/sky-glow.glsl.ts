@@ -19,6 +19,8 @@ export const skyGlowUniforms: { [name: string]: IUniform } = {
     glowSunRadius: { value: Array.from({ length: SUN_COUNT }, () => 0.01) },
     glowSunHaloScale: { value: Array.from({ length: SUN_COUNT }, () => 1) },
     glowSunHaloStrength: { value: Array.from({ length: SUN_COUNT }, () => 0) },
+    // how fogged a surface has to be before the suns show through it: below this it blocks them like any surface
+    glowFogStart: { value: 0.9 },
 };
 
 export const skyGlowPars = /* glsl */ `
@@ -28,6 +30,7 @@ uniform vec3 glowSunRadiance[${SUN_COUNT}];
 uniform float glowSunRadius[${SUN_COUNT}];
 uniform float glowSunHaloScale[${SUN_COUNT}];
 uniform float glowSunHaloStrength[${SUN_COUNT}];
+uniform float glowFogStart;
 
 // same disc and halo as the sun sprites (environment/celestial.ts), by the angle from each sun
 vec3 skyGlow(vec3 viewDir) {
@@ -48,5 +51,5 @@ vec3 skyGlow(vec3 viewDir) {
  */
 export const skyGlowFrag = /* glsl */ `
     // (edits) ${fileName}
-    gl_FragColor.rgb += skyGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
+    gl_FragColor.rgb += skyGlow(normalize(vFogWorldPosition - cameraPosition)) * smoothstep(glowFogStart, 1.0, fogFactor);
 `;

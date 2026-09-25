@@ -207,6 +207,9 @@ export interface CelestialBody {
     lightIntensity: number;
 }
 
+/** how fogged a surface has to be (0-1) before the suns shine through it; below that it blocks them */
+export const SUN_THROUGH_FOG = 0.9;
+
 export const SUN_LARGE: CelestialBody = {
     color: '#ffe2c4',
     sizeDeg: 9,

@@ -48,7 +48,8 @@ import {
     PILLARS_FOG_FAR_COLOR,
     BACKGROUND_COLOR,
     SUN_LARGE,
-    SUN_SMALL
+    SUN_SMALL,
+    SUN_THROUGH_FOG
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -59,6 +60,7 @@ import { DustFactory } from './environment/dust-particles';
 import { ParticleField } from './environment/particle-field';
 import { DayNight } from './environment/day-night';
 import { Celestial } from './environment/celestial';
+import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -242,6 +244,9 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
 scheduler.add(dayNight);
 
 // two suns/moons, following the time of day
+const fogGlowTweaks = tweaks.addFolder('Suns through fog', { fogStart: SUN_THROUGH_FOG });
+skyGlowUniforms.glowFogStart.value = fogGlowTweaks.params.fogStart;
+fogGlowTweaks.folder?.add(fogGlowTweaks.params, 'fogStart', 0, 1, 0.01).onChange((v: number) => skyGlowUniforms.glowFogStart.value = v);
 ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const).forEach(([name, body], index) => {
     const sunTweaks = tweaks.addFolder(name, body);
     const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour, index);

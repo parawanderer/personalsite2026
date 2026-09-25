@@ -88,11 +88,16 @@ export class Celestial implements AnimatedEntity {
     public update(): void {
         const b = this.body;
         const p = this.phase;
-        const above = p >= 0 && p <= 1;
+        const radius = degToRad(b.sizeDeg) / 2;
 
-        const az = degToRad(b.azimuthRise + (b.azimuthSet - b.azimuthRise) * Math.min(Math.max(p, 0), 1));
-        // an arc: rises from the horizon, peaks halfway, sets again
-        const el = above ? degToRad(b.peakElevation) * Math.sin(Math.PI * p) : -0.2;
+        // it keeps following its arc a little past rising and setting, so it slides in and out through the horizon
+        // instead of popping on and off at the ends of the arc
+        const margin = 0.15;
+        const onArc = p >= -margin && p <= 1 + margin;
+        const t = Math.min(Math.max(p, -margin), 1 + margin);
+
+        const az = degToRad(b.azimuthRise + (b.azimuthSet - b.azimuthRise) * Math.min(Math.max(t, 0), 1));
+        const el = onArc ? degToRad(b.peakElevation) * Math.sin(Math.PI * t) : -Math.PI / 2;
         this.direction.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
         this.up = smoothstep(Math.sin(el), -0.02, 0.12);
 
@@ -101,7 +106,8 @@ export class Celestial implements AnimatedEntity {
         u.brightness.value = b.brightness;
         u.haloScale.value = b.haloScale;
         u.haloStrength.value = b.haloStrength;
-        u.visibility.value = above ? smoothstep(Math.sin(el), -0.03, 0.02) : 0;
+        // gone once the whole disc (and a bit of its halo) is below the horizon
+        u.visibility.value = smoothstep(el, -radius * 2.5, -radius * 0.5);
         this.disc.visible = u.visibility.value > 0;
 
         const size = 2 * Math.tan(degToRad(b.sizeDeg) / 2) * DISTANCE * b.haloScale;
