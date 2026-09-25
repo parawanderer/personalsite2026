@@ -13,7 +13,9 @@ npm run perf -- --label "water rework"
 npm run perf -- --ref f54d197 --label "baseline (2025 site)"
 ```
 
-Options: `--runs 3`, `--duration 15` (seconds per scenario), `--scenarios home,about,flight`, `--headless`.
+Options: `--runs 3`, `--duration 15` (seconds per scenario), `--scenarios home,about,flight`, `--cooldown 8` (idle seconds
+before each scenario), `--headless`. The scenario order rotates each run, so a slowdown partway through a benchmark
+spreads over all scenarios instead of always hitting the same one.
 
 Leave the Chrome window alone while it runs. It opens at 1920x1080 with vsync and background throttling off.
 

@@ -32,6 +32,7 @@ const { values: args } = parseArgs({
         duration: { type: 'string', default: '15' }, // seconds recorded per scenario
         scenarios: { type: 'string', default: 'home,about,flight' },
         headless: { type: 'boolean', default: false },
+        cooldown: { type: 'string', default: '8' },   // seconds idle between scenarios and runs, lets the GPU cool down
     },
 });
 
@@ -208,10 +209,7 @@ const SCENARIOS = {
             await page.click('#aboutMeButton');
             await sleep(SETTLE_MS);
         },
-        async after(page) {
-            await page.click('#homeButton');
-            await sleep(SETTLE_MS);
-        },
+        async after() {},
     },
     flight: {
         async before(page) {
@@ -293,13 +291,18 @@ const main = async () => {
 
     try {
         for (let run = 1; run <= runs; run++) {
-            const page = await browser.newPage();
-            await page.evaluateOnNewDocument(injectRecorder, RANDOM_SEED);
-            await page.goto(url, { waitUntil: 'load' });
-            await page.waitForSelector('#loadingOverlay.hidden', { timeout: 60000 });
-            await sleep(SETTLE_MS);
+            // rotate the order each run so a slowdown partway through doesn't always hit the same scenario
+            const order = scenarios.map((_, k) => scenarios[(k + run - 1) % scenarios.length]);
+            for (const name of order) {
+                await sleep(Number(args.cooldown) * 1000);
 
-            for (const name of scenarios) {
+                // fresh page per scenario, so each starts from the home view whatever ran before it
+                const page = await browser.newPage();
+                await page.evaluateOnNewDocument(injectRecorder, RANDOM_SEED);
+                await page.goto(url, { waitUntil: 'load' });
+                await page.waitForSelector('#loadingOverlay.hidden', { timeout: 60000 });
+                await sleep(SETTLE_MS);
+
                 const scenario = SCENARIOS[name];
                 await scenario.before(page);
                 await page.evaluate(() => window.__bench.start());
@@ -323,8 +326,8 @@ const main = async () => {
                 };
                 appendFileSync(RESULTS, JSON.stringify(row) + '\n');
                 console.log(`run ${run} ${name.padEnd(7)} ${String(stats.fps).padStart(6)} fps  frame p50 ${stats.frameMs.p50}ms p95 ${stats.frameMs.p95}ms  gpu p50 ${stats.gpuMs?.p50 ?? 'n/a'}ms  draws ${stats.drawCalls}`);
+                await page.close();
             }
-            await page.close();
         }
     } finally {
         await browser.close();
