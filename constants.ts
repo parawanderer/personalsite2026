@@ -282,6 +282,8 @@ export interface AuroraSettings {
     waterStretch: number;
     /** how much of the ripples the glow follows, 0 = smooth */
     waterRipple: number;
+    /** how far the glow spreads out around the reflected aurora (gaussian blur radius), degrees; 0 = off */
+    waterBlur: number;
     /** it only comes out once the night has settled: fades in between these hours, and out again before dawn */
     fadeInStart: number;
     fadeInEnd: number;
@@ -303,6 +305,7 @@ export const AURORA: AuroraSettings = {
     waterSoftness: 0.1,
     waterStretch: 2.3,
     waterRipple: 0.47,
+    waterBlur: 12,
     fadeInStart: 21,
     fadeInEnd: 22.5,
     fadeOutStart: 3,
