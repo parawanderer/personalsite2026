@@ -13,6 +13,7 @@ import {
     MeshBasicMaterial,
     MeshStandardMaterial,
     PlaneGeometry,
+    ShaderMaterial,
     Scene,
     Texture,
     Vector2,
@@ -24,6 +25,10 @@ import { AnimatedEntity } from '../entity/animated-entity';
 import { ParticleSettings } from '../constants';
 import { makeRng } from '../utils/random';
 import {
+    dimpleBeginVertex,
+    dimpleFrag,
+    dimpleFragPars,
+    dimplePars,
     dotBeginVertex,
     dotFrag,
     dotFragPars,
@@ -121,6 +126,10 @@ export class ParticleField implements AnimatedEntity {
             flakeNear: { value: 0 },
             flakeBand: { value: 1 },
             flakeSize: { value: 0 },
+            dimpleSize: { value: 1 },
+            dimpleDarkness: { value: 0 },
+            dimpleRim: { value: 0 },
+            dimpleRimColor: { value: new Color() },
             flakeSpin: { value: 0 },
             dotSize: { value: 0 },
         };
@@ -157,12 +166,40 @@ export class ParticleField implements AnimatedEntity {
             this.flakeMaterials.push(flakeMaterial);
             this.add(new Mesh(flakes, flakeMaterial));
 
+            // drawn after the water (also transparent), just above its surface
+            const dimples = new Mesh(this.instanced(dotShape, seedAttribute, count), this.dimpleMaterial());
+            dimples.renderOrder = 1;
+            this.add(dimples);
+
             const dots = this.instanced(dotShape, seedAttribute, count);
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
             dotMaterial.onBeforeCompile = (params) => this.editDot(params);
             this.add(new Mesh(dots, dotMaterial));
         }
         this.apply();
+    }
+
+    private dimpleMaterial(): ShaderMaterial {
+        return new ShaderMaterial({
+            uniforms: this.uniforms,
+            vertexShader: /* glsl */ `
+                ${particleFieldPars}
+                ${dimplePars}
+                void main() {
+                    ${dimpleBeginVertex}
+                    gl_Position = projectionMatrix * viewMatrix * vec4(transformed, 1.0);
+                }
+            `,
+            fragmentShader: /* glsl */ `
+                ${dimpleFragPars}
+                void main() {
+                    ${dimpleFrag}
+                    #include <colorspace_fragment>
+                }
+            `,
+            transparent: true,
+            depthWrite: false,
+        });
     }
 
     private instanced(shape: BufferGeometry, seeds: InstancedBufferAttribute, count: number): InstancedBufferGeometry {
@@ -224,6 +261,10 @@ export class ParticleField implements AnimatedEntity {
         u.particleSinkSpeed.value = s.sinkSpeed;
         u.particleSinkDepth.value = Math.max(s.sinkDepth, 1e-3);
         u.particlePillarMargin.value = s.pillarMargin;
+        u.dimpleSize.value = s.dimpleSize;
+        u.dimpleDarkness.value = s.dimpleDarkness;
+        u.dimpleRim.value = s.dimpleRim;
+        u.dimpleRimColor.value.set(s.dimpleRimColor);
         this.flakeMaterials.forEach((m, k) => {
             m.color.set(s[this.colours[k].colorKey]);
             m.emissive.set(s[this.colours[k].colorKey]);
@@ -247,6 +288,10 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'sinkSpeed', 0.001, 0.2, 0.001).onChange(apply);
         folder.add(this.settings, 'sinkDepth', 0.01, 2, 0.01).onChange(apply);
         folder.add(this.settings, 'pillarMargin', 0, 0.2, 0.005).onChange(apply);
+        folder.add(this.settings, 'dimpleSize', 0, 6, 0.05).onChange(apply);
+        folder.add(this.settings, 'dimpleDarkness', 0, 1, 0.01).onChange(apply);
+        folder.add(this.settings, 'dimpleRim', 0, 1, 0.01).onChange(apply);
+        folder.addColor(this.settings, 'dimpleRimColor').onChange(apply);
         folder.addColor(this.settings, 'flakeColor1').onChange(apply);
         folder.addColor(this.settings, 'flakeColor2').onChange(apply);
     }

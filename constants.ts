@@ -397,6 +397,11 @@ export interface ParticleSettings {
     floatSeconds: number;
     sinkSpeed: number;
     sinkDepth: number;
+    /** the dip in the water under floating flakes: size (times the flake's), darkness, rim brightness and colour */
+    dimpleSize: number;
+    dimpleDarkness: number;
+    dimpleRim: number;
+    dimpleRimColor: string;
     /** how far floating particles stay clear of the pillars */
     pillarMargin: number;
     /** colours of the two particle sets' flakes (their dots use the particle textures) */
@@ -419,6 +424,10 @@ export const PARTICLES: ParticleSettings = {
     sinkSpeed: 0.02,
     sinkDepth: 0.25,
     pillarMargin: 0.02,
+    dimpleSize: 2.1,
+    dimpleDarkness: 0.12,
+    dimpleRim: 0,
+    dimpleRimColor: '#a1c4bf',
     flakeColor1: '#2ebdb6',
     flakeColor2: '#e1602d',
 };

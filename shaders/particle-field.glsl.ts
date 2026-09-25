@@ -89,6 +89,9 @@ vec2 flowAroundPillars(vec2 p, vec2 flow, out float lift) {
     return p;
 }
 
+// height of the water surface under the particle, set by particleWorld while it's on or in the water
+float particleSurfaceY = 0.0;
+
 // world position of this particle, and how visible it is (fades at the box edges and as it sinks).
 // Particles that reach the water float on it for a while, drifting with the flow, then sink and fade. The time since
 // landing follows from how far the particle would have fallen past the surface, so none of this needs state.
@@ -120,6 +123,7 @@ vec3 particleWorld(out float visible, out float landed) {
         world.xz = flowAroundPillars(world.xz + particleFlow * sinceLanding, particleFlow, lift);
         float sinking = max(sinceLanding - particleFloatTime, 0.0) * particleSinkSpeed;
         world.y = particleWaterY + lift - sinking;
+        particleSurfaceY = particleWaterY + lift;
         visible *= 1.0 - smoothstep(0.0, particleSinkDepth, sinking);
         landed = 1.0;
     }
@@ -215,4 +219,54 @@ varying float dotOpacity;
 export const dotFrag = /* glsl */ `
 // (edits) ${fileName}
 gl_FragColor.a *= dotOpacity;
+`;
+
+/**
+ * Dimples: a patch on the water under each floating flake, where the thick surface dips under it and curves up around
+ * it: a dark dimple with a bright rim. Replaces <begin_vertex>
+ */
+export const dimplePars = /* glsl */ `
+// (edits) ${fileName}
+uniform float flakeSize;
+uniform float dimpleSize;
+varying vec2 dimpleUv;
+varying float dimpleFade;
+`;
+
+export const dimpleBeginVertex = /* glsl */ `
+// (edits) ${fileName}
+float dimpleVisible;
+float dimpleLanded;
+vec3 dimpleCentre = particleWorld(dimpleVisible, dimpleLanded);
+// the same size as its flake (which shrinks as it turns into a dot further away), and fades as the flake sinks
+float dimpleDepth = particleSurfaceY - dimpleCentre.y;
+dimpleFade = dimpleLanded * (1.0 - smoothstep(0.0, 0.02, dimpleDepth));
+// part of the surface itself, so not in the water's reflection (rendered from a mirror camera below the surface)
+if (cameraPosition.y < particleWaterY) dimpleFade = 0.0;
+float dimpleScale = flakeSize * (0.6 + 0.8 * particleSeed.y) * dimpleVisible * flakeWeight(dimpleCentre) * dimpleSize * step(0.001, dimpleFade);
+dimpleUv = position.xy * 2.0;
+// the quad's y becomes -z, so its front faces up (three only draws front faces)
+vec3 transformed = vec3(dimpleCentre.x + position.x * dimpleScale, particleSurfaceY + 0.002, dimpleCentre.z - position.y * dimpleScale);
+`;
+
+export const dimpleFragPars = /* glsl */ `
+// (edits) ${fileName}
+uniform float dimpleDarkness;
+uniform float dimpleRim;
+uniform vec3 dimpleRimColor;
+varying vec2 dimpleUv;
+varying float dimpleFade;
+`;
+
+/**
+ * Replaces the whole fragment output: dark in the middle, a thin bright ring towards the edge
+ */
+export const dimpleFrag = /* glsl */ `
+// (edits) ${fileName}
+float r = length(dimpleUv);
+float dimple = dimpleDarkness * (1.0 - smoothstep(0.2, 0.75, r));
+float rim = dimpleRim * smoothstep(0.55, 0.75, r) * (1.0 - smoothstep(0.75, 1.0, r));
+float alpha = max(dimple, rim) * dimpleFade;
+if (alpha < 0.002) discard;
+gl_FragColor = vec4(dimpleRimColor * (rim / max(max(dimple, rim), 1e-4)), alpha);
 `;

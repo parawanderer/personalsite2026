@@ -69,11 +69,26 @@ import { CameraTweaks } from './ui/camera-tweaks';
 let width = window.innerWidth;
 let height = window.innerHeight;
 
-// clock
-const clock = new Clock();
+// clock: drives all scene animation and can be paused from the tweak panel; flying uses its own clock so the camera
+// still moves while time stands still
+const clock = new Clock(false);
+clock.start();
+const flightClock = new Clock();
 
 // hand-tweaking panel (?tweaks)
 const tweaks = new Tweaks(TWEAKS_ENABLED);
+const timeTweaks = tweaks.addFolder('Time', { paused: false });
+timeTweaks.params.paused = false; // never start paused after a reload
+timeTweaks.folder?.add(timeTweaks.params, 'paused').name('pause time').onChange((paused: boolean) => {
+    if (paused) {
+        clock.stop();
+    } else {
+        // resume from where it stopped instead of jumping ahead by the paused time
+        const elapsed = clock.elapsedTime;
+        clock.start();
+        clock.elapsedTime = elapsed;
+    }
+});
 
 // scene
 const scene: Scene = new Scene();
@@ -223,10 +238,9 @@ window.addEventListener('resize', onWindowResize);
 
 const animate = () => {
     // render loop
-    const delta = clock.getDelta();
+    clock.getDelta(); // advances the scene clock unless paused
 
-
-    interactionMgr.update(delta);
+    interactionMgr.update(flightClock.getDelta());
 
     debugInfoUI.update();
     scheduler.doUpdates(clock);
