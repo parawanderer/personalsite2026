@@ -7,6 +7,10 @@ import { fragment, fragmentPars, vertex, vertexPars } from "../shaders/particle-
 import { insertModifications } from "../shaders/util";
 
 
+// reused for every particle each frame
+const MATRIX = new Matrix4();
+const UNIT_SCALE = new Vector3(1, 1, 1);
+
 const UNITS_PER_MS_REGULAR = 10/1000;
 const MOVEMENT_MULTIPLIER = 1/5000;
 
@@ -34,9 +38,8 @@ class DustParticle {
     }
 
     protected updatePos(diff: number): void {
-        const add = this.velocity.clone().multiplyScalar(diff);
-        const newPos = this.pos.clone().add(add);
-        this.pos = newPos;
+        // in place: every particle owns its position (set on spawn), and allocating per particle per frame causes GC pauses
+        this.pos.addScaledVector(this.velocity, diff);
     }
 
     protected updateOpacity(diff: number): void {
@@ -137,10 +140,9 @@ export class DustEmitter implements AnimatedEntity {
         for (const particle of this.fifoUnits) {
             particle!.update(diff);
 
-            const matrix = new Matrix4();
-            matrix.compose(particle!.pos, this.camera.quaternion, new Vector3(1, 1, 1));
+            MATRIX.compose(particle!.pos, this.camera.quaternion, UNIT_SCALE);
 
-            this.instancedMesh.setMatrixAt(particle!.index, matrix);
+            this.instancedMesh.setMatrixAt(particle!.index, MATRIX);
             opacities.setX(particle!.index, particle!.opacity);
         }
 
