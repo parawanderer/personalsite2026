@@ -1,4 +1,4 @@
-import { Clock, LoadingManager, PlaneGeometry, RepeatWrapping, Scene, TextureLoader, Vector3 } from "three";
+import { Clock, LoadingManager, PlaneGeometry, RepeatWrapping, Scene, TextureLoader, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
 import {
@@ -25,6 +25,31 @@ const UPDATE_WATER_EVERY_MS = 1000/60;
 
 const SLOWNESS = 600;
 const UPDATE_BY = 1/SLOWNESS;
+
+/**
+ * three r175+ lowered the Water shader's base reflectance (rf0 0.3 -> 0.02) and changed the albedo mix,
+ * which makes the water render much darker. This puts back the r174 lines the scene was tuned against.
+ */
+const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
+    [
+        "float rf0 = 0.02;",
+        "float rf0 = 0.3;"
+    ],
+    [
+        "reflectionSample + specularLight, reflectance );",
+        "( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance );"
+    ],
+];
+
+const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) => {
+    for (const [search, replacement] of LEGACY_REFLECTANCE_EDITS) {
+        if (!params.fragmentShader.includes(search)) {
+            console.warn(`Water shader no longer contains "${search}"; reflectance edit not applied.`);
+            continue;
+        }
+        params.fragmentShader = params.fragmentShader.replace(search, replacement);
+    }
+};
 
 
 export class Water implements AnimatedEntity {
@@ -87,7 +112,10 @@ export class WaterFactory {
 
         water.receiveShadow = true;
 
-        water.material.onBeforeCompile = fogShader.handle;
+        water.material.onBeforeCompile = (params, renderer) => {
+            restoreLegacyReflectance(params);
+            fogShader.handle(params, renderer);
+        };
 
         water.position.x = 0;
         water.position.z = offsetZ + (-2*ROW_LENGTH_X)+3;
