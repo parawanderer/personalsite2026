@@ -10,6 +10,10 @@ const SHOW = "show";
 const FLIPPED = "flipped";
 const HIDDEN = "hidden";
 const NO_DISPLAY = "no-display";
+const HINTS_FADE_MS = 1000; // matches the .show opacity transition in index.css
+
+// pressing any of the keys the hints explain means they've been read
+const HINT_KEYS = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space", "ShiftLeft", "ShiftRight", "Escape"]);
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Window/matchMedia
 const isPrimaryInputMethodTouch = (): boolean => {
@@ -35,6 +39,8 @@ export class ForegroundManager {
     private readonly returnFromFreeFlightButton: HTMLButtonElement;
 
     private isMobile: boolean;
+    /** once the controls hints have been used they stay hidden until the page reloads */
+    private hintsDismissed: boolean = false;
     private isFreeFlight: boolean = false;
     private isUiSwitching: boolean = false;
 
@@ -73,6 +79,10 @@ export class ForegroundManager {
         } else {
             mobileWarning.style.display = "none";
         }
+
+        document.addEventListener("keydown", (event) => {
+            if (this.isFreeFlight && HINT_KEYS.has(event.code)) this.dismissHints();
+        });
     }
 
     private handleFreeFlight(): void {
@@ -93,14 +103,14 @@ export class ForegroundManager {
                     element.classList.add(NO_DISPLAY);
                 }
                 this.freeFlightUi.classList.remove(NO_DISPLAY);
-                this.freeFlightUiHints.classList.remove(NO_DISPLAY);
+                if (!this.hintsDismissed) this.freeFlightUiHints.classList.remove(NO_DISPLAY);
 
                 this.interactionManager.setMovementEnabled(true);
 
                 // add to end of event queue
                 setTimeout(() => {
                     this.freeFlightUi.classList.add(SHOW);
-                    this.freeFlightUiHints.classList.add(SHOW)
+                    if (!this.hintsDismissed) this.freeFlightUiHints.classList.add(SHOW);
                     this.isUiSwitching = false;
                 }, 10);
             }, 2000);
@@ -184,6 +194,13 @@ export class ForegroundManager {
 
     public setAboutMeCallback(callback: () => void) {
         this.onPressAboutMeButtonCallback = callback;
+    }
+
+    private dismissHints(): void {
+        if (this.hintsDismissed) return;
+        this.hintsDismissed = true;
+        this.freeFlightUiHints.classList.remove(SHOW);
+        setTimeout(() => this.freeFlightUiHints.classList.add(NO_DISPLAY), HINTS_FADE_MS);
     }
 
     public setFreeFlightCallback(callback: (isFreeFlight: boolean) => void) {

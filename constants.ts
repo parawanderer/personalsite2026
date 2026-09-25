@@ -377,6 +377,42 @@ export const CUBE_LIGHT_COLOR = Color.fromHex("#4bffe7");
 export const RING_ONE_COLOR = Color.fromHex("#ffffff");
 export const RING_TWO_COLOR = Color.fromHex("#fffbb5");
 
+// ambient particles (environment/particle-field.ts)
+export interface ParticleSettings {
+    /** particles in the box around the camera, all colours together */
+    count: number;
+    /** size of the box around the camera particles live in (it wraps as the camera moves) */
+    boxSize: number;
+    fallSpeed: number;
+    sway: number;
+    dotSize: number;
+    flakeSize: number;
+    /** particles closer than this are flakes, further away dots, crossfading over the band */
+    flakeNear: number;
+    flakeBand: number;
+    flakeSpin: number;
+    /** how much the flakes glow in their own colour; meant to come up as the day turns into night */
+    flakeGlow: number;
+    /** colours of the two particle sets' flakes (their dots use the particle textures) */
+    flakeColor1: string;
+    flakeColor2: string;
+}
+
+export const PARTICLES: ParticleSettings = {
+    count: 1600,
+    boxSize: 9,
+    fallSpeed: 0.04,
+    sway: 0.05,
+    dotSize: 0.012,
+    flakeSize: 0.03,
+    flakeNear: 1.2,
+    flakeBand: 2.1,
+    flakeSpin: 0.8,
+    flakeGlow: 0,
+    flakeColor1: '#2ebdb6',
+    flakeColor2: '#e1602d',
+};
+
 // particles
 export const DUST_CAMERA_OFFSET_FRONT = -2;
 export const DUST_RADIUS = 2;

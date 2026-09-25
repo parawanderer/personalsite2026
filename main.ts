@@ -27,13 +27,7 @@ import {
     FOG_INTENSITY,
     TEXTURE_PARTICLE_CYAN,
     TEXTURE_PARTICLE_RED,
-    DUST_AMOUNT_RED,
-    DUST_AMOUNT_CYAN,
-    DUST_SIZE_CYAN,
-    DUST_SIZE_RED,
-    DUST_RADIUS,
     CUBE_LIGHT_COLOR,
-    DUST_SPAWN_INITIALLY,
     DEBUG,
     CAMERA_ABOUT_ME_POS,
     CAMERA_ABOUT_ME_DIR,
@@ -41,14 +35,14 @@ import {
     CAMERA_CONTACT_DIR,
     CAMERA_HOME_POS,
     CAMERA_HOME_DIR,
-    DUST_CENTER,
     TWEAKS_ENABLED,
     PILLAR_LAYOUT,
     PILLAR_SHAPE,
     GRAIN_STYLE,
     FLIGHT_SETTINGS,
     WATER_LOOK,
-    DISTANCE_BLUR
+    DISTANCE_BLUR,
+    PARTICLES
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -56,6 +50,8 @@ import { GenericObjectFactory } from './environment/factory';
 import { InteractionManager } from './interact';
 import { WaterFactory } from './environment/water';
 import { DustFactory } from './environment/dust-particles';
+import { ParticleField } from './environment/particle-field';
+import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
 import { DebugInfoDisplay } from './ui/debug-info';
@@ -137,10 +133,14 @@ if (waterTweaks.folder) water.bindTweaks(waterTweaks.folder);
 scheduler.add(water);
 
 // particles
-const dust1 = dustFactory.makeDust(TEXTURE_PARTICLE_CYAN, DUST_CENTER.clone(), DUST_RADIUS, DUST_AMOUNT_CYAN, DUST_SIZE_CYAN, DUST_SPAWN_INITIALLY);
-scheduler.add(dust1);
-const dust2 = dustFactory.makeDust(TEXTURE_PARTICLE_RED, DUST_CENTER.clone(), DUST_RADIUS, DUST_AMOUNT_RED, DUST_SIZE_RED, DUST_SPAWN_INITIALLY);
-scheduler.add(dust2);
+const particleTweaks = tweaks.addFolder('Particles', PARTICLES);
+const textures = new TextureLoader(loadingMgr);
+const particles = new ParticleField(scene, camera, particleTweaks.params, [
+    { texture: textures.getTexture(TEXTURE_PARTICLE_CYAN), colorKey: 'flakeColor1', share: 3 / 7, seed: 11 },
+    { texture: textures.getTexture(TEXTURE_PARTICLE_RED), colorKey: 'flakeColor2', share: 4 / 7, seed: 23 },
+]);
+if (particleTweaks.folder) particles.bindTweaks(particleTweaks.folder);
+scheduler.add(particles);
 
 // the swirl of particles in the middle of the scene belonged to the glass pane, off until the pane has a new place
 // const rotatingParticles1 = dustFactory.makeRotatingDust(TEXTURE_PARTICLE_CYAN, ROTATING_DUST_CENTER.clone(), 0.5, DUST_AMOUNT_CYAN, DUST_SIZE_CYAN);
@@ -224,8 +224,6 @@ const animate = () => {
     // render loop
     const delta = clock.getDelta();
 
-    dust1.setPos(camera.position.clone());
-    dust2.setPos(camera.position.clone());
 
     interactionMgr.update(delta);
 
