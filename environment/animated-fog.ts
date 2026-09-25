@@ -30,6 +30,13 @@ export class ShaderExtension {
         return this.params?.uniforms;
     }
 
+    /**
+     * The fog's own uniforms (fogNearColor, fogFarColor, ...), available before the shader compiles
+     */
+    public get extensionUniforms(): {[uniform: string]: IUniform<any>} {
+        return this.uniformExtensions;
+    }
+
     public handle = (params: WebGLProgramParametersWithUniforms, renderer: WebGLRenderer) => {
         params.vertexShader = params.vertexShader
             .replace(`#include <fog_pars_vertex>`, this.fogParsVert)

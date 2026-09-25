@@ -153,6 +153,16 @@ export class Water implements AnimatedEntity {
         this.hidePatchFromReflection();
     }
 
+    /** fogNearColor, fogFarColor, ... of the water's coloured fog */
+    public get fogUniforms() {
+        return this.fogShader.extensionUniforms;
+    }
+
+    /** underwaterColor, causticColor, causticStrength, ... */
+    public get underwater() {
+        return this.underwaterUniforms;
+    }
+
     private onSeabedChange?: (depth: number) => void;
 
     /**

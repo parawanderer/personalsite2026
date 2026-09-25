@@ -219,6 +219,11 @@ export class Walls implements AnimatedEntity {
         this.rebuild();
     }
 
+    /** fogNearColor, fogFarColor, ... of the pillars' coloured fog */
+    public get fogUniforms() {
+        return this.fog.extensionUniforms;
+    }
+
     public get material(): MeshPhysicalMaterial {
         return this.walls.material;
     }

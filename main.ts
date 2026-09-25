@@ -42,7 +42,11 @@ import {
     FLIGHT_SETTINGS,
     WATER_LOOK,
     DISTANCE_BLUR,
-    PARTICLES
+    PARTICLES,
+    DAY_NIGHT,
+    PILLARS_FOG_NEAR_COLOR,
+    PILLARS_FOG_FAR_COLOR,
+    BACKGROUND_COLOR
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -51,6 +55,7 @@ import { InteractionManager } from './interact';
 import { WaterFactory } from './environment/water';
 import { DustFactory } from './environment/dust-particles';
 import { ParticleField } from './environment/particle-field';
+import { DayNight } from './environment/day-night';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -192,6 +197,44 @@ water.setSeabedListener((depth) => {
     walls.rebuild();
 });
 scheduler.add(walls);
+
+// day/night: blends everything above from its own (day) values to the night palette by the time of day; last in the
+// schedule so it applies after the others have set their day values
+const dayNightTweaks = tweaks.addFolder('Day / night', DAY_NIGHT);
+const dayNight = new DayNight(dayNightTweaks.params);
+if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
+{
+    const light = (l: { color: Color, intensity: number }) => ({ color: l.color.clone(), intensity: l.intensity });
+    const hemi = { ...light(ambientLight), ground: ambientLight.groundColor.clone() };
+    const spot = light(skySpot);
+    const diffuse = [light(skyDiffuseLight1), light(skyDiffuseLight2)];
+    const exposure = renderer.toneMappingExposure;
+    const w = waterTweaks.params;
+
+    dayNight
+        .color(sky.material.color, () => BACKGROUND_COLOR, 'nightSky')
+        .color(walls.fogUniforms.fogNearColor.value, () => PILLARS_FOG_NEAR_COLOR, 'nightFogNear')
+        .color(walls.fogUniforms.fogFarColor.value, () => PILLARS_FOG_FAR_COLOR, 'nightFogFar')
+        .color(water.fogUniforms.fogNearColor.value, () => PILLARS_FOG_NEAR_COLOR, 'nightFogNear')
+        .color(water.fogUniforms.fogFarColor.value, () => PILLARS_FOG_FAR_COLOR, 'nightFogFar')
+        .color((scene.fog as FogExp2).color, () => FOG_COLOR, 'nightSceneFog')
+        .color(scene.background as Color, () => FOG_COLOR, 'nightSceneFog')
+        .color(ambientLight.color, () => hemi.color, 'nightAmbientSky')
+        .color(ambientLight.groundColor, () => hemi.ground, 'nightAmbientGround')
+        .color(skySpot.color, () => spot.color, 'nightSpotColor')
+        .color(skyDiffuseLight1.color, () => diffuse[0].color, 'nightDiffuseColor')
+        .color(skyDiffuseLight2.color, () => diffuse[1].color, 'nightDiffuseColor')
+        .color(water.underwater.underwaterColor.value, () => w.underwaterColor, 'nightUnderwaterColor')
+        .color(water.underwater.causticColor.value, () => w.causticColor, 'nightCausticColor')
+        .number((v) => water.underwater.causticStrength.value = v, () => w.causticStrength, 'nightCausticStrength')
+        .number((v) => particles.setGlow(v), () => particleTweaks.params.flakeGlow, 'nightFlakeGlow')
+        // the night values of these are scales of the day ones
+        .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
+        .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')
+        .number((v) => { skyDiffuseLight1.intensity = diffuse[0].intensity * v; skyDiffuseLight2.intensity = diffuse[1].intensity * v; }, () => 1, 'nightDiffuseScale')
+        .number((v) => renderer.toneMappingExposure = exposure * v, () => 1, 'nightExposureScale');
+}
+scheduler.add(dayNight);
 
 
 // debug-related UI elements

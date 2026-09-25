@@ -272,6 +272,13 @@ export class ParticleField implements AnimatedEntity {
         });
     }
 
+    /**
+     * Overrides the flakes' glow (the day/night cycle raises it at night)
+     */
+    public setGlow(glow: number): void {
+        for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
+    }
+
     public bindTweaks(folder: GUI): void {
         const apply = () => this.apply();
         folder.add(this.settings, 'count', 0, 20000, 100).onFinishChange(() => this.build());

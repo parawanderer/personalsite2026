@@ -135,6 +135,50 @@ export const DISTANCE_BLUR: DistanceBlurSettings = {
     maxBlur: 7,
 };
 
+// day/night (environment/day-night.ts): the day values are the scene's own, these are the night ones
+export interface DayNightSettings {
+    /** 0-24, 12 is midday; will follow the visitor's clock later */
+    hour: number;
+    nightSky: string;
+    nightFogNear: string;
+    nightFogFar: string;
+    /** the plain fog that particles and the seabed use */
+    nightSceneFog: string;
+    nightAmbientSky: string;
+    nightAmbientGround: string;
+    /** times the day brightness */
+    nightAmbientScale: number;
+    nightSpotColor: string;
+    nightSpotScale: number;
+    nightDiffuseColor: string;
+    nightDiffuseScale: number;
+    nightExposureScale: number;
+    nightUnderwaterColor: string;
+    nightCausticColor: string;
+    nightCausticStrength: number;
+    nightFlakeGlow: number;
+}
+
+export const DAY_NIGHT: DayNightSettings = {
+    hour: 12,
+    nightSky: '#0b1b24',
+    nightFogNear: '#3a1c12',
+    nightFogFar: '#0f2a30',
+    nightSceneFog: '#050909',
+    nightAmbientSky: '#0a1822',
+    nightAmbientGround: '#1b2b33',
+    nightAmbientScale: 0.35,
+    nightSpotColor: '#7d9bbd',
+    nightSpotScale: 0.25,
+    nightDiffuseColor: '#203844',
+    nightDiffuseScale: 0.3,
+    nightExposureScale: 1,
+    nightUnderwaterColor: '#0c1a1c',
+    nightCausticColor: '#2ebdb6',
+    nightCausticStrength: 0.6,
+    nightFlakeGlow: 1.5,
+};
+
 // fog
 export const FOG_COLOR = Color.fromHex('#1c1c1c');
 export const FOG_INTENSITY = 0.08;
