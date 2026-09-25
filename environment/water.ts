@@ -120,6 +120,11 @@ export class Water implements AnimatedEntity {
     private lastWaterUpdate: number = 0;
     private lastFogUpdate: number = 0;
 
+    /** how fast the surface drifts (world units per second, x and z), for things floating on it */
+    public readonly flowVelocity = new Vector2();
+    /** the raised lip near the pillars, for things floating on it (see shaders/water-interaction.glsl.ts) */
+    public readonly lip = { height: 0, width: 1, patchRadius: 0 };
+
     private patch?: Mesh<PlaneGeometry, ShaderMaterial>;
     private patchGeometryKey = '';
 
@@ -251,6 +256,10 @@ export class Water implements AnimatedEntity {
         u.rippleScale.value = 1 - 0.55 * l.viscosity;
         u.rippleAmp.value = 1 - 0.5 * l.viscosity;
         u.flowDir.value.set(Math.cos(l.flowAngleDeg * Math.PI / 180), Math.sin(l.flowAngleDeg * Math.PI / 180));
+        this.flowVelocity.copy(u.flowDir.value).multiplyScalar(l.flowSpeed * this.timeScale);
+        this.lip.height = l.meniscusHeight * l.displacementScale;
+        this.lip.width = Math.max(l.meniscusWidth, 1e-4);
+        this.lip.patchRadius = l.displacementRadius;
         u.meniscusHeight.value = l.meniscusHeight;
         u.meniscusWidth.value = Math.max(l.meniscusWidth, 1e-4);
         u.cushionStrength.value = l.cushionStrength;

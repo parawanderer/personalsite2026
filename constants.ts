@@ -393,6 +393,12 @@ export interface ParticleSettings {
     flakeSpin: number;
     /** how much the flakes glow in their own colour; meant to come up as the day turns into night */
     flakeGlow: number;
+    /** once on the water: how long particles float, then how fast they sink and over what depth they fade */
+    floatSeconds: number;
+    sinkSpeed: number;
+    sinkDepth: number;
+    /** how far floating particles stay clear of the pillars */
+    pillarMargin: number;
     /** colours of the two particle sets' flakes (their dots use the particle textures) */
     flakeColor1: string;
     flakeColor2: string;
@@ -409,6 +415,10 @@ export const PARTICLES: ParticleSettings = {
     flakeBand: 2.1,
     flakeSpin: 0.8,
     flakeGlow: 0,
+    floatSeconds: 12,
+    sinkSpeed: 0.02,
+    sinkDepth: 0.25,
+    pillarMargin: 0.02,
     flakeColor1: '#2ebdb6',
     flakeColor2: '#e1602d',
 };

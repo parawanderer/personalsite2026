@@ -138,7 +138,7 @@ const textures = new TextureLoader(loadingMgr);
 const particles = new ParticleField(scene, camera, particleTweaks.params, [
     { texture: textures.getTexture(TEXTURE_PARTICLE_CYAN), colorKey: 'flakeColor1', share: 3 / 7, seed: 11 },
     { texture: textures.getTexture(TEXTURE_PARTICLE_RED), colorKey: 'flakeColor2', share: 4 / 7, seed: 23 },
-]);
+], water.flowVelocity, water.lip);
 if (particleTweaks.folder) particles.bindTweaks(particleTweaks.folder);
 scheduler.add(particles);
 
@@ -170,6 +170,7 @@ if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
 water.addUnderwaterTo(walls.material);
 water.setPillarField(walls.pillarField);
+particles.setPillarField(walls.pillarField);
 // pillars reach a little past the seabed
 water.setSeabedListener((depth) => {
     pillarTweaks.params.depthBelowWater = depth + 0.2;

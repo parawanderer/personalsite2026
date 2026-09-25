@@ -4,6 +4,7 @@ import {
     Camera,
     Clock,
     Color,
+    DataTexture,
     DoubleSide,
     InstancedBufferAttribute,
     InstancedBufferGeometry,
@@ -14,6 +15,7 @@ import {
     PlaneGeometry,
     Scene,
     Texture,
+    Vector2,
     WebGLProgramParametersWithUniforms,
 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
@@ -32,6 +34,7 @@ import {
     particleFieldPars,
 } from '../shaders/particle-field.glsl';
 import { WATER_LEVEL_Y } from './water';
+import type { PillarField } from './walls';
 
 const FLAKE_POINTS = 7;
 
@@ -82,11 +85,17 @@ export class ParticleField implements AnimatedEntity {
     private readonly uniforms: { [name: string]: IUniform };
     private readonly flakeMaterials: MeshStandardMaterial[] = [];
 
+    /**
+     * @param flow the water's surface flow (world units per second), which carries particles floating on it
+     * @param lip the water's raised lip near the pillars, which floating particles ride on
+     */
     constructor(
         private readonly scene: Scene,
         private readonly camera: Camera,
         private readonly settings: ParticleSettings,
         private readonly colours: FieldColour[],
+        flow: Vector2,
+        private readonly lip: { height: number, width: number, patchRadius: number },
     ) {
         this.uniforms = {
             particleTime: { value: 0 },
@@ -95,6 +104,20 @@ export class ParticleField implements AnimatedEntity {
             particleFall: { value: 0 },
             particleSway: { value: 0 },
             particleWaterY: { value: WATER_LEVEL_Y },
+            particleFlow: { value: flow },
+            particleFloatTime: { value: 0 },
+            particleSinkSpeed: { value: 0 },
+            particleSinkDepth: { value: 1 },
+            particlePillarsA: { value: new DataTexture(new Float32Array(4), 1, 1) },
+            particlePillarsB: { value: new DataTexture(new Float32Array(4), 1, 1) },
+            particlePillarOrigin: { value: new Vector2() },
+            particlePillarCell: { value: 1 },
+            // no pillars until setPillarField
+            particlePillarGrid: { value: new Vector2() },
+            particlePillarMargin: { value: 0 },
+            particleLiftHeight: { value: 0 },
+            particleLiftWidth: { value: 1 },
+            particlePatchRadius: { value: 0 },
             flakeNear: { value: 0 },
             flakeBand: { value: 1 },
             flakeSize: { value: 0 },
@@ -173,6 +196,19 @@ export class ParticleField implements AnimatedEntity {
         Object.assign(params.uniforms, this.uniforms);
     }
 
+    /**
+     * Where the pillars cross the water, so floating particles flow around them. The textures update in place when the
+     * pillars rebuild
+     */
+    public setPillarField(field: PillarField): void {
+        const u = this.uniforms;
+        u.particlePillarsA.value = field.dataA;
+        u.particlePillarsB.value = field.dataB;
+        u.particlePillarOrigin.value.copy(field.origin);
+        u.particlePillarCell.value = field.cellSize;
+        u.particlePillarGrid.value.copy(field.size);
+    }
+
     public apply(): void {
         const s = this.settings;
         const u = this.uniforms;
@@ -184,6 +220,10 @@ export class ParticleField implements AnimatedEntity {
         u.flakeSize.value = s.flakeSize;
         u.flakeSpin.value = s.flakeSpin;
         u.dotSize.value = s.dotSize;
+        u.particleFloatTime.value = s.floatSeconds;
+        u.particleSinkSpeed.value = s.sinkSpeed;
+        u.particleSinkDepth.value = Math.max(s.sinkDepth, 1e-3);
+        u.particlePillarMargin.value = s.pillarMargin;
         this.flakeMaterials.forEach((m, k) => {
             m.color.set(s[this.colours[k].colorKey]);
             m.emissive.set(s[this.colours[k].colorKey]);
@@ -203,11 +243,18 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'flakeBand', 0.05, 3, 0.05).onChange(apply);
         folder.add(this.settings, 'flakeSpin', 0, 5, 0.05).onChange(apply);
         folder.add(this.settings, 'flakeGlow', 0, 3, 0.01).onChange(apply);
+        folder.add(this.settings, 'floatSeconds', 0, 60, 0.5).onChange(apply);
+        folder.add(this.settings, 'sinkSpeed', 0.001, 0.2, 0.001).onChange(apply);
+        folder.add(this.settings, 'sinkDepth', 0.01, 2, 0.01).onChange(apply);
+        folder.add(this.settings, 'pillarMargin', 0, 0.2, 0.005).onChange(apply);
         folder.addColor(this.settings, 'flakeColor1').onChange(apply);
         folder.addColor(this.settings, 'flakeColor2').onChange(apply);
     }
 
     public update(clock: Clock): void {
         this.uniforms.particleTime.value = clock.elapsedTime;
+        this.uniforms.particleLiftHeight.value = this.lip.height;
+        this.uniforms.particleLiftWidth.value = this.lip.width;
+        this.uniforms.particlePatchRadius.value = this.lip.patchRadius;
     }
 }
