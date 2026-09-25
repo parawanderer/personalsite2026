@@ -118,8 +118,10 @@ export interface ScreenZone {
 
 /**
  * Where each pillar crosses the water surface, one texel per pillar grid cell, for the water shader's pillar interaction.
- * A = (centre x, centre z, radius, 1 if there's a pillar crossing the surface here), B = (lean direction x, z, stretch, 0):
- * a leaning pillar's cross-section is stretched along its lean by 1 / cos(tilt).
+ * A = (centre x, centre z, radius, 1 if there's a pillar crossing the surface here),
+ * B = (lean direction x, z, stretch, closest any point in this cell gets to a pillar in the 5x5 cells around it):
+ * a leaning pillar's cross-section is stretched along its lean by 1 / cos(tilt). The last one lets the water shader skip
+ * open water without looking at any pillars.
  */
 export interface PillarField {
     dataA: DataTexture;
@@ -152,6 +154,40 @@ const recordWaterline = (field: PillarField, i: number, j: number, pillar: Pilla
     a.set([x, z, pillar.radius, 1], k);
     b.set(horizontal > 1e-4 ? [axis.x / horizontal, axis.z / horizontal] : [1, 0], k);
     b[k + 2] = 1 / axis.y;
+};
+
+// the water shader looks this many cells around a point for pillars
+const FIELD_SEARCH = 2;
+const NO_PILLAR_NEARBY = 1e3;
+
+/**
+ * Per cell, a lower bound on how close any point in it gets to the edge of a pillar the shader would look at
+ */
+const computeClearance = (field: PillarField) => {
+    const a = field.dataA.image.data as Float32Array;
+    const b = field.dataB.image.data as Float32Array;
+    const cols = field.size.x, rows = field.size.y;
+    const halfDiagonal = field.cellSize * Math.SQRT1_2;
+
+    for (let j = 0; j < rows; j++) {
+        for (let i = 0; i < cols; i++) {
+            const cx = field.origin.x + i * field.cellSize;
+            const cz = field.origin.y + j * field.cellSize;
+            let best = NO_PILLAR_NEARBY;
+            for (let dj = -FIELD_SEARCH; dj <= FIELD_SEARCH; dj++) {
+                for (let di = -FIELD_SEARCH; di <= FIELD_SEARCH; di++) {
+                    const ni = i + di, nj = j + dj;
+                    if (ni < 0 || nj < 0 || ni >= cols || nj >= rows) continue;
+                    const k = (nj * cols + ni) * 4;
+                    if (a[k + 3] < 0.5) continue;
+                    // the stretched cross-section is at most radius * stretch from its centre
+                    const reach = a[k + 2] * b[k + 2];
+                    best = Math.min(best, Math.hypot(a[k] - cx, a[k + 1] - cz) - reach - halfDiagonal);
+                }
+            }
+            b[(j * cols + i) * 4 + 3] = Math.max(best, 0);
+        }
+    }
 };
 
 const X_AXIS = new Vector3(1, 0, 0);
@@ -463,6 +499,7 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: Pil
         }
     }
 
+    computeClearance(field);
     field.dataA.needsUpdate = true;
     field.dataB.needsUpdate = true;
     return buildPillarMesh(instances, shape);

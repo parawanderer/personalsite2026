@@ -1,4 +1,4 @@
-import { Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, RepeatWrapping, Scene, TextureLoader, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
+import { Camera, Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
@@ -23,7 +23,7 @@ import { AnimatedEntity } from "../entity/animated-entity";
 import { customFogExtension, ShaderExtension } from "./animated-fog";
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fogedits.glsl";
 import { applyUnderwater } from "../shaders/underwater.glsl";
-import { interactionMain, interactionPars } from "../shaders/water-interaction.glsl";
+import { displacedVertex, interactionMain, interactionPars } from "../shaders/water-interaction.glsl";
 import type { PillarField } from "./walls";
 
 export const WATER_LEVEL_Y = -1;
@@ -57,14 +57,31 @@ const WATER_EDITS: [string, string][] = [
     ],
 ];
 
-const editWaterShader = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
-    for (const [search, replacement] of WATER_EDITS) {
-        if (!params.fragmentShader.includes(search)) {
+/**
+ * The vertex side: world position computed once, and lifted by the pillar height in the displaced patch
+ */
+const WATER_VERTEX_EDITS: [string, string][] = [
+    ["uniform float time;", `uniform float time;\n${interactionPars}`],
+    ["mirrorCoord = modelMatrix * vec4( position, 1.0 );", displacedVertex],
+    ["worldPosition = mirrorCoord.xyzw;", ""],
+    ["mirrorCoord = textureMatrix * mirrorCoord;", ""],
+    ["vec4 mvPosition =  modelViewMatrix * vec4( position, 1.0 );", ""],
+];
+
+const applyEdits = (source: string, edits: [string, string][]) => {
+    for (const [search, replacement] of edits) {
+        if (!source.includes(search)) {
             console.warn(`Water shader no longer contains "${search}"; edit not applied.`);
             continue;
         }
-        params.fragmentShader = params.fragmentShader.replace(search, replacement);
+        source = source.replace(search, replacement);
     }
+    return source;
+};
+
+const editWaterShader = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
+    params.vertexShader = applyEdits(params.vertexShader, WATER_VERTEX_EDITS);
+    params.fragmentShader = applyEdits(params.fragmentShader, WATER_EDITS);
     Object.assign(params.uniforms, uniforms);
 };
 
@@ -103,13 +120,33 @@ export class Water implements AnimatedEntity {
     private lastWaterUpdate: number = 0;
     private lastFogUpdate: number = 0;
 
+    private patch?: Mesh<PlaneGeometry, ShaderMaterial>;
+    private patchGeometryKey = '';
+
+    /**
+     * The water renders its reflection by rendering the scene; the patch samples that reflection, so it has to stay
+     * out of it (like the water plane itself) or it would read from the texture it's drawing into
+     */
+    private hidePatchFromReflection(): void {
+        const renderReflection = this.water.onBeforeRender;
+        this.water.onBeforeRender = (...args) => {
+            const patch = this.patch;
+            if (patch) patch.visible = false;
+            renderReflection.apply(this.water, args);
+            if (patch) patch.visible = true;
+        };
+    }
+
     constructor(
+        private camera: Camera,
         private water: ThreeWater,
         private fogShader: ShaderExtension,
         private seabed: Mesh,
         private look: WaterLook,
         private surfaceUniforms: { [name: string]: IUniform },
-        private underwaterUniforms: { [name: string]: IUniform }) {}
+        private underwaterUniforms: { [name: string]: IUniform }) {
+        this.hidePatchFromReflection();
+    }
 
     private onSeabedChange?: (depth: number) => void;
 
@@ -151,9 +188,64 @@ export class Water implements AnimatedEntity {
         return 1 - 0.8 * this.look.viscosity;
     }
 
+    /**
+     * A finely subdivided square of water around the camera, displaced around the pillars. Shares the water's material
+     * (uniforms, reflection) apart from the WATER_PATCH define
+     */
+    private updatePatch(): void {
+        const l = this.look;
+        const key = `${l.displacementRadius}/${l.displacementSpacing}`;
+        if (key === this.patchGeometryKey) return;
+        this.patchGeometryKey = key;
+
+        if (this.patch) {
+            this.patch.removeFromParent();
+            this.patch.geometry.dispose();
+            this.patch = undefined;
+        }
+        this.surfaceUniforms.patchHalfSize.value = 0;
+        if (l.displacementRadius <= 0) return;
+
+        const size = l.displacementRadius * 2;
+        const segments = Math.min(1024, Math.ceil(size / Math.max(l.displacementSpacing, 0.002)));
+        const source = this.water.material;
+        const material = new ShaderMaterial({
+            vertexShader: source.vertexShader,
+            fragmentShader: source.fragmentShader,
+            uniforms: source.uniforms,
+            defines: { WATER_PATCH: '' },
+            lights: source.lights,
+            fog: source.fog,
+            side: source.side,
+            transparent: source.transparent,
+        });
+        material.onBeforeCompile = source.onBeforeCompile;
+
+        this.patch = new Mesh(new PlaneGeometry(size, size, segments, segments), material);
+        this.patch.rotation.copy(this.water.rotation);
+        this.patch.position.y = WATER_LEVEL_Y;
+        // it moves with the camera, keep three from culling it by its (stale) bounds
+        this.patch.frustumCulled = false;
+        this.water.parent?.add(this.patch);
+        this.surfaceUniforms.patchHalfSize.value = l.displacementRadius;
+    }
+
+    /** snapped to the vertex spacing so the displaced surface doesn't swim as the camera moves */
+    private followCamera(): void {
+        if (!this.patch) return;
+        const step = (this.look.displacementRadius * 2) / this.patch.geometry.parameters.widthSegments;
+        const x = Math.round(this.camera.position.x / step) * step;
+        const z = Math.round(this.camera.position.z / step) * step;
+        this.patch.position.x = x;
+        this.patch.position.z = z;
+        (this.surfaceUniforms.patchCentre.value as Vector2).set(x, z);
+    }
+
     public applyLook(): void {
         const l = this.look;
         const u = this.surfaceUniforms;
+        u.displacementScale.value = l.displacementScale;
+        this.updatePatch();
         u.surfaceOpacity.value = l.surfaceOpacity;
         u.fresnelPower.value = l.fresnelPower;
         u.rippleScale.value = 1 - 0.55 * l.viscosity;
@@ -165,6 +257,8 @@ export class Water implements AnimatedEntity {
         u.cushionWidth.value = Math.max(l.cushionWidth, 1e-4);
         u.wakeStretch.value = l.wakeStretch;
         u.rippleDampRadius.value = l.rippleDampRadius;
+        // where the meniscus, the cushion (and its stretched wake) and the ripple damping have all faded out
+        u.interactionReach.value = Math.max(l.meniscusWidth * 5, l.cushionWidth * Math.max(l.wakeStretch, 1) * 4, l.rippleDampRadius);
         u.rimColor.value.set(l.rimColor);
         u.rimStrength.value = l.rimStrength;
         u.interactionDistance.value = l.interactionDistance;
@@ -194,6 +288,9 @@ export class Water implements AnimatedEntity {
         folder.addColor(this.look, 'rimColor').onChange(apply);
         folder.add(this.look, 'rimStrength', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'interactionDistance', 0, 30, 0.5).onChange(apply);
+        folder.add(this.look, 'displacementScale', 0, 20, 0.1).onChange(apply);
+        folder.add(this.look, 'displacementRadius', 0, 6, 0.1).onFinishChange(apply);
+        folder.add(this.look, 'displacementSpacing', 0.004, 0.05, 0.001).onFinishChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
     }
@@ -202,6 +299,7 @@ export class Water implements AnimatedEntity {
      * Deals with higher than 60 FPS refresh rates... hopefully
      */
     public update(clock: Clock): void {
+        this.followCamera();
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
             this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
             const flow = this.surfaceUniforms.flowDir.value as Vector2;
@@ -220,7 +318,7 @@ export class Water implements AnimatedEntity {
 export class WaterFactory {
     constructor(private loadingMgr: LoadingManager, private scene: Scene) {}
 
-    public makeWater(normalsPath: string, offsetZ: number, look: WaterLook): Water {
+    public makeWater(normalsPath: string, offsetZ: number, look: WaterLook, camera: Camera): Water {
         const width = 2*ROW_LENGTH_X + 2*WALLS_OFFSET;
         const depth = CAMERA_INITIAL_Z + ROW_LENGTH_Z*2;
 
@@ -277,6 +375,10 @@ export class WaterFactory {
             rimColor: { value: new Color() },
             rimStrength: { value: 0 },
             interactionDistance: { value: 0 },
+            patchCentre: { value: new Vector2() },
+            patchHalfSize: { value: 0 },
+            displacementScale: { value: 1 },
+            interactionReach: { value: 0 },
         };
         const underwaterUniforms: { [name: string]: IUniform } = {
             waterLevelY: { value: WATER_LEVEL_Y },
@@ -310,7 +412,7 @@ export class WaterFactory {
         seabed.position.set(water.position.x, WATER_LEVEL_Y, water.position.z);
         this.scene.add(seabed);
 
-        const result = new Water(water, fogShader, seabed, look, surfaceUniforms, underwaterUniforms);
+        const result = new Water(camera, water, fogShader, seabed, look, surfaceUniforms, underwaterUniforms);
         result.addUnderwaterTo(seabed.material);
         result.applyLook();
         return result;

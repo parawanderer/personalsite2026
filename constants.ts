@@ -96,7 +96,7 @@ export interface GrainStyle {
 export const GRAIN_STYLE: GrainStyle = {
     fillColor: '#687078',
     fillOpacity: 0.45,
-    fillOpacityHover: 0.7,
+    fillOpacityHover: 0.9,
     edgeSoftness: 5,
     edgeContrast: 9,
     edgeGrain: 0.8,
@@ -109,6 +109,30 @@ export const GRAIN_STYLE: GrainStyle = {
     hoverTransitionMs: 400,
     animate: true,
     animateFps: 12,
+};
+
+// distance blur (postprocessing/distance-blur.ts)
+export interface DistanceBlurSettings {
+    enabled: boolean;
+    /** the blur fades in while a text panel (about, contact) is open, and out again on home and in free flight */
+    transitionSeconds: number;
+    /** show the blur all the time, for tuning it */
+    alwaysOn: boolean;
+    /** no blur closer than this, world units */
+    focusDistance: number;
+    /** distance over which the blur ramps up to its maximum */
+    blurRange: number;
+    /** blur radius at full strength, pixels */
+    maxBlur: number;
+}
+
+export const DISTANCE_BLUR: DistanceBlurSettings = {
+    enabled: true,
+    transitionSeconds: 1.5,
+    alwaysOn: false,
+    focusDistance: 2.5,
+    blurRange: 8,
+    maxBlur: 7,
 };
 
 // fog
@@ -167,6 +191,12 @@ export interface WaterLook {
     rimStrength: number;
     /** the pillar interaction is only computed for water closer to the camera than this */
     interactionDistance: number;
+    /** close to the camera the water is really displaced around the pillars, with the height exaggerated by this */
+    displacementScale: number;
+    /** half the size of the displaced patch around the camera, 0 turns it off */
+    displacementRadius: number;
+    /** vertex spacing of the displaced patch, world units */
+    displacementSpacing: number;
     /** darker, wet band on the pillars just above the surface */
     wetBandHeight: number;
     wetBandDarkness: number;
@@ -190,6 +220,9 @@ export const WATER_LOOK: WaterLook = {
     rimColor: '#a2857c',
     rimStrength: 0.29,
     interactionDistance: 7,
+    displacementScale: 5,
+    displacementRadius: 2.5,
+    displacementSpacing: 0.0125,
     wetBandHeight: 0.09,
     wetBandDarkness: 0.61,
 };

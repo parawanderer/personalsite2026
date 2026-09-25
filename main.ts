@@ -1,6 +1,7 @@
 
 import {
     Box2,
+    DepthTexture,
     Clock,
     Color,
     FogExp2,
@@ -47,7 +48,8 @@ import {
     PILLAR_SHAPE,
     GRAIN_STYLE,
     FLIGHT_SETTINGS,
-    WATER_LOOK
+    WATER_LOOK,
+    DISTANCE_BLUR
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -61,6 +63,7 @@ import { DebugInfoDisplay } from './ui/debug-info';
 import { ForegroundManager } from './ui/foreground-manager';
 import { moveCameraTo } from './animate/camera';
 import { FilmPass } from './postprocessing/filmpass';
+import { DistanceBlurPass } from './postprocessing/distance-blur';
 import { LoadingManager } from './ui/loading-manager';
 import { Tweaks } from './ui/tweaks';
 import { Grain } from './ui/grain';
@@ -130,7 +133,7 @@ const sky = factory.makeSkybox();
 
 // water
 const waterTweaks = tweaks.addFolder('Water', WATER_LOOK);
-const water = new WaterFactory(loadingMgr, scene).makeWater(WATER_TEXTURE, -ROW_LENGTH_Z/2, waterTweaks.params);
+const water = new WaterFactory(loadingMgr, scene).makeWater(WATER_TEXTURE, -ROW_LENGTH_Z/2, waterTweaks.params, camera);
 if (waterTweaks.folder) water.bindTweaks(waterTweaks.folder);
 scheduler.add(water);
 
@@ -181,7 +184,14 @@ const debugInfoUI = new DebugInfoDisplay(DEBUG, camera);
 
 // effects
 const composer = new EffectComposer(renderer);
+// the distance blur reads the scene's depth, which the render pass leaves in the composer's targets
+composer.renderTarget1.depthTexture = new DepthTexture(width, height);
+composer.renderTarget2.depthTexture = new DepthTexture(width, height);
 composer.addPass(new RenderPass(scene, camera));
+const blurTweaks = tweaks.addFolder('Distance blur', DISTANCE_BLUR);
+const distanceBlur = new DistanceBlurPass(camera, blurTweaks.params);
+if (blurTweaks.folder) distanceBlur.bindTweaks(blurTweaks.folder);
+composer.addPass(distanceBlur);
 composer.addPass(new FilmPass(clock, 0.4));
 //composer.addPass(new SMAAPass()); // <- (doesn't look good)
 const fxaaPass = new ShaderPass(FXAAShader); // <- surprisingly it looks better
@@ -198,6 +208,7 @@ const onWindowResize = () => {
     camera.updateProjectionMatrix();
 
     renderer.setSize(width, height);
+    composer.setSize(width, height);
 
     fxaaPass.uniforms['resolution'].value.set(1 / width, 1 / height);
 
@@ -235,9 +246,31 @@ if (grainTweaks.folder) grain.bindTweaks(grainTweaks.folder);
 
 // some positions that look nice
 const goHome = () => moveCameraTo(camera, CAMERA_HOME_POS.clone(), CAMERA_HOME_DIR.clone());
-fgMngr.setHomeCallback(goHome);
-fgMngr.setAboutMeCallback(() => moveCameraTo(camera, CAMERA_ABOUT_ME_POS.clone(), CAMERA_ABOUT_ME_DIR.clone()));
-fgMngr.setContactCallback(() => moveCameraTo(camera, CAMERA_CONTACT_POS.clone(), CAMERA_CONTACT_DIR.clone()));
+
+// the distance blur focuses the view while a text panel is open, the home view and free flight show everything sharp
+let panelOpen = false;
+let freeFlight = false;
+const updateBlur = () => distanceBlur.fadeTo(panelOpen && !freeFlight ? 1 : 0);
+
+fgMngr.setHomeCallback(() => {
+    goHome();
+    panelOpen = false;
+    updateBlur();
+});
+fgMngr.setAboutMeCallback(() => {
+    moveCameraTo(camera, CAMERA_ABOUT_ME_POS.clone(), CAMERA_ABOUT_ME_DIR.clone());
+    panelOpen = true;
+    updateBlur();
+});
+fgMngr.setContactCallback(() => {
+    moveCameraTo(camera, CAMERA_CONTACT_POS.clone(), CAMERA_CONTACT_DIR.clone());
+    panelOpen = true;
+    updateBlur();
+});
+fgMngr.setFreeFlightCallback((isFreeFlight) => {
+    freeFlight = isFreeFlight;
+    updateBlur();
+});
 
 const cameraTweaks = tweaks.addFolder('Camera', {});
 if (cameraTweaks.folder) new CameraTweaks(camera, goHome).bind(cameraTweaks.folder);

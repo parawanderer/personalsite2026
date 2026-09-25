@@ -20,6 +20,7 @@ const isPrimaryInputMethodTouch = (): boolean => {
 export class ForegroundManager {
     private readonly homeButton: HTMLButtonElement;
     private onPressHomeButtonCallback?: () => void;
+    private onFreeFlightCallback?: (isFreeFlight: boolean) => void;
 
     private readonly aboutMeButton: HTMLButtonElement;
     private onPressAboutMeButtonCallback?: () => void;
@@ -79,6 +80,7 @@ export class ForegroundManager {
         this.isUiSwitching = true;
 
         this.isFreeFlight = !this.isFreeFlight;
+        this.onFreeFlightCallback?.(this.isFreeFlight);
 
         const toBeEdited = document.querySelectorAll(".hideable-ui");
         if (this.isFreeFlight) {
@@ -182,6 +184,10 @@ export class ForegroundManager {
 
     public setAboutMeCallback(callback: () => void) {
         this.onPressAboutMeButtonCallback = callback;
+    }
+
+    public setFreeFlightCallback(callback: (isFreeFlight: boolean) => void) {
+        this.onFreeFlightCallback = callback;
     }
 
     public setHomeCallback(callback: () => void) {
