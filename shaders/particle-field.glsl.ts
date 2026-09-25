@@ -19,6 +19,8 @@ uniform float particleSway;
 uniform float particleWaterY;
 uniform vec2 particleFlow;
 uniform float particleFloatTime;
+// share of this particle set that's shown; the rest fade out one by one (e.g. the orange ones at night)
+uniform float particleShown;
 uniform float particleSinkSpeed;
 uniform float particleSinkDepth;
 uniform float flakeNear;
@@ -125,6 +127,7 @@ vec3 particleWorld(out float visible, out float landed) {
 
     vec3 a = abs(rel) / halfBox;
     visible = 1.0 - smoothstep(0.8, 1.0, max(a.x, max(a.y, a.z)));
+    visible *= clamp((particleShown - fract(s.x * 7.31 + s.z * 3.17)) * 8.0 + 0.5, 0.0, 1.0);
     landed = 0.0;
 
     if (world.y < particleWaterY) {

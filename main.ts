@@ -46,7 +46,9 @@ import {
     DAY_NIGHT,
     PILLARS_FOG_NEAR_COLOR,
     PILLARS_FOG_FAR_COLOR,
-    BACKGROUND_COLOR
+    BACKGROUND_COLOR,
+    SUN_LARGE,
+    SUN_SMALL
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -56,6 +58,7 @@ import { WaterFactory } from './environment/water';
 import { DustFactory } from './environment/dust-particles';
 import { ParticleField } from './environment/particle-field';
 import { DayNight } from './environment/day-night';
+import { Celestial } from './environment/celestial';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -228,6 +231,7 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .color(water.underwater.causticColor.value, () => w.causticColor, 'nightCausticColor')
         .number((v) => water.underwater.causticStrength.value = v, () => w.causticStrength, 'nightCausticStrength')
         .number((v) => particles.setGlow(v), () => particleTweaks.params.flakeGlow, 'nightFlakeGlow')
+        .number((v) => particles.setShown('flakeColor2', v), () => 1, 'nightOrangeParticles')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
         .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')
@@ -235,6 +239,14 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => renderer.toneMappingExposure = exposure * v, () => 1, 'nightExposureScale');
 }
 scheduler.add(dayNight);
+
+// two suns/moons, following the time of day
+for (const [name, body] of [['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const) {
+    const sunTweaks = tweaks.addFolder(name, body);
+    const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour);
+    if (sunTweaks.folder) sun.bindTweaks(sunTweaks.folder);
+    scheduler.add(sun);
+}
 
 
 // debug-related UI elements

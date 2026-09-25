@@ -89,6 +89,8 @@ export class ParticleField implements AnimatedEntity {
     private readonly meshes: Mesh[] = [];
     private readonly uniforms: { [name: string]: IUniform };
     private readonly flakeMaterials: MeshStandardMaterial[] = [];
+    /** per particle set, the share of it that's shown */
+    private readonly shown = new Map<string, IUniform<number>>();
 
     /**
      * @param flow the water's surface flow (world units per second), which carries particles floating on it
@@ -148,6 +150,8 @@ export class ParticleField implements AnimatedEntity {
         const dotShape = new PlaneGeometry(1, 1);
 
         for (const colour of this.colours) {
+            const shown = this.shown.get(colour.colorKey) ?? { value: 1 };
+            this.shown.set(colour.colorKey, shown);
             const count = Math.round(this.settings.count * colour.share);
             const rng = makeRng(colour.seed);
             const seeds = new Float32Array(count * 4);
@@ -162,26 +166,26 @@ export class ParticleField implements AnimatedEntity {
                 metalness: 0.1,
                 side: DoubleSide,
             });
-            flakeMaterial.onBeforeCompile = (params) => this.editFlake(params);
+            flakeMaterial.onBeforeCompile = (params) => this.editFlake(params, shown);
             this.flakeMaterials.push(flakeMaterial);
             this.add(new Mesh(flakes, flakeMaterial));
 
             // drawn after the water (also transparent), just above its surface
-            const dimples = new Mesh(this.instanced(dotShape, seedAttribute, count), this.dimpleMaterial());
+            const dimples = new Mesh(this.instanced(dotShape, seedAttribute, count), this.dimpleMaterial(shown));
             dimples.renderOrder = 1;
             this.add(dimples);
 
             const dots = this.instanced(dotShape, seedAttribute, count);
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
-            dotMaterial.onBeforeCompile = (params) => this.editDot(params);
+            dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown);
             this.add(new Mesh(dots, dotMaterial));
         }
         this.apply();
     }
 
-    private dimpleMaterial(): ShaderMaterial {
+    private dimpleMaterial(shown: IUniform<number>): ShaderMaterial {
         return new ShaderMaterial({
-            uniforms: this.uniforms,
+            uniforms: { ...this.uniforms, particleShown: shown },
             vertexShader: /* glsl */ `
                 ${particleFieldPars}
                 ${dimplePars}
@@ -218,19 +222,19 @@ export class ParticleField implements AnimatedEntity {
         this.meshes.push(mesh);
     }
 
-    private editFlake(params: WebGLProgramParametersWithUniforms): void {
+    private editFlake(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${flakeRotationPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <beginnormal_vertex>', flakeBeginNormal);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', flakeBeginVertex);
-        Object.assign(params.uniforms, this.uniforms);
+        Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
 
-    private editDot(params: WebGLProgramParametersWithUniforms): void {
+    private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${dotPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', dotBeginVertex);
         params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${dotFragPars}`);
         params.fragmentShader = replace(params.fragmentShader, '#include <dithering_fragment>', `#include <dithering_fragment>\n${dotFrag}`);
-        Object.assign(params.uniforms, this.uniforms);
+        Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
 
     /**
@@ -275,6 +279,11 @@ export class ParticleField implements AnimatedEntity {
     /**
      * Overrides the flakes' glow (the day/night cycle raises it at night)
      */
+    public setShown(colorKey: string, share: number): void {
+        const shown = this.shown.get(colorKey);
+        if (shown) shown.value = share;
+    }
+
     public setGlow(glow: number): void {
         for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
     }

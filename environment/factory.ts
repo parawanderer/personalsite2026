@@ -116,6 +116,9 @@ export class GenericObjectFactory {
         });
 
         const mesh = new Mesh(geometry, material);
+        // a backdrop: drawn first and never hides anything (like the suns, which sit inside it)
+        material.depthWrite = false;
+        mesh.renderOrder = -2;
 
         this.scene.add(mesh);
 

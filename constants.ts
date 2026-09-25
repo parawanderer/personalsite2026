@@ -157,6 +157,8 @@ export interface DayNightSettings {
     nightCausticColor: string;
     nightCausticStrength: number;
     nightFlakeGlow: number;
+    /** share of the orange particles still around at night (the rest fade out one by one) */
+    nightOrangeParticles: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -177,6 +179,60 @@ export const DAY_NIGHT: DayNightSettings = {
     nightCausticColor: '#2ebdb6',
     nightCausticStrength: 0.6,
     nightFlakeGlow: 1.5,
+    nightOrangeParticles: 0,
+};
+
+// the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
+export interface CelestialBody {
+    color: string;
+    /** apparent diameter, degrees */
+    sizeDeg: number;
+    brightness: number;
+    /** how far the glow reaches, times the disc's radius, and how bright it is */
+    haloScale: number;
+    haloStrength: number;
+    riseHour: number;
+    /** how long it's above the horizon each time */
+    hoursUp: number;
+    /** how often it comes round, hours: different periods make the two drift apart and together */
+    periodHours: number;
+    azimuthRise: number;
+    azimuthSet: number;
+    /** degrees above the horizon at the top of its arc */
+    peakElevation: number;
+    /** light it casts on the scene while it's up */
+    lightIntensity: number;
+}
+
+export const SUN_LARGE: CelestialBody = {
+    color: '#ffe2c4',
+    sizeDeg: 9,
+    brightness: 1.4,
+    haloScale: 2.5,
+    haloStrength: 0.25,
+    riseHour: 6,
+    hoursUp: 13,
+    periodHours: 24,
+    azimuthRise: 150,
+    // sets down the far end of the channel
+    azimuthSet: 0,
+    peakElevation: 55,
+    lightIntensity: 0.6,
+};
+
+export const SUN_SMALL: CelestialBody = {
+    color: '#bfefff',
+    sizeDeg: 4.5,
+    brightness: 1.6,
+    haloScale: 3,
+    haloStrength: 0.2,
+    riseHour: 3,
+    hoursUp: 11,
+    periodHours: 16,
+    azimuthRise: -120,
+    azimuthSet: 60,
+    peakElevation: 40,
+    lightIntensity: 0.3,
 };
 
 // fog
