@@ -197,6 +197,17 @@ export interface WaterLook {
     displacementRadius: number;
     /** vertex spacing of the displaced patch, world units */
     displacementSpacing: number;
+    /** light patterns from the surface on the pillars, in a band around the waterline */
+    causticColor: string;
+    causticStrength: number;
+    /** how far above and below the surface the band reaches */
+    causticAbove: number;
+    causticBelow: number;
+    /** pattern size (higher = smaller cells) and speed */
+    causticScale: number;
+    causticSpeed: number;
+    /** higher = thinner, brighter lines; lower = soft glow */
+    causticSharpness: number;
     /** darker, wet band on the pillars just above the surface */
     wetBandHeight: number;
     wetBandDarkness: number;
@@ -223,8 +234,15 @@ export const WATER_LOOK: WaterLook = {
     displacementScale: 5,
     displacementRadius: 2.5,
     displacementSpacing: 0.0125,
+    causticColor: '#6f807b',
+    causticStrength: 0.27,
+    causticAbove: 0,
+    causticBelow: 0.55,
+    causticScale: 7.5,
+    causticSpeed: 0.17,
+    causticSharpness: 8,
     wetBandHeight: 0.09,
-    wetBandDarkness: 0.61,
+    wetBandDarkness: 0,
 };
 
 

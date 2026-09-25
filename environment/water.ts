@@ -264,6 +264,13 @@ export class Water implements AnimatedEntity {
         u.interactionDistance.value = l.interactionDistance;
         this.underwaterUniforms.wetBandHeight.value = Math.max(l.wetBandHeight, 1e-4);
         this.underwaterUniforms.wetBandDarkness.value = l.wetBandDarkness;
+        const uw = this.underwaterUniforms;
+        uw.causticColor.value.set(l.causticColor);
+        uw.causticStrength.value = l.causticStrength;
+        uw.causticAbove.value = Math.max(l.causticAbove, 1e-4);
+        uw.causticBelow.value = Math.max(l.causticBelow, 1e-4);
+        uw.causticScale.value = l.causticScale;
+        uw.causticSharpness.value = l.causticSharpness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
         this.underwaterUniforms.underwaterDensity.value = l.underwaterDensity;
         this.seabed.position.y = WATER_LEVEL_Y - l.seabedDepth;
@@ -291,6 +298,13 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'displacementScale', 0, 20, 0.1).onChange(apply);
         folder.add(this.look, 'displacementRadius', 0, 6, 0.1).onFinishChange(apply);
         folder.add(this.look, 'displacementSpacing', 0.004, 0.05, 0.001).onFinishChange(apply);
+        folder.addColor(this.look, 'causticColor').onChange(apply);
+        folder.add(this.look, 'causticStrength', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'causticAbove', 0, 1.5, 0.01).onChange(apply);
+        folder.add(this.look, 'causticBelow', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'causticScale', 0.5, 30, 0.1).onChange(apply);
+        folder.add(this.look, 'causticSpeed', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'causticSharpness', 1, 12, 0.1).onChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
     }
@@ -302,6 +316,7 @@ export class Water implements AnimatedEntity {
         this.followCamera();
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
             this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
+            this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000;
             const flow = this.surfaceUniforms.flowDir.value as Vector2;
             (this.surfaceUniforms.flowOffset.value as Vector2).addScaledVector(flow, this.look.flowSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000);
             this.lastWaterUpdate = clock.oldTime;
@@ -386,6 +401,15 @@ export class WaterFactory {
             underwaterDensity: { value: 0 },
             wetBandHeight: { value: 1 },
             wetBandDarkness: { value: 0 },
+            causticColor: { value: new Color() },
+            causticStrength: { value: 0 },
+            causticAbove: { value: 1 },
+            causticBelow: { value: 1 },
+            causticScale: { value: 1 },
+            causticTime: { value: 0 },
+            causticSharpness: { value: 1 },
+            // the same vector as the ripples' flowOffset, so both drift together
+            causticFlow: surfaceUniforms.flowOffset,
         };
 
         water.material.transparent = true;

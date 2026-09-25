@@ -28,6 +28,50 @@ uniform vec3 underwaterColor;
 uniform float underwaterDensity;
 uniform float wetBandHeight;
 uniform float wetBandDarkness;
+uniform vec3 causticColor;
+uniform float causticStrength;
+uniform float causticAbove;
+uniform float causticBelow;
+uniform float causticScale;
+uniform float causticTime;
+uniform float causticSharpness;
+uniform vec2 causticFlow;
+
+// based on "Tileable Water Caustic" (joltz0r / Dave Hoskins, shadertoy MdlXz8)
+float causticPattern(vec2 uv, float t) {
+    // the original's domain: tiles every 2 pi, offset far from 0 where the formula blows up
+    vec2 p = mod(uv, 6.2831853) - 250.0;
+    vec2 i = p;
+    float c = 1.0;
+    const float inten = 0.005;
+    for (int n = 0; n < 4; n++) {
+        float tt = t * (1.0 - 3.5 / float(n + 1));
+        i = p + vec2(cos(tt - i.x) + sin(tt + i.y), sin(tt - i.y) + cos(tt + i.x));
+        c += 1.0 / length(vec2(p.x / (sin(i.x + tt) / inten), p.y / (cos(i.y + tt) / inten)));
+    }
+    c /= 4.0;
+    c = 1.17 - pow(c, 1.4);
+    return clamp(pow(abs(c), causticSharpness), 0.0, 1.0);
+}
+`;
+
+/**
+ * After <opaque_fragment> (lit colour, before fog): light focused by the surface, playing on the rock in a band around
+ * the waterline. On the mostly vertical pillar faces the pattern runs along the face and up it, drifting with the flow
+ */
+const caustics = /* glsl */ `
+// (edits) ${fileName}
+{
+    float fromSurface = vUnderwaterWorldPos.y - waterLevelY;
+    if (causticStrength > 0.0 && fromSurface < causticAbove && fromSurface > -causticBelow) {
+        float band = fromSurface > 0.0
+            ? 1.0 - smoothstep(0.0, causticAbove, fromSurface)
+            : 1.0 - smoothstep(0.0, causticBelow, -fromSurface);
+        vec2 drift = vUnderwaterWorldPos.xz - causticFlow;
+        vec2 cp = vec2(drift.x + drift.y * 0.6, vUnderwaterWorldPos.y * 1.5 + drift.y * 0.3) * causticScale;
+        gl_FragColor.rgb += causticColor * causticStrength * band * causticPattern(cp, causticTime);
+    }
+}
 `;
 
 /**
@@ -72,6 +116,7 @@ export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, unif
     params.vertexShader = insertAfter(params.vertexShader, '#include <begin_vertex>', vert);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <common>', parsFrag);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <color_fragment>', wetBand);
+    params.fragmentShader = insertAfter(params.fragmentShader, '#include <opaque_fragment>', caustics);
     params.fragmentShader = insertBefore(params.fragmentShader, '#include <premultiplied_alpha_fragment>', frag);
     Object.assign(params.uniforms, uniforms);
 };
