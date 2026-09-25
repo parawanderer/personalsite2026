@@ -94,7 +94,7 @@ export interface GrainStyle {
 }
 
 export const GRAIN_STYLE: GrainStyle = {
-    fillColor: '#687078',
+    fillColor: '#687875',
     fillOpacity: 0.45,
     fillOpacityHover: 0.9,
     edgeSoftness: 5,
