@@ -101,11 +101,16 @@ const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
     ],
     [
         "reflectionSample + specularLight, reflectance );",
-        "( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance );"
+        "( vec3( reflectionFloor ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance );"
     ],
 ];
 
+/**
+ * The r174 mix adds a flat grey to every reflection (0.1 by day); the day/night cycle lowers it at night, where it
+ * otherwise turns the water into the brightest thing on screen
+ */
 const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) => {
+    params.fragmentShader = params.fragmentShader.replace("uniform float alpha;", "uniform float alpha;\nuniform float reflectionFloor;");
     for (const [search, replacement] of LEGACY_REFLECTANCE_EDITS) {
         if (!params.fragmentShader.includes(search)) {
             console.warn(`Water shader no longer contains "${search}"; reflectance edit not applied.`);
@@ -256,6 +261,11 @@ export class Water implements AnimatedEntity {
         (this.surfaceUniforms.patchCentre.value as Vector2).set(x, z);
     }
 
+    /** the flat grey in every reflection, set by the day/night cycle */
+    public setReflectionFloor(floor: number): void {
+        this.surfaceUniforms.reflectionFloor.value = floor;
+    }
+
     private rimNightScale = 1;
 
     /** the day/night cycle dims the rim of light where the water climbs the pillars */
@@ -399,6 +409,7 @@ export class WaterFactory {
         const surfaceUniforms: { [name: string]: IUniform } = {
             surfaceOpacity: { value: 1 },
             fresnelPower: { value: 1 },
+            reflectionFloor: { value: 0.1 },
             pillarDataA: { value: emptyField },
             pillarDataB: { value: emptyField },
             pillarGridOrigin: { value: new Vector2() },

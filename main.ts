@@ -235,6 +235,7 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => particles.setGlow(v), () => particleTweaks.params.flakeGlow, 'nightFlakeGlow')
         .number((v) => particles.setShown('flakeColor2', v), () => 1, 'nightOrangeParticles')
         .number((v) => water.setRimNight(v), () => 1, 'nightRimScale')
+        .number((v) => water.setReflectionFloor(v), () => 0.1, 'nightReflectionFloor')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
         .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')

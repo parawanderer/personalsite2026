@@ -70,7 +70,7 @@ export class DayNight implements AnimatedEntity {
         for (const key of Object.keys(s) as (keyof DayNightSettings)[]) {
             if (key === 'hour') continue;
             if (typeof s[key] === 'string') folder.addColor(s, key);
-            else folder.add(s as unknown as Record<string, number>, key, 0, key.endsWith('Scale') ? 2 : 3, 0.01);
+            else folder.add(s as unknown as Record<string, number>, key, 0, key.endsWith('Scale') ? 2 : key.endsWith('Floor') ? 0.2 : 3, key.endsWith('Floor') ? 0.001 : 0.01);
         }
     }
 }
