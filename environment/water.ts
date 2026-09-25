@@ -256,6 +256,14 @@ export class Water implements AnimatedEntity {
         (this.surfaceUniforms.patchCentre.value as Vector2).set(x, z);
     }
 
+    private rimNightScale = 1;
+
+    /** the day/night cycle dims the rim of light where the water climbs the pillars */
+    public setRimNight(scale: number): void {
+        this.rimNightScale = scale;
+        this.surfaceUniforms.rimStrength.value = this.look.rimStrength * scale;
+    }
+
     public applyLook(): void {
         const l = this.look;
         const u = this.surfaceUniforms;
@@ -279,7 +287,7 @@ export class Water implements AnimatedEntity {
         // where the meniscus, the cushion (and its stretched wake) and the ripple damping have all faded out
         u.interactionReach.value = Math.max(l.meniscusWidth * 5, l.cushionWidth * Math.max(l.wakeStretch, 1) * 4, l.rippleDampRadius);
         u.rimColor.value.set(l.rimColor);
-        u.rimStrength.value = l.rimStrength;
+        u.rimStrength.value = l.rimStrength * this.rimNightScale;
         u.interactionDistance.value = l.interactionDistance;
         this.underwaterUniforms.wetBandHeight.value = Math.max(l.wetBandHeight, 1e-4);
         this.underwaterUniforms.wetBandDarkness.value = l.wetBandDarkness;

@@ -4,6 +4,7 @@ import { degToRad, smoothstep } from 'three/src/math/MathUtils.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
 import { CelestialBody } from '../constants';
+import { skyGlowUniforms } from '../shaders/sky-glow.glsl';
 
 // how far from the camera the discs are drawn: inside the sky dome, beyond everything else
 const DISTANCE = 100;
@@ -56,11 +57,15 @@ export class Celestial implements AnimatedEntity {
     /** 0 below the horizon, 1 well above it */
     public up = 0;
 
+    /**
+     * @param index which of the fog's sun slots (shaders/sky-glow.glsl.ts) this one fills
+     */
     constructor(
         private readonly scene: Scene,
         private readonly camera: Camera,
         private readonly body: CelestialBody,
         private readonly hour: () => number,
+        private readonly index: number,
     ) {
         this.disc = new Mesh(new PlaneGeometry(1, 1), discMaterial());
         // drawn after the sky dome, before the particles
@@ -103,6 +108,14 @@ export class Celestial implements AnimatedEntity {
         this.disc.scale.set(size, size, 1);
         this.disc.position.copy(this.camera.position).addScaledVector(this.direction, DISTANCE);
         this.disc.quaternion.copy(this.camera.quaternion);
+
+        // the same sun, seen through the fog
+        const g = skyGlowUniforms;
+        g.glowSunDirection.value[this.index].copy(this.direction);
+        g.glowSunRadiance.value[this.index].set(b.color).multiplyScalar(b.brightness * u.visibility.value);
+        g.glowSunRadius.value[this.index] = degToRad(b.sizeDeg) / 2;
+        g.glowSunHaloScale.value[this.index] = b.haloScale;
+        g.glowSunHaloStrength.value[this.index] = b.haloStrength;
 
         this.light.color.set(b.color);
         this.light.intensity = b.lightIntensity * this.up;

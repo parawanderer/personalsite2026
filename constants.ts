@@ -159,6 +159,8 @@ export interface DayNightSettings {
     nightFlakeGlow: number;
     /** share of the orange particles still around at night (the rest fade out one by one) */
     nightOrangeParticles: number;
+    /** the rim of light where the water climbs the pillars, times its day strength */
+    nightRimScale: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -180,6 +182,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightCausticStrength: 0.6,
     nightFlakeGlow: 1.5,
     nightOrangeParticles: 0,
+    nightRimScale: 0.15,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x

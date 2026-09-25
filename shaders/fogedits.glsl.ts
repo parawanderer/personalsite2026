@@ -1,5 +1,6 @@
 import { ClassicPerlin3DNoise } from "./noise.glsl";
 import { toFileName } from "./util";
+import { skyGlowFrag, skyGlowPars } from "./sky-glow.glsl";
 
 const fileName = toFileName(import.meta.url);
 
@@ -43,6 +44,7 @@ export const fogParsFrag = /* glsl */ `
 #ifdef USE_FOG
 
     ${ClassicPerlin3DNoise}
+    ${skyGlowPars}
 
 	uniform vec3 fogColor;
     varying float vFogDepth;
@@ -96,6 +98,7 @@ export const fogFrag = /* glsl */ `
 	#endif
 
 	gl_FragColor.rgb = mix( gl_FragColor.rgb, mix(fogNearColor, fogFarColor, fogFactor), fogFactor );
+${skyGlowFrag}
 
 #endif
 `;

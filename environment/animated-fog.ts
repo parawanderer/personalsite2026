@@ -1,5 +1,7 @@
 import { Color, IUniform, WebGLProgramParametersWithUniforms, WebGLRenderer } from "three";
 
+import { skyGlowUniforms } from "../shaders/sky-glow.glsl";
+
 export interface CustomFogConfig {
     fogNearColor: number,
     fogFarColor: number,
@@ -51,6 +53,8 @@ export class ShaderExtension {
         for (const key in this.uniformExtensions) {
             params.uniforms[key] = this.uniformExtensions[key];
         }
+        // shared, the suns keep them up to date
+        Object.assign(params.uniforms, skyGlowUniforms);
 
         this.params = params;
     }

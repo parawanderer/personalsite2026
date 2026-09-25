@@ -232,6 +232,7 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => water.underwater.causticStrength.value = v, () => w.causticStrength, 'nightCausticStrength')
         .number((v) => particles.setGlow(v), () => particleTweaks.params.flakeGlow, 'nightFlakeGlow')
         .number((v) => particles.setShown('flakeColor2', v), () => 1, 'nightOrangeParticles')
+        .number((v) => water.setRimNight(v), () => 1, 'nightRimScale')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
         .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')
@@ -241,12 +242,12 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
 scheduler.add(dayNight);
 
 // two suns/moons, following the time of day
-for (const [name, body] of [['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const) {
+([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const).forEach(([name, body], index) => {
     const sunTweaks = tweaks.addFolder(name, body);
-    const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour);
+    const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour, index);
     if (sunTweaks.folder) sun.bindTweaks(sunTweaks.folder);
     scheduler.add(sun);
-}
+});
 
 
 // debug-related UI elements
