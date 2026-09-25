@@ -1,21 +1,21 @@
-import { Box2, BufferGeometry, Camera, Clock, CylinderGeometry, Line3, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
-import { degToRad, lerp } from 'three/src/math/MathUtils.js';
+import { Box2, BufferGeometry, Camera, Clock, IUniform, Line3, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
+import { degToRad, lerp, smoothstep } from 'three/src/math/MathUtils.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
-import { CAMERA_HOME_POS, FOG_UPDATE_BY, FOG_UPDATE_EVERY_MS, PillarLayout, PILLARS_FOG_FAR_COLOR, PILLARS_FOG_NEAR_COLOR, PILLARS_FOG_NOISE_FREQ, PILLARS_FOG_NOISE_IMPACT, PILLARS_FOG_NOISE_SPEED, PILLARS_GEOGRAPHY_MAP, SCALE_FACTOR } from '../constants';
+import { CAMERA_HOME_POS, FOG_UPDATE_BY, FOG_UPDATE_EVERY_MS, PillarLayout, PillarShape, PILLARS_FOG_FAR_COLOR, PILLARS_FOG_NEAR_COLOR, PILLARS_FOG_NOISE_FREQ, PILLARS_FOG_NOISE_IMPACT, PILLARS_FOG_NOISE_SPEED, PILLARS_GEOGRAPHY_MAP, SCALE_FACTOR } from '../constants';
 import { ImageLoader } from '../utils/image-utils';
 import { TextureLoader, PLACEHOLDER } from '../utils/texture-utils';
 import { customFogExtension, ShaderExtension } from './animated-fog';
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/fogedits.glsl";
 import { AnimatedEntity } from '../entity/animated-entity';
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { fbm2D, makeRng } from '../utils/random';
+import { buildPillarMesh, PillarInstance } from './pillar-geometry';
+import { applyPillarSurface } from '../shaders/pillar-surface.glsl';
 
 
 const WATER = -1.0;
 const LAND = 0.0;
 const RADIUS = 0.1;
-const CYLINDER_RADIAL_SEGMENTS_HEXAGON = 6;
 // per-band height roll, same odds as the old randInt(0, 20)
 const HEIGHT_ROLL_SIDES = 21;
 
@@ -115,9 +115,6 @@ export interface ScreenZone {
     ndc: Box2;
 }
 
-// pillars at least this far from the water (in cells) count as back rows
-const BACK_ROW_DISTANCE = 3;
-
 const X_AXIS = new Vector3(1, 0, 0);
 const Z_AXIS = new Vector3(0, 0, 1);
 
@@ -138,9 +135,11 @@ export class Walls implements AnimatedEntity {
         private readonly mask: number[][],
         private readonly extraOffsetZ: number,
         private layout: PillarLayout,
+        private shape: PillarShape,
         private titleZone: ScreenZone | undefined,
         private walls: Mesh<BufferGeometry, MeshPhysicalMaterial, Object3DEventMap>,
-        private fog: ShaderExtension) {}
+        private fog: ShaderExtension,
+        private surfaceUniforms: { [name: string]: IUniform<number> }) {}
 
     public update(clock: Clock): void {
         const uniforms = this.fog.getUniforms();
@@ -154,7 +153,7 @@ export class Walls implements AnimatedEntity {
 
     public rebuild(): void {
         const old = this.walls.geometry;
-        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.extraOffsetZ, this.titleZone);
+        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.titleZone);
         old.dispose();
     }
 
@@ -190,6 +189,30 @@ export class Walls implements AnimatedEntity {
         folder.add(l, 'titleFillMargin', 0, 0.5, 0.01).onFinishChange(rebuild);
         folder.add(l, 'titleFillExtra', 0, 1, 0.01).onFinishChange(rebuild);
         folder.add(l, 'titleFillRadiusScale', 1, 2.5, 0.05).onFinishChange(rebuild);
+        folder.add(l, 'titleFillMinRow', 0, 10, 0.1).onFinishChange(rebuild);
+        folder.add(l, 'titleFillMaxRow', 0, 100, 0.5).onFinishChange(rebuild);
+        folder.add(l, 'titleFillShoulder', 0, 1.5, 0.01).onFinishChange(rebuild);
+        folder.add(l, 'titleFillShoulderJitter', 0, 1, 0.01).onFinishChange(rebuild);
+    }
+
+    public bindShapeTweaks(folder: GUI): void {
+        const rebuild = () => this.rebuild();
+        const s = this.shape;
+
+        const syncSurface = () => applySurfaceUniforms(this.surfaceUniforms, s);
+
+        folder.add(s, 'textureScale', 0.2, 6, 0.05).onFinishChange(rebuild);
+        folder.add(s, 'hexScale', 0.2, 4, 0.05).onChange(syncSurface);
+        folder.add(s, 'hexContrast', 1, 16, 0.1).onChange(syncSurface);
+        folder.add(s, 'macroStrength', 0, 1, 0.01).onChange(syncSurface);
+        folder.add(s, 'macroScale', 0.02, 2, 0.01).onChange(syncSurface);
+        folder.add(s, 'chamfer', 0, 0.45, 0.01).onFinishChange(rebuild);
+        folder.add(s, 'damageChance', 0, 1, 0.01).onFinishChange(rebuild);
+        folder.add(s, 'damageMaxPieces', 2, 6, 1).onFinishChange(rebuild);
+        folder.add(s, 'damageGap', 0, 0.1, 0.001).onFinishChange(rebuild);
+        folder.add(s, 'damageOffset', 0, 0.6, 0.01).onFinishChange(rebuild);
+        folder.add(s, 'damageTiltDeg', 0, 15, 0.1).onFinishChange(rebuild);
+        folder.add(s, 'damageBevel', 0, 0.05, 0.001).onFinishChange(rebuild);
     }
 }
 
@@ -197,27 +220,96 @@ export class Walls implements AnimatedEntity {
 // how finely pillar growth is sampled when checking what ends up behind the title
 const FILL_STEP = 0.25;
 
+interface TitleCover {
+    /** height at which the pillar's top clears the top of the title */
+    height: number;
+    /** how far beside the title the top passes, 0 when it passes behind it (normalised screen units) */
+    outside: number;
+}
+
 /**
- * Grows a pillar from its own height and follows its top on screen. If the top passes behind the title, returns the height
- * at which it clears the top of the text; otherwise the pillar never covers the text and null is returned.
+ * Grows a pillar from its own height and follows its top on screen. If the top passes behind the title or the shoulder
+ * beside it, returns the height at which it clears the top of the text and how far beside the title it passed.
+ * Otherwise the pillar never gets near the text and null is returned.
  */
-const heightToCoverTitle = (centre: Vector3, axis: Vector3, height: number, zone: ScreenZone, layout: PillarLayout): number | null => {
+const heightToCoverTitle = (centre: Vector3, axis: Vector3, height: number, zone: ScreenZone, layout: PillarLayout): TitleCover | null => {
     const m = layout.titleFillMargin;
     const minX = zone.ndc.min.x - m, maxX = zone.ndc.max.x + m;
     const minY = zone.ndc.min.y - m, maxY = zone.ndc.max.y + m;
+    const shoulder = layout.titleFillShoulder;
 
-    let crossesTitle = false;
+    let outside = Infinity;
     for (let h = height; h <= layout.titleFillMaxHeight; h += FILL_STEP) {
         const top = centre.clone().addScaledVector(axis, h / 2).project(zone.camera);
         if (top.z >= 1) return null; // behind the camera
-        if (top.x >= minX && top.x <= maxX && top.y >= minY && top.y <= maxY) crossesTitle = true;
-        if (top.y > maxY) return crossesTitle ? h : null;
+        if (top.y >= minY && top.y <= maxY) {
+            outside = Math.min(outside, Math.max(minX - top.x, top.x - maxX, 0));
+        }
+        if (top.y > maxY) return outside <= shoulder ? { height: h, outside } : null;
     }
-    return crossesTitle ? layout.titleFillMaxHeight : null;
+    return outside <= shoulder ? { height: layout.titleFillMaxHeight, outside } : null;
 };
 
-const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, extraOffsetZ: number, titleZone?: ScreenZone): BufferGeometry => {
-    const geometry = new CylinderGeometry(RADIUS, RADIUS, 1, CYLINDER_RADIAL_SEGMENTS_HEXAGON);
+const applySurfaceUniforms = (uniforms: { [name: string]: IUniform<number> }, shape: PillarShape) => {
+    uniforms.hexScale.value = shape.hexScale;
+    uniforms.hexContrast.value = shape.hexContrast;
+    uniforms.macroStrength.value = shape.macroStrength;
+    uniforms.macroScale.value = shape.macroScale;
+};
+
+// the water plane's height (environment/water.ts), the mirror camera renders from below it
+const WATER_LEVEL_Y = -1;
+
+// pillars shorter than this are never broken, the stubs stay sharp
+const DAMAGE_MIN_HEIGHT = 0.8;
+// shortest piece a broken pillar is cut into, as a fraction of its height
+const DAMAGE_MIN_PIECE = 0.2;
+
+/**
+ * Breaks a pillar into stacked pieces with a gap between them. Each piece above the first shifts sideways and tilts a little
+ * on top of the one below, and the pieces get chipped (bevelled) ends.
+ */
+const breakPillar = (pillar: PillarInstance, axis: Vector3, shape: PillarShape, rng: () => number): PillarInstance[] => {
+    const count = 2 + Math.floor(rng() * (shape.damageMaxPieces - 1));
+
+    // random cut points, spaced so no piece gets too short
+    const cuts: number[] = [];
+    for (let k = 1; k < count; k++) cuts.push(k / count + (rng() * 2 - 1) * (0.5 / count - DAMAGE_MIN_PIECE / 2));
+    const bounds = [0, ...cuts, 1];
+
+    const side = new Vector3().crossVectors(axis, new Vector3(0, 0, 1)).normalize();
+    const forward = new Vector3().crossVectors(axis, side).normalize();
+    const base = pillar.centre.clone().addScaledVector(axis, -pillar.height / 2);
+    const shift = new Vector3();
+    const tilt = degToRad(shape.damageTiltDeg);
+    let lean = pillar.leanRad, roll = pillar.rollRad, spin = pillar.spinRad;
+
+    const pieces: PillarInstance[] = [];
+    for (let k = 0; k < count; k++) {
+        const start = bounds[k] * pillar.height + (k > 0 ? shape.damageGap / 2 : 0);
+        const end = bounds[k + 1] * pillar.height - (k < count - 1 ? shape.damageGap / 2 : 0);
+        if (k > 0) {
+            const angle = rng() * Math.PI * 2;
+            const amount = rng() * shape.damageOffset * pillar.radius;
+            shift.addScaledVector(side, Math.cos(angle) * amount).addScaledVector(forward, Math.sin(angle) * amount);
+            lean += (rng() * 2 - 1) * tilt;
+            roll += (rng() * 2 - 1) * tilt;
+            spin += (rng() * 2 - 1) * 0.3;
+        }
+        pieces.push({
+            ...pillar,
+            centre: base.clone().addScaledVector(axis, (start + end) / 2).add(shift),
+            height: end - start,
+            leanRad: lean,
+            rollRad: roll,
+            spinRad: spin,
+            bevel: shape.damageBevel,
+        });
+    }
+    return pieces;
+};
+
+const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: PillarShape, extraOffsetZ: number, titleZone?: ScreenZone): BufferGeometry => {
     const rng = makeRng(layout.seed);
     const shore = getShoreCells(mask);
 
@@ -228,14 +320,14 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, extraOffse
     const offsetZ = extraOffsetZ - plannedDepth;
 
     const f = layout.noiseScale;
-    const geometries: CylinderGeometry[] = [];
+    const instances: PillarInstance[] = [];
 
     for (let i = 0; i < mask.length; ++i) {
         for (let j = 0; j < mask[0].length; ++j) {
             if (mask[i][j] === WATER) continue;
 
             // always draw the same amount of numbers per cell so changing one setting doesn't reshuffle the rest
-            const [jx, jz, skip, h1, h2, rad, lean, yaw, roll, self, baseY, fillExtraRoll] = Array.from({ length: 12 }, rng);
+            const [jx, jz, skip, h1, h2, rad, lean, yaw, roll, self, baseY, fillExtraRoll, uvU, uvV, damageRoll, damageSeed, shoulderRoll] = Array.from({ length: 17 }, rng);
 
             const x = i + (jx * 2 - 1) * layout.jitter;
             const z = j + (jz * 2 - 1) * layout.jitter;
@@ -258,12 +350,18 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, extraOffse
 
             const axis = new Vector3(0, 1, 0).applyAxisAngle(X_AXIS, leanRad).applyAxisAngle(Z_AXIS, rollRad);
 
-            // back rows that pass behind the title are raised just past the top of the text (and thickened) so there's no sky
+            // pillars (within the fill rows) that pass behind the title are raised just past the top of the text (and thickened) so there's no sky
             // behind it. Everything else keeps its height, so the wall keeps the same variety as elsewhere
-            const cover = titleZone && distance > BACK_ROW_DISTANCE ? heightToCoverTitle(centre, axis, height, titleZone, layout) : null;
+            // beside the title (the shoulder) pillars are only partly raised, each by a random share, so the wall steps down
+            // instead of dropping off
+            const inFillRows = distance >= layout.titleFillMinRow && distance <= layout.titleFillMaxRow;
+            const cover = titleZone && inFillRows ? heightToCoverTitle(centre, axis, height, titleZone, layout) : null;
             if (cover !== null) {
-                height = Math.min(cover * (1 + fillExtraRoll * layout.titleFillExtra), layout.titleFillMaxHeight);
-                radiusScale *= layout.titleFillRadiusScale;
+                const full = Math.min(cover.height * (1 + fillExtraRoll * layout.titleFillExtra), layout.titleFillMaxHeight);
+                const falloff = cover.outside === 0 ? 1 : 1 - smoothstep(cover.outside, 0, layout.titleFillShoulder);
+                const share = cover.outside === 0 ? 1 : falloff * (1 - layout.titleFillShoulderJitter * shoulderRoll);
+                height = lerp(height, Math.max(height, full), share);
+                radiusScale *= lerp(1, layout.titleFillRadiusScale, share);
             } else if (skip < layout.skipChance) {
                 continue;
             }
@@ -273,32 +371,34 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, extraOffse
                 height = layout.cameraClearMaxHeight;
             }
 
-            const instanceGeo = geometry.clone();
+            const pillar: PillarInstance = {
+                centre,
+                height,
+                radius: radiusScale * RADIUS,
+                spinRad: degToRad(self * layout.selfRotateDeg + yawT * layout.yawVarianceDeg),
+                leanRad,
+                rollRad,
+                uvOffsetU: uvU * 100,
+                uvOffsetV: uvV * 100,
+                bevel: 0,
+            };
 
-            instanceGeo.rotateY(degToRad(self * layout.selfRotateDeg));
-
-            instanceGeo.scale(radiusScale, height, radiusScale);
-
-            instanceGeo.rotateY(degToRad(yawT * layout.yawVarianceDeg));
-            instanceGeo.rotateX(leanRad);
-            instanceGeo.rotateZ(rollRad);
-
-            instanceGeo.translate(centre.x, centre.y, centre.z);
-
-            geometries.push(instanceGeo);
+            if (height >= DAMAGE_MIN_HEIGHT && damageRoll < shape.damageChance) {
+                // own random stream, since the number of pieces varies
+                instances.push(...breakPillar(pillar, axis, shape, makeRng(Math.floor(damageSeed * 4294967296))));
+            } else {
+                instances.push(pillar);
+            }
         }
     }
 
-    const merged = mergeGeometries(geometries);
-    geometry.dispose();
-    for (const g of geometries) g.dispose();
-    return merged;
+    return buildPillarMesh(instances, shape);
 };
 
 export class WallsFactory {
     constructor(private loadingMgr: LoadingManager, private scene: Scene) {}
 
-    public async makeWalls(extraOffsetZ: number, layout: PillarLayout, titleZone?: ScreenZone): Promise<Walls> {
+    public async makeWalls(extraOffsetZ: number, layout: PillarLayout, shape: PillarShape, titleZone?: ScreenZone): Promise<Walls> {
         if (layout.randomSeed) {
             layout.seed = randomSeed();
         }
@@ -335,20 +435,34 @@ export class WallsFactory {
             fogVert
         });
 
-        material.onBeforeCompile = fogShader.handle;
+        const surfaceUniforms: { [name: string]: IUniform<number> } = {
+            hexScale: { value: 0 },
+            hexContrast: { value: 0 },
+            macroStrength: { value: 0 },
+            macroScale: { value: 0 },
+            reflectionBelowY: { value: WATER_LEVEL_Y },
+        };
+        applySurfaceUniforms(surfaceUniforms, shape);
+
+        material.onBeforeCompile = (params, renderer) => {
+            fogShader.handle(params, renderer);
+            applyPillarSurface(params, surfaceUniforms);
+        };
 
         const mask = await this.parseMapTemplate(PILLARS_GEOGRAPHY_MAP);
 
-        const mesh = new Mesh(buildPillarsGeometry(mask, layout, extraOffsetZ, titleZone), material);
+        const mesh = new Mesh(buildPillarsGeometry(mask, layout, shape, extraOffsetZ, titleZone), material);
         this.scene.add(mesh);
 
         return new Walls(
             mask,
             extraOffsetZ,
             layout,
+            shape,
             titleZone,
             mesh,
-            fogShader
+            fogShader,
+            surfaceUniforms
         );
     }
 

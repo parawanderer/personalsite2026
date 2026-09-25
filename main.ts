@@ -44,6 +44,7 @@ import {
     ROTATING_DUST_CENTER,
     TWEAKS_ENABLED,
     PILLAR_LAYOUT,
+    PILLAR_SHAPE,
     GRAIN_STYLE,
     FLIGHT_SETTINGS
 } from './constants';
@@ -159,8 +160,10 @@ const getTitleZone = (): ScreenZone => {
     );
     return { camera: homeCamera, ndc };
 };
-const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z, pillarTweaks.params, getTitleZone());
+const pillarShapeTweaks = tweaks.addFolder('Pillar surface', PILLAR_SHAPE);
+const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z, pillarTweaks.params, pillarShapeTweaks.params, getTitleZone());
 if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
+if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
 scheduler.add(walls);
 
 

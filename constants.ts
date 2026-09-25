@@ -43,9 +43,9 @@ export const FLIGHT_SETTINGS: FlightSettings = {
 // camera:scene
 
 // where the page loads and "Home" returns to; paste new values from the Camera folder of the tweak panel (?tweaks)
-export const CAMERA_HOME_POS = new Vector3(-2.4503, -0.4283, 4.6432);
+export const CAMERA_HOME_POS = new Vector3(-2.3106, -0.4283, 4.8085);
 /** point the camera looks at */
-export const CAMERA_HOME_DIR = new Vector3(-1.8385, -0.6989, 3.9000);
+export const CAMERA_HOME_DIR = new Vector3(-1.6988, -0.6989, 4.0652);
 
 export const CAMERA_ABOUT_ME_X = -0.8113;
 export const CAMERA_ABOUT_ME_Y = -0.5845;
@@ -177,7 +177,54 @@ export interface PillarLayout {
     titleFillExtra: number;
     /** raised pillars are thickened by this to close the gaps between them */
     titleFillRadiusScale: number;
+    /** raising only applies to pillars between these distances from the water (in cells), front rows to back rows */
+    titleFillMinRow: number;
+    titleFillMaxRow: number;
+    /** width of the band beside the title where pillars are partly raised so the wall steps down, normalised screen units */
+    titleFillShoulder: number;
+    /** 0 = pillars in the shoulder follow the falloff exactly, 1 = each gets a random share of it (ragged steps) */
+    titleFillShoulderJitter: number;
 }
+
+export interface PillarShape {
+    /** texture repeats per world unit */
+    textureScale: number;
+    /** hex tiling cells per texture repeat, hides the repeating pattern */
+    hexScale: number;
+    /** how hard neighbouring cells blend, higher keeps more of the texture's contrast */
+    hexContrast: number;
+    /** large scale brightness variation across the walls */
+    macroStrength: number;
+    /** frequency of that variation, per world unit */
+    macroScale: number;
+    /** how much of each hexagon corner is cut off, fraction of an edge */
+    chamfer: number;
+    /** chance a pillar is broken into stacked pieces */
+    damageChance: number;
+    damageMaxPieces: number;
+    /** gap between broken pieces, world units */
+    damageGap: number;
+    /** how far pieces shift sideways, fraction of the radius */
+    damageOffset: number;
+    damageTiltDeg: number;
+    /** chipped edge on the ends of broken pieces, world units */
+    damageBevel: number;
+}
+
+export const PILLAR_SHAPE: PillarShape = {
+    textureScale: 1.6,
+    hexScale: 0.2,
+    hexContrast: 6,
+    macroStrength: 0.25,
+    macroScale: 0.35,
+    chamfer: 0.12,
+    damageChance: 0.15,
+    damageMaxPieces: 3,
+    damageGap: 0.012,
+    damageOffset: 0.12,
+    damageTiltDeg: 2,
+    damageBevel: 0.012,
+};
 
 export const PILLAR_LAYOUT: PillarLayout = {
     randomSeed: true,
@@ -201,6 +248,10 @@ export const PILLAR_LAYOUT: PillarLayout = {
     titleFillMargin: 0.05,
     titleFillExtra: 0.3,
     titleFillRadiusScale: 1.3,
+    titleFillMinRow: 6.3,
+    titleFillMaxRow: 100,
+    titleFillShoulder: 0.45,
+    titleFillShoulderJitter: 0.64,
 };
 
 
