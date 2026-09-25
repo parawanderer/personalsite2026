@@ -43,9 +43,9 @@ export const FLIGHT_SETTINGS: FlightSettings = {
 // camera:scene
 
 // where the page loads and "Home" returns to; paste new values from the Camera folder of the tweak panel (?tweaks)
-export const CAMERA_HOME_POS = new Vector3(-2.3106, -0.4283, 4.8085);
+export const CAMERA_HOME_POS = new Vector3(-2.3892, -0.4283, 4.5683);
 /** point the camera looks at */
-export const CAMERA_HOME_DIR = new Vector3(-1.6988, -0.6989, 4.0652);
+export const CAMERA_HOME_DIR = new Vector3(-1.7774, -0.6989, 3.8250);
 
 export const CAMERA_ABOUT_ME_X = -0.8113;
 export const CAMERA_ABOUT_ME_Y = -0.5845;
@@ -135,6 +135,27 @@ export const WATER_TEXTURE = 'waternormals.jpg';
 export const WATER_SUN_COLOR = Color.fromHex('#000000');
 export const WATER_COLOR = Color.fromHex('#000000');
 
+export interface WaterLook {
+    /** opacity of the surface when looking straight down, it goes towards fully reflective at grazing angles */
+    surfaceOpacity: number;
+    /** how quickly it turns reflective towards grazing angles, higher = see-through for longer */
+    fresnelPower: number;
+    /** colour things fade into under water */
+    underwaterColor: string;
+    /** absorption per world unit travelled under water */
+    underwaterDensity: number;
+    /** depth of the seabed below the surface */
+    seabedDepth: number;
+}
+
+export const WATER_LOOK: WaterLook = {
+    surfaceOpacity: 0.03,
+    fresnelPower: 1.9,
+    underwaterColor: '#3f4b4a',
+    underwaterDensity: 1.75,
+    seabedDepth: 3.05,
+};
+
 
 // pillars
 export const PILLARS_GEOGRAPHY_MAP = 'fill_map.png';
@@ -167,6 +188,8 @@ export interface PillarLayout {
     rollVarianceDeg: number;
     selfRotateDeg: number;
     /** pillars passing within this distance of the home camera are cut down, so none fill the landing view */
+    /** every pillar reaches at least this far below the water surface; set from the water's seabedDepth */
+    depthBelowWater: number;
     cameraClearRadius: number;
     cameraClearMaxHeight: number;
     /** back-row pillars that pass behind the title in the home view are raised just enough to clear the top of the text, up to this */
@@ -242,6 +265,7 @@ export const PILLAR_LAYOUT: PillarLayout = {
     yawVarianceDeg: 15,
     rollVarianceDeg: 1,
     selfRotateDeg: 10,
+    depthBelowWater: 1.4,
     cameraClearRadius: 1.5,
     cameraClearMaxHeight: 0.5,
     titleFillMaxHeight: 16,

@@ -46,7 +46,8 @@ import {
     PILLAR_LAYOUT,
     PILLAR_SHAPE,
     GRAIN_STYLE,
-    FLIGHT_SETTINGS
+    FLIGHT_SETTINGS,
+    WATER_LOOK
 } from './constants';
 import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
@@ -109,9 +110,7 @@ const scheduler = new Scheduler();
 const factory = new GenericObjectFactory(loadingMgr, scene);
 const dustFactory = new DustFactory(loadingMgr, scene, camera);
 
-// background pane
-const pane = factory.makeGlassPane();
-pane.position.set(CAMERA_INITIAL_X, CAMERA_INITIAL_Y, CAMERA_INITIAL_Z-1);
+// background pane: removed for now, its transmission can't see the (transparent) water. To be replaced by a custom pane
 // cube light
 const cubeLight = factory.makeObjectLight(0, 0, 0, 20, CUBE_LIGHT_COLOR);
 
@@ -130,7 +129,9 @@ const skyDiffuseLight2 = factory.makeSkyDiffuseLight(0, 8, 0, 800);
 const sky = factory.makeSkybox();
 
 // water
-const water = new WaterFactory(loadingMgr, scene).makeWater(WATER_TEXTURE, -ROW_LENGTH_Z/2);
+const waterTweaks = tweaks.addFolder('Water', WATER_LOOK);
+const water = new WaterFactory(loadingMgr, scene).makeWater(WATER_TEXTURE, -ROW_LENGTH_Z/2, waterTweaks.params);
+if (waterTweaks.folder) water.bindTweaks(waterTweaks.folder);
 scheduler.add(water);
 
 // particles
@@ -164,6 +165,12 @@ const pillarShapeTweaks = tweaks.addFolder('Pillar surface', PILLAR_SHAPE);
 const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z, pillarTweaks.params, pillarShapeTweaks.params, getTitleZone());
 if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
+water.addUnderwaterTo(walls.material);
+// pillars reach a little past the seabed
+water.setSeabedListener((depth) => {
+    pillarTweaks.params.depthBelowWater = depth + 0.2;
+    walls.rebuild();
+});
 scheduler.add(walls);
 
 

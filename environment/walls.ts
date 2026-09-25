@@ -11,6 +11,7 @@ import { AnimatedEntity } from '../entity/animated-entity';
 import { fbm2D, makeRng } from '../utils/random';
 import { buildPillarMesh, PillarInstance } from './pillar-geometry';
 import { applyPillarSurface } from '../shaders/pillar-surface.glsl';
+import { WATER_LEVEL_Y } from './water';
 
 
 const WATER = -1.0;
@@ -141,6 +142,10 @@ export class Walls implements AnimatedEntity {
         private fog: ShaderExtension,
         private surfaceUniforms: { [name: string]: IUniform<number> }) {}
 
+    public get material(): MeshPhysicalMaterial {
+        return this.walls.material;
+    }
+
     public update(clock: Clock): void {
         const uniforms = this.fog.getUniforms();
         if (!uniforms) return;
@@ -257,8 +262,15 @@ const applySurfaceUniforms = (uniforms: { [name: string]: IUniform<number> }, sh
     uniforms.macroScale.value = shape.macroScale;
 };
 
-// the water plane's height (environment/water.ts), the mirror camera renders from below it
-const WATER_LEVEL_Y = -1;
+/**
+ * Lengthens a pillar downwards along its own axis until its bottom is `depth` below the water, keeping its top in place
+ */
+const extendBelowWater = (pillar: PillarInstance, axis: Vector3, depth: number): PillarInstance => {
+    const top = pillar.centre.clone().addScaledVector(axis, pillar.height / 2);
+    const length = (top.y - (WATER_LEVEL_Y - depth)) / axis.y;
+    if (length <= pillar.height) return pillar;
+    return { ...pillar, height: length, centre: top.addScaledVector(axis, -length / 2) };
+};
 
 // pillars shorter than this are never broken, the stubs stay sharp
 const DAMAGE_MIN_HEIGHT = 0.8;
@@ -384,10 +396,12 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: Pil
             };
 
             if (height >= DAMAGE_MIN_HEIGHT && damageRoll < shape.damageChance) {
-                // own random stream, since the number of pieces varies
-                instances.push(...breakPillar(pillar, axis, shape, makeRng(Math.floor(damageSeed * 4294967296))));
+                // own random stream, since the number of pieces varies. Only the bottom piece (unshifted, same axis) reaches down
+                const pieces = breakPillar(pillar, axis, shape, makeRng(Math.floor(damageSeed * 4294967296)));
+                pieces[0] = extendBelowWater(pieces[0], axis, layout.depthBelowWater);
+                instances.push(...pieces);
             } else {
-                instances.push(pillar);
+                instances.push(extendBelowWater(pillar, axis, layout.depthBelowWater));
             }
         }
     }
