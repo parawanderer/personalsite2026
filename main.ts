@@ -256,6 +256,7 @@ scheduler.add(dayNight);
 const auroraTweaks = tweaks.addFolder('Aurora', AURORA);
 const aurora = new Aurora(scene, sky.material, auroraTweaks.params);
 if (auroraTweaks.folder) aurora.bindTweaks(auroraTweaks.folder);
+aurora.addToWater((edit) => water.extendShader(edit));
 dayNight.number((v) => aurora.setNight(v), () => 0, 'nightAurora');
 scheduler.add(aurora);
 

@@ -276,6 +276,12 @@ export interface AuroraSettings {
     horizonFade: number;
     /** faint coloured light it casts from above at night */
     lightIntensity: number;
+    /** a blurred glow of the aurora on the water: strength, how soft (times the sky's sharpness), how far it stretches */
+    waterGlow: number;
+    waterSoftness: number;
+    waterStretch: number;
+    /** how much of the ripples the glow follows, 0 = smooth */
+    waterRipple: number;
 }
 
 export const AURORA: AuroraSettings = {
@@ -288,6 +294,10 @@ export const AURORA: AuroraSettings = {
     speed: 0.25,
     horizonFade: 0.14,
     lightIntensity: 1.24,
+    waterGlow: 0.4,
+    waterSoftness: 0.15,
+    waterStretch: 3,
+    waterRipple: 0.3,
 };
 
 // shooting stars at night (environment/shooting-stars.ts)

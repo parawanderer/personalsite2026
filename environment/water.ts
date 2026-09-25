@@ -279,6 +279,21 @@ export class Water implements AnimatedEntity {
         (this.surfaceUniforms.splashGlow.value as Color).copy(color).multiplyScalar(intensity);
     }
 
+    /**
+     * Adds a shader edit to the water surface (plane and displaced patch), applied after the water's own edits
+     */
+    public extendShader(edit: (params: WebGLProgramParametersWithUniforms) => void): void {
+        for (const material of [this.water.material, this.patch?.material]) {
+            if (!material) continue;
+            const previous = material.onBeforeCompile;
+            material.onBeforeCompile = (params, renderer) => {
+                previous.call(material, params, renderer);
+                edit(params);
+            };
+            material.needsUpdate = true;
+        }
+    }
+
     /** the water's surface uniforms, for the day/night cycle */
     public get surface() {
         return this.surfaceUniforms;
