@@ -1,6 +1,8 @@
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 const STORAGE_PREFIX = 'tweaks:';
+// which folders are collapsed, by folder title
+const COLLAPSED_KEY = 'tweaks-ui:collapsed';
 
 const load = (name: string): object | null => {
     try {
@@ -19,10 +21,37 @@ const save = (name: string, params: object) => {
     }
 };
 
+const loadCollapsed = (): Record<string, boolean> => {
+    try {
+        return JSON.parse(localStorage.getItem(COLLAPSED_KEY) ?? '{}');
+    } catch {
+        return {};
+    }
+};
+
+/**
+ * Restores a folder's collapsed state and keeps it saved. lil-gui has no open/close event, so this watches the
+ * `closed` class it toggles, which covers clicks, keyboard and animated toggling alike.
+ */
+const rememberCollapsed = (gui: GUI, title: string) => {
+    const collapsed = loadCollapsed();
+    if (title in collapsed) gui.open(!collapsed[title]);
+
+    new MutationObserver(() => {
+        const state = loadCollapsed();
+        state[title] = gui.domElement.classList.contains('closed');
+        try {
+            localStorage.setItem(COLLAPSED_KEY, JSON.stringify(state));
+        } catch {
+            // storage unavailable, the layout just won't persist
+        }
+    }).observe(gui.domElement, { attributes: true, attributeFilter: ['class'] });
+};
+
 /**
  * Hand-tweaking panel (three's bundled lil-gui). Enable with `?tweaks` in the URL or DEBUG.
  *
- * Values changed in the panel persist in localStorage so they survive reloads.
+ * Values changed in the panel, and which folders are collapsed, persist in localStorage so they survive reloads.
  * "Copy values" puts the current values on the clipboard to paste back into constants.ts.
  * When disabled, every folder simply gets its defaults.
  */
@@ -36,6 +65,7 @@ export class Tweaks {
         this.gui = new GUI({ title: 'Tweaks' });
         this.gui.add({ copy: () => this.copyValues() }, 'copy').name('Copy values');
         this.gui.add({ reset: () => this.resetAll() }, 'reset').name('Reset all (reloads)');
+        rememberCollapsed(this.gui, 'Tweaks');
     }
 
     /**
@@ -51,6 +81,7 @@ export class Tweaks {
         Object.assign(params, load(name) ?? {});
 
         const folder = this.gui.addFolder(name);
+        rememberCollapsed(folder, name);
         // onChange also covers values set from code (lil-gui's setValue doesn't fire onFinishChange)
         folder.onChange(() => save(name, params));
 
