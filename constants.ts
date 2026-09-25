@@ -184,7 +184,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightCausticStrength: 0.33,
     nightFlakeGlow: 1.74,
     nightOrangeParticles: 0,
-    nightRimScale: 0.4,
+    nightRimScale: 0.01,
     nightReflectionFloor: 0.01,
 };
 
