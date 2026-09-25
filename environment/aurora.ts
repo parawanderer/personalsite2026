@@ -4,6 +4,8 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { AnimatedEntity } from '../entity/animated-entity';
 import { AuroraSettings } from '../constants';
 
+const smooth = (t: number) => t * t * (3 - 2 * t);
+
 // each ribbon is drawn at a stack of close heights, fading upwards, which makes it hang like a curtain
 const LAYERS = 12;
 
@@ -88,7 +90,7 @@ export class Aurora implements AnimatedEntity {
     private readonly light = new DirectionalLight();
     private nightAmount = 0;
 
-    constructor(scene: Scene, skyMaterial: MeshBasicMaterial, private readonly settings: AuroraSettings) {
+    constructor(scene: Scene, skyMaterial: MeshBasicMaterial, private readonly settings: AuroraSettings, private readonly hour: () => number) {
         this.uniforms = {
             auroraAmount: { value: 0 },
             auroraTime: { value: 0 },
@@ -143,10 +145,26 @@ export class Aurora implements AnimatedEntity {
         this.nightAmount = amount;
     }
 
+    /** 0-1, how far it has come out by this hour; the night wraps round midnight */
+    private get presence(): number {
+        const s = this.settings;
+        // hours since the fade-in started, 0-24
+        const since = (h: number) => ((this.hour() - h) % 24 + 24) % 24;
+        const inLength = ((s.fadeInEnd - s.fadeInStart) % 24 + 24) % 24 || 1e-3;
+        const outLength = ((s.fadeOutEnd - s.fadeOutStart) % 24 + 24) % 24 || 1e-3;
+        const untilOut = ((s.fadeOutStart - s.fadeInStart) % 24 + 24) % 24;
+        const t = since(s.fadeInStart);
+        if (t < inLength) return smooth(t / inLength);
+        if (t < untilOut) return 1;
+        if (t < untilOut + outLength) return 1 - smooth((t - untilOut) / outLength);
+        return 0;
+    }
+
     public update(clock: Clock): void {
         const s = this.settings;
         const u = this.uniforms;
-        u.auroraAmount.value = s.brightness * this.nightAmount;
+        const amount = this.nightAmount * this.presence;
+        u.auroraAmount.value = s.brightness * amount;
         u.auroraTime.value = clock.elapsedTime * s.speed;
         u.auroraLow.value.set(s.colorLow);
         u.auroraHigh.value.set(s.colorHigh);
@@ -160,7 +178,7 @@ export class Aurora implements AnimatedEntity {
         u.auroraWaterRipple.value = s.waterRipple;
 
         this.light.color.set(s.colorLow).lerp(new Color(s.colorHigh), 0.35);
-        this.light.intensity = s.lightIntensity * this.nightAmount;
+        this.light.intensity = s.lightIntensity * amount;
         this.light.visible = this.light.intensity > 0;
     }
 
@@ -179,5 +197,9 @@ export class Aurora implements AnimatedEntity {
         folder.add(s, 'waterSoftness', 0.02, 1, 0.01);
         folder.add(s, 'waterStretch', 0.5, 10, 0.1);
         folder.add(s, 'waterRipple', 0, 1, 0.01);
+        folder.add(s, 'fadeInStart', 0, 24, 0.1);
+        folder.add(s, 'fadeInEnd', 0, 24, 0.1);
+        folder.add(s, 'fadeOutStart', 0, 24, 0.1);
+        folder.add(s, 'fadeOutEnd', 0, 24, 0.1);
     }
 }

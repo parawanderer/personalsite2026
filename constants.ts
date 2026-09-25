@@ -282,6 +282,11 @@ export interface AuroraSettings {
     waterStretch: number;
     /** how much of the ripples the glow follows, 0 = smooth */
     waterRipple: number;
+    /** it only comes out once the night has settled: fades in between these hours, and out again before dawn */
+    fadeInStart: number;
+    fadeInEnd: number;
+    fadeOutStart: number;
+    fadeOutEnd: number;
 }
 
 export const AURORA: AuroraSettings = {
@@ -298,6 +303,10 @@ export const AURORA: AuroraSettings = {
     waterSoftness: 0.15,
     waterStretch: 3,
     waterRipple: 0.3,
+    fadeInStart: 21,
+    fadeInEnd: 22.5,
+    fadeOutStart: 3,
+    fadeOutEnd: 4.5,
 };
 
 // shooting stars at night (environment/shooting-stars.ts)
