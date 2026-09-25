@@ -101,7 +101,7 @@ const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
     ],
     [
         "reflectionSample + specularLight, reflectance );",
-        "( vec3( reflectionFloor ) + reflectionSample * 0.9 * reflectionStrength + reflectionSample * specularLight ), reflectance );"
+        "( vec3( reflectionFloor ) + reflectionSample * 0.9 * reflectionBoost( reflectionSample ) + reflectionSample * specularLight ), reflectance );"
     ],
 ];
 
@@ -110,7 +110,12 @@ const LEGACY_REFLECTANCE_EDITS: [string, string][] = [
  * otherwise turns the water into the brightest thing on screen
  */
 const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) => {
-    params.fragmentShader = params.fragmentShader.replace("uniform float alpha;", "uniform float alpha;\nuniform float reflectionFloor;\nuniform float reflectionStrength;");
+    params.fragmentShader = params.fragmentShader.replace("uniform float alpha;", "uniform float alpha;\nuniform float reflectionFloor;\nuniform float reflectionStrength;\nuniform float reflectionGrey;\n" +
+        "// colourful reflections (aurora, glowing things) get reflectionStrength, grey ones (dark sky, fog) reflectionGrey\n" +
+        "float reflectionBoost( vec3 c ) {\n" +
+        "    float chroma = max( c.r, max( c.g, c.b ) ) - min( c.r, min( c.g, c.b ) );\n" +
+        "    return mix( reflectionGrey, reflectionStrength, smoothstep( 0.015, 0.1, chroma ) );\n" +
+        "}");
     for (const [search, replacement] of LEGACY_REFLECTANCE_EDITS) {
         if (!params.fragmentShader.includes(search)) {
             console.warn(`Water shader no longer contains "${search}"; reflectance edit not applied.`);
@@ -443,6 +448,7 @@ export class WaterFactory {
             fresnelPower: { value: 1 },
             reflectionFloor: { value: 0.1 },
             reflectionStrength: { value: 1 },
+            reflectionGrey: { value: 1 },
             splashCenter: { value: new Vector2() },
             // seconds since the last splash, large while there's none
             splashAge: { value: 1e3 },

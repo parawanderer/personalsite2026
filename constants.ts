@@ -170,6 +170,8 @@ export interface DayNightSettings {
     nightSurfaceOpacity: number;
     nightFresnelPower: number;
     nightReflectionStrength: number;
+    /** the same for grey, colourless reflections (the dark sky, fog), so they don't turn into a grey sheen */
+    nightReflectionGrey: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -197,6 +199,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightSurfaceOpacity: 0.9,
     nightFresnelPower: 1.88,
     nightReflectionStrength: 3.28,
+    nightReflectionGrey: 0.3,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
