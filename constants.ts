@@ -268,8 +268,8 @@ export interface AuroraSettings {
 }
 
 export const AURORA: AuroraSettings = {
-    colorLow: '#20e0b0',
-    colorHigh: '#b040ff',
+    colorLow: '#38f0ed',
+    colorHigh: '#5a6bbf',
     brightness: 0.6,
     height: 1,
     scale: 0.6,
