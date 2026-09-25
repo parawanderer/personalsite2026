@@ -1,4 +1,4 @@
-import { Box2, BufferGeometry, Camera, Clock, IUniform, Line3, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
+import { Box2, BufferGeometry, Camera, Clock, DataTexture, FloatType, IUniform, Line3, NearestFilter, RGBAFormat, Vector2, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
 import { degToRad, lerp, smoothstep } from 'three/src/math/MathUtils.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
@@ -116,6 +116,44 @@ export interface ScreenZone {
     ndc: Box2;
 }
 
+/**
+ * Where each pillar crosses the water surface, one texel per pillar grid cell, for the water shader's pillar interaction.
+ * A = (centre x, centre z, radius, 1 if there's a pillar crossing the surface here), B = (lean direction x, z, stretch, 0):
+ * a leaning pillar's cross-section is stretched along its lean by 1 / cos(tilt).
+ */
+export interface PillarField {
+    dataA: DataTexture;
+    dataB: DataTexture;
+    /** world position of cell (0, 0) */
+    origin: Vector2;
+    cellSize: number;
+    /** cells in x and z */
+    size: Vector2;
+}
+
+const makeFieldTexture = (width: number, height: number) => {
+    const texture = new DataTexture(new Float32Array(width * height * 4), width, height, RGBAFormat, FloatType);
+    texture.minFilter = texture.magFilter = NearestFilter;
+    texture.needsUpdate = true;
+    return texture;
+};
+
+const recordWaterline = (field: PillarField, i: number, j: number, pillar: PillarInstance, axis: Vector3) => {
+    // where the axis meets the surface, if that's within the pillar
+    const t = (WATER_LEVEL_Y - pillar.centre.y) / axis.y;
+    if (Math.abs(t) > pillar.height / 2) return;
+
+    const x = pillar.centre.x + axis.x * t;
+    const z = pillar.centre.z + axis.z * t;
+    const horizontal = Math.hypot(axis.x, axis.z);
+    const k = (j * field.size.x + i) * 4;
+    const a = field.dataA.image.data as Float32Array;
+    const b = field.dataB.image.data as Float32Array;
+    a.set([x, z, pillar.radius, 1], k);
+    b.set(horizontal > 1e-4 ? [axis.x / horizontal, axis.z / horizontal] : [1, 0], k);
+    b[k + 2] = 1 / axis.y;
+};
+
 const X_AXIS = new Vector3(1, 0, 0);
 const Z_AXIS = new Vector3(0, 0, 1);
 
@@ -140,7 +178,10 @@ export class Walls implements AnimatedEntity {
         private titleZone: ScreenZone | undefined,
         private walls: Mesh<BufferGeometry, MeshPhysicalMaterial, Object3DEventMap>,
         private fog: ShaderExtension,
-        private surfaceUniforms: { [name: string]: IUniform<number> }) {}
+        private surfaceUniforms: { [name: string]: IUniform<number> }) {
+        this.pillarField = createPillarField(mask, extraOffsetZ);
+        this.rebuild();
+    }
 
     public get material(): MeshPhysicalMaterial {
         return this.walls.material;
@@ -156,9 +197,11 @@ export class Walls implements AnimatedEntity {
         }
     }
 
+    public readonly pillarField: PillarField;
+
     public rebuild(): void {
         const old = this.walls.geometry;
-        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.titleZone);
+        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.pillarField, this.titleZone);
         old.dispose();
     }
 
@@ -321,7 +364,18 @@ const breakPillar = (pillar: PillarInstance, axis: Vector3, shape: PillarShape, 
     return pieces;
 };
 
-const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: PillarShape, extraOffsetZ: number, titleZone?: ScreenZone): BufferGeometry => {
+const createPillarField = (mask: number[][], extraOffsetZ: number): PillarField => ({
+    dataA: makeFieldTexture(mask.length, mask[0].length),
+    dataB: makeFieldTexture(mask.length, mask[0].length),
+    origin: new Vector2(-mask.length * SCALE_FACTOR / 2, extraOffsetZ - mask[0].length * SCALE_FACTOR),
+    cellSize: SCALE_FACTOR,
+    size: new Vector2(mask.length, mask[0].length),
+});
+
+const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: PillarShape, extraOffsetZ: number, field: PillarField, titleZone?: ScreenZone): BufferGeometry => {
+    (field.dataA.image.data as Float32Array).fill(0);
+    (field.dataB.image.data as Float32Array).fill(0);
+
     const rng = makeRng(layout.seed);
     const shore = getShoreCells(mask);
 
@@ -399,13 +453,18 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: Pil
                 // own random stream, since the number of pieces varies. Only the bottom piece (unshifted, same axis) reaches down
                 const pieces = breakPillar(pillar, axis, shape, makeRng(Math.floor(damageSeed * 4294967296)));
                 pieces[0] = extendBelowWater(pieces[0], axis, layout.depthBelowWater);
+                recordWaterline(field, i, j, pieces[0], axis);
                 instances.push(...pieces);
             } else {
-                instances.push(extendBelowWater(pillar, axis, layout.depthBelowWater));
+                const extended = extendBelowWater(pillar, axis, layout.depthBelowWater);
+                recordWaterline(field, i, j, extended, axis);
+                instances.push(extended);
             }
         }
     }
 
+    field.dataA.needsUpdate = true;
+    field.dataB.needsUpdate = true;
     return buildPillarMesh(instances, shape);
 };
 
@@ -465,7 +524,8 @@ export class WallsFactory {
 
         const mask = await this.parseMapTemplate(PILLARS_GEOGRAPHY_MAP);
 
-        const mesh = new Mesh(buildPillarsGeometry(mask, layout, shape, extraOffsetZ, titleZone), material);
+        // the geometry is built by Walls, which also owns the pillar field
+        const mesh = new Mesh(new BufferGeometry(), material);
         this.scene.add(mesh);
 
         return new Walls(

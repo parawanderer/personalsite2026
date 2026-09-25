@@ -166,6 +166,7 @@ const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL
 if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
 water.addUnderwaterTo(walls.material);
+water.setPillarField(walls.pillarField);
 // pillars reach a little past the seabed
 water.setSeabedListener((depth) => {
     pillarTweaks.params.depthBelowWater = depth + 0.2;

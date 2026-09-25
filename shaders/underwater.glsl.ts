@@ -26,6 +26,19 @@ varying vec3 vUnderwaterWorldPos;
 uniform float waterLevelY;
 uniform vec3 underwaterColor;
 uniform float underwaterDensity;
+uniform float wetBandHeight;
+uniform float wetBandDarkness;
+`;
+
+/**
+ * After <color_fragment>: surfaces just above the water are darker where it climbs and wets them
+ */
+const wetBand = /* glsl */ `
+// (edits) ${fileName}
+float aboveWater = vUnderwaterWorldPos.y - waterLevelY;
+if (aboveWater > 0.0) {
+    diffuseColor.rgb *= 1.0 - wetBandDarkness * (1.0 - smoothstep(0.0, wetBandHeight, aboveWater));
+}
 `;
 
 /**
@@ -58,6 +71,7 @@ export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, unif
     params.vertexShader = insertAfter(params.vertexShader, '#include <common>', parsVert);
     params.vertexShader = insertAfter(params.vertexShader, '#include <begin_vertex>', vert);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <common>', parsFrag);
+    params.fragmentShader = insertAfter(params.fragmentShader, '#include <color_fragment>', wetBand);
     params.fragmentShader = insertBefore(params.fragmentShader, '#include <premultiplied_alpha_fragment>', frag);
     Object.assign(params.uniforms, uniforms);
 };

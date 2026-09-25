@@ -1,4 +1,4 @@
-import { Clock, Color, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, RepeatWrapping, Scene, TextureLoader, Vector3, WebGLProgramParametersWithUniforms } from "three";
+import { Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, RepeatWrapping, Scene, TextureLoader, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
@@ -23,27 +23,48 @@ import { AnimatedEntity } from "../entity/animated-entity";
 import { customFogExtension, ShaderExtension } from "./animated-fog";
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fogedits.glsl";
 import { applyUnderwater } from "../shaders/underwater.glsl";
+import { interactionMain, interactionPars } from "../shaders/water-interaction.glsl";
+import type { PillarField } from "./walls";
 
 export const WATER_LEVEL_Y = -1;
 
 /**
- * Makes the surface see-through when looking down into it and reflective towards grazing angles, so the submerged
- * geometry (tinted by shaders/underwater.glsl.ts) shows through it
+ * Edits to three's Water shader:
+ * - see-through when looking down into it and reflective towards grazing angles, so the submerged geometry
+ *   (shaded by shaders/underwater.glsl.ts) shows through
+ * - ripples that drift with the flow and can be made slower, longer and shallower (viscosity)
+ * - the pillar interaction (shaders/water-interaction.glsl.ts), plus its rim light
  */
-const TRANSPARENCY_EDIT: [string, string] = [
-    "gl_FragColor = vec4( outgoingLight, alpha );",
-    "gl_FragColor = vec4( outgoingLight, mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) );"
+const WATER_EDITS: [string, string][] = [
+    [
+        "uniform float alpha;",
+        `uniform float alpha;\nuniform float surfaceOpacity;\nuniform float fresnelPower;\n${interactionPars}`
+    ],
+    [
+        "vec4 noise = getNoise( worldPosition.xz * size );",
+        "vec4 noise = getNoise( ( worldPosition.xz - flowOffset ) * size * rippleScale );"
+    ],
+    [
+        "vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5, 1.0, 1.5 ) );",
+        `vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5 * rippleAmp, 1.0, 1.5 * rippleAmp ) );\n${interactionMain}`
+    ],
+    [
+        "gl_FragColor = vec4( outgoingLight, alpha );",
+        `gl_FragColor = vec4(
+            outgoingLight + rimColor * rimStrength * pillarRim,
+            clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
+        );`
+    ],
 ];
 
-const makeTransparent = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
-    const [search, replacement] = TRANSPARENCY_EDIT;
-    if (!params.fragmentShader.includes(search)) {
-        console.warn(`Water shader no longer contains "${search}"; transparency edit not applied.`);
-        return;
+const editWaterShader = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
+    for (const [search, replacement] of WATER_EDITS) {
+        if (!params.fragmentShader.includes(search)) {
+            console.warn(`Water shader no longer contains "${search}"; edit not applied.`);
+            continue;
+        }
+        params.fragmentShader = params.fragmentShader.replace(search, replacement);
     }
-    params.fragmentShader = params.fragmentShader
-        .replace("uniform float alpha;", "uniform float alpha;\nuniform float surfaceOpacity;\nuniform float fresnelPower;")
-        .replace(search, replacement);
     Object.assign(params.uniforms, uniforms);
 };
 
@@ -113,10 +134,42 @@ export class Water implements AnimatedEntity {
         material.needsUpdate = true;
     }
 
+    /**
+     * Where the pillars cross the surface, for the pillar interaction. The field's textures update in place when the pillars rebuild
+     */
+    public setPillarField(field: PillarField): void {
+        const u = this.surfaceUniforms;
+        u.pillarDataA.value = field.dataA;
+        u.pillarDataB.value = field.dataB;
+        u.pillarGridOrigin.value.copy(field.origin);
+        u.pillarCellSize.value = field.cellSize;
+        u.pillarGridSize.value.copy(field.size);
+    }
+
+    /** slows the ripples and the drift as the water gets thicker */
+    private get timeScale(): number {
+        return 1 - 0.8 * this.look.viscosity;
+    }
+
     public applyLook(): void {
         const l = this.look;
-        this.surfaceUniforms.surfaceOpacity.value = l.surfaceOpacity;
-        this.surfaceUniforms.fresnelPower.value = l.fresnelPower;
+        const u = this.surfaceUniforms;
+        u.surfaceOpacity.value = l.surfaceOpacity;
+        u.fresnelPower.value = l.fresnelPower;
+        u.rippleScale.value = 1 - 0.55 * l.viscosity;
+        u.rippleAmp.value = 1 - 0.5 * l.viscosity;
+        u.flowDir.value.set(Math.cos(l.flowAngleDeg * Math.PI / 180), Math.sin(l.flowAngleDeg * Math.PI / 180));
+        u.meniscusHeight.value = l.meniscusHeight;
+        u.meniscusWidth.value = Math.max(l.meniscusWidth, 1e-4);
+        u.cushionStrength.value = l.cushionStrength;
+        u.cushionWidth.value = Math.max(l.cushionWidth, 1e-4);
+        u.wakeStretch.value = l.wakeStretch;
+        u.rippleDampRadius.value = l.rippleDampRadius;
+        u.rimColor.value.set(l.rimColor);
+        u.rimStrength.value = l.rimStrength;
+        u.interactionDistance.value = l.interactionDistance;
+        this.underwaterUniforms.wetBandHeight.value = Math.max(l.wetBandHeight, 1e-4);
+        this.underwaterUniforms.wetBandDarkness.value = l.wetBandDarkness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
         this.underwaterUniforms.underwaterDensity.value = l.underwaterDensity;
         this.seabed.position.y = WATER_LEVEL_Y - l.seabedDepth;
@@ -129,6 +182,20 @@ export class Water implements AnimatedEntity {
         folder.addColor(this.look, 'underwaterColor').onChange(apply);
         folder.add(this.look, 'underwaterDensity', 0, 10, 0.05).onChange(apply);
         folder.add(this.look, 'seabedDepth', 0.1, 5, 0.05).onChange(apply).onFinishChange(() => this.onSeabedChange?.(this.look.seabedDepth));
+        folder.add(this.look, 'viscosity', 0, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'flowAngleDeg', 0, 360, 1).onChange(apply);
+        folder.add(this.look, 'flowSpeed', 0, 0.5, 0.005).onChange(apply);
+        folder.add(this.look, 'meniscusHeight', 0, 0.03, 0.0005).onChange(apply);
+        folder.add(this.look, 'meniscusWidth', 0.005, 0.2, 0.005).onChange(apply);
+        folder.add(this.look, 'cushionStrength', 0, 0.05, 0.0005).onChange(apply);
+        folder.add(this.look, 'cushionWidth', 0.01, 0.5, 0.005).onChange(apply);
+        folder.add(this.look, 'wakeStretch', 1, 10, 0.1).onChange(apply);
+        folder.add(this.look, 'rippleDampRadius', 0, 0.5, 0.005).onChange(apply);
+        folder.addColor(this.look, 'rimColor').onChange(apply);
+        folder.add(this.look, 'rimStrength', 0, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'interactionDistance', 0, 30, 0.5).onChange(apply);
+        folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
+        folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
     }
 
     /**
@@ -136,7 +203,9 @@ export class Water implements AnimatedEntity {
      */
     public update(clock: Clock): void {
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
-            this.water.material.uniforms['time'].value += UPDATE_BY;
+            this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
+            const flow = this.surfaceUniforms.flowDir.value as Vector2;
+            (this.surfaceUniforms.flowOffset.value as Vector2).addScaledVector(flow, this.look.flowSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000);
             this.lastWaterUpdate = clock.oldTime;
         }
 
@@ -185,20 +254,42 @@ export class WaterFactory {
 
         water.receiveShadow = true;
 
+        // values are set by Water.applyLook, the pillar field by Water.setPillarField
+        const emptyField = new DataTexture(new Float32Array(4), 1, 1);
         const surfaceUniforms: { [name: string]: IUniform } = {
             surfaceOpacity: { value: 1 },
             fresnelPower: { value: 1 },
+            pillarDataA: { value: emptyField },
+            pillarDataB: { value: emptyField },
+            pillarGridOrigin: { value: new Vector2() },
+            pillarCellSize: { value: 1 },
+            pillarGridSize: { value: new Vector2() },
+            flowDir: { value: new Vector2(0, 1) },
+            flowOffset: { value: new Vector2() },
+            rippleScale: { value: 1 },
+            rippleAmp: { value: 1 },
+            meniscusHeight: { value: 0 },
+            meniscusWidth: { value: 1 },
+            cushionStrength: { value: 0 },
+            cushionWidth: { value: 1 },
+            wakeStretch: { value: 1 },
+            rippleDampRadius: { value: 0 },
+            rimColor: { value: new Color() },
+            rimStrength: { value: 0 },
+            interactionDistance: { value: 0 },
         };
         const underwaterUniforms: { [name: string]: IUniform } = {
             waterLevelY: { value: WATER_LEVEL_Y },
             underwaterColor: { value: new Color() },
             underwaterDensity: { value: 0 },
+            wetBandHeight: { value: 1 },
+            wetBandDarkness: { value: 0 },
         };
 
         water.material.transparent = true;
         water.material.onBeforeCompile = (params, renderer) => {
             restoreLegacyReflectance(params);
-            makeTransparent(params, surfaceUniforms);
+            editWaterShader(params, surfaceUniforms);
             fogShader.handle(params, renderer);
         };
 

@@ -94,7 +94,7 @@ export interface GrainStyle {
 }
 
 export const GRAIN_STYLE: GrainStyle = {
-    fillColor: '#4e5256',
+    fillColor: '#687078',
     fillOpacity: 0.45,
     fillOpacityHover: 0.7,
     edgeSoftness: 5,
@@ -146,6 +146,30 @@ export interface WaterLook {
     underwaterDensity: number;
     /** depth of the seabed below the surface */
     seabedDepth: number;
+    /** 0 = the old water, 1 = thick: slower, longer and shallower ripples */
+    viscosity: number;
+    /** direction the water drifts in, degrees around the vertical (0 = +x, 90 = +z, towards the start view) */
+    flowAngleDeg: number;
+    /** drift speed, world units per second (before viscosity slows it) */
+    flowSpeed: number;
+    /** how high the surface climbs the rock (as a slope scale) and over what width, world units */
+    meniscusHeight: number;
+    meniscusWidth: number;
+    /** how much the flow piles up in front of a pillar and dips behind it, and over what width */
+    cushionStrength: number;
+    cushionWidth: number;
+    /** how much longer the dip behind a pillar is than the cushion in front */
+    wakeStretch: number;
+    /** ripples fade out within this distance of the rock */
+    rippleDampRadius: number;
+    /** light on the meniscus rim */
+    rimColor: string;
+    rimStrength: number;
+    /** the pillar interaction is only computed for water closer to the camera than this */
+    interactionDistance: number;
+    /** darker, wet band on the pillars just above the surface */
+    wetBandHeight: number;
+    wetBandDarkness: number;
 }
 
 export const WATER_LOOK: WaterLook = {
@@ -154,6 +178,20 @@ export const WATER_LOOK: WaterLook = {
     underwaterColor: '#3f4b4a',
     underwaterDensity: 1.75,
     seabedDepth: 3.05,
+    viscosity: 0.64,
+    flowAngleDeg: 280,
+    flowSpeed: 0.215,
+    meniscusHeight: 0.007,
+    meniscusWidth: 0.025,
+    cushionStrength: 0.0045,
+    cushionWidth: 0.085,
+    wakeStretch: 2.4,
+    rippleDampRadius: 0.195,
+    rimColor: '#a2857c',
+    rimStrength: 0.29,
+    interactionDistance: 7,
+    wetBandHeight: 0.09,
+    wetBandDarkness: 0.61,
 };
 
 
