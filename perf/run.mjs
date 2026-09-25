@@ -32,7 +32,8 @@ const { values: args } = parseArgs({
         duration: { type: 'string', default: '15' }, // seconds recorded per scenario
         scenarios: { type: 'string', default: 'home,about,flight' },
         headless: { type: 'boolean', default: false },
-        cooldown: { type: 'string', default: '8' },   // seconds idle between scenarios and runs, lets the GPU cool down
+        cooldown: { type: 'string', default: '8' },
+        out: { type: 'string' },   // results file, defaults to perf/results.jsonl; use another for throwaway comparisons   // seconds idle between scenarios and runs, lets the GPU cool down
     },
 });
 
@@ -324,7 +325,7 @@ const main = async () => {
                     machine: { ...machine, gpu: raw.glRenderer },
                     ...stats,
                 };
-                appendFileSync(RESULTS, JSON.stringify(row) + '\n');
+                appendFileSync(args.out ? path.resolve(args.out) : RESULTS, JSON.stringify(row) + '\n');
                 console.log(`run ${run} ${name.padEnd(7)} ${String(stats.fps).padStart(6)} fps  frame p50 ${stats.frameMs.p50}ms p95 ${stats.frameMs.p95}ms  gpu p50 ${stats.gpuMs?.p50 ?? 'n/a'}ms  draws ${stats.drawCalls}`);
                 await page.close();
             }
