@@ -194,9 +194,9 @@ export const DAY_NIGHT: DayNightSettings = {
     nightRimScale: 0.01,
     nightReflectionFloor: 0.01,
     nightAurora: 1,
-    nightSurfaceOpacity: 0.5,
-    nightFresnelPower: 1.2,
-    nightReflectionStrength: 2.5,
+    nightSurfaceOpacity: 0.9,
+    nightFresnelPower: 1.88,
+    nightReflectionStrength: 3.28,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
@@ -278,13 +278,13 @@ export interface AuroraSettings {
 export const AURORA: AuroraSettings = {
     colorLow: '#38f0ed',
     colorHigh: '#5a6bbf',
-    brightness: 0.6,
-    height: 1,
+    brightness: 0.56,
+    height: 1.15,
     scale: 0.6,
     sharpness: 10,
-    speed: 0.3,
-    horizonFade: 0.15,
-    lightIntensity: 0.6,
+    speed: 0.25,
+    horizonFade: 0.14,
+    lightIntensity: 1.24,
 };
 
 // shooting stars at night (environment/shooting-stars.ts)
