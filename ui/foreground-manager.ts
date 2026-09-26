@@ -72,6 +72,8 @@ export class ForegroundManager {
         document.title = TITLE_HOME;
 
 
+        getByIdOrThrow("copyrightYear").textContent = String(new Date().getFullYear());
+
         const controlsDesktopExplain = getByIdOrThrow("controlsDesktopExplain");
         const mobileWarning = getByIdOrThrow("controlsMobileExplain");
         if (this.isMobile) {
