@@ -150,55 +150,16 @@
         </button>
     </div>
     <div class="overlay-container-rb no-display" id="controlsHintsUi">
-        <div class="controls-explain" id="controlsDesktopExplain">
-            <div class="col align-img-right">
-                <img src="/mouse_materialicons3_google.svg" alt="Mouse Icon">
-            </div>
-            <div class="control-explanation col">
-                click to look
-            </div>
-            <div class="col">
-                <table>
-                    <tbody>
-                        <tr>
-                            <td></td>
-                            <td><span class="key-display">W</span></td>
-                            <td></td>
-                        </tr>
-                        <tr>
-                            <td><span class="key-display">A</span></td>
-                            <td><span class="key-display">S</span></td>
-                            <td><span class="key-display">D</span></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="control-explanation col">
-                to move
-            </div>
-            <div class="col">
-                <span class="key-display wide">⎵</span>
-            </div>
-            <div class="control-explanation col">
-                up
-            </div>
-            <div class="col">
-                <span class="key-display wide">⇧</span>
-            </div>
-            <div class="control-explanation col">
-                down
-            </div>
-            <div class="col">
-                <span class="key-display wide">esc</span>
-            </div>
-            <div class="control-explanation col">
-                release mouse
-            </div>
-        </div>
+        <!-- set like the nav: the key, then what it does -->
+        <dl class="controls-explain" id="controlsDesktopExplain">
+            <dt>Click</dt><dd>look around</dd>
+            <dt>W A S D</dt><dd>move</dd>
+            <dt>Space</dt><dd>rise</dd>
+            <dt>Shift</dt><dd>sink</dd>
+            <dt>Esc</dt><dd>let go of the mouse</dd>
+        </dl>
         <div class="controls-explain" id="controlsMobileExplain">
-            <div class="mobile-warn">
-                This app is not optimised for Mobile Devices. <br>Consider opening this on a Desktop.
-            </div>
+            <p class="mobile-warn">Made for a desktop, with a mouse and keyboard</p>
         </div>
     </div>
     <div class="loading-overlay" id="loadingOverlay">

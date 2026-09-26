@@ -97,10 +97,16 @@ https://github.com/vineethtrv/css-loader
 }
 
 .mobile-warn {
-    border: 1pt solid white;
-    padding: 1.5em;
+    margin: 0;
+    max-width: 16rem;
     color: white;
-    border-radius: 4pt;
+    opacity: 0.7;
+    font-size: 0.7rem;
+    font-weight: 300;
+    line-height: 1.9;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    text-align: right;
 }
 
 .emphasis {
@@ -190,8 +196,9 @@ svg .anim * {
     right: 0;
     bottom: 0;
     z-index: 1000;
-    margin-bottom: 1vh;
-    margin-right: 1vw;
+    /* where the nav sits in the home view */
+    margin-bottom: 3.5rem;
+    margin-right: 3.5rem;
     opacity: 0;
     transition:
         opacity 1s ease-in-out;
@@ -208,36 +215,31 @@ svg .anim * {
 
 
 .controls-explain {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.col {
-    flex: 0 0 auto;
-}
-
-.control-explanation {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: baseline;
+    column-gap: 1.6rem;
+    row-gap: 0.7rem;
+    margin: 0;
     color: white;
-    margin-left: 0.6em;
-    margin-right: 1.4em;
-    white-space: nowrap;
+    text-transform: uppercase;
+    /* keeps the type readable over the bright parts of the scene */
+    text-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
 }
 
-.key-display {
-    border: 1pt solid white;
-    width: 20pt;
-    height: 20pt;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    border-radius: 2pt;
-    font-family: 'Montserrat', sans-serif;
+.controls-explain dt {
+    justify-self: end;
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.3em;
 }
 
-.key-display.wide {
-    width: 60pt;
+.controls-explain dd {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 300;
+    letter-spacing: 0.24em;
+    opacity: 0.6;
 }
 
 
@@ -404,10 +406,6 @@ p, li {
 
 a.contact-item:hover .contact-text:after {
     width: 100%;
-}
-
-.align-img-right {
-    text-align: right;
 }
 
 
@@ -705,6 +703,11 @@ a.contact-item:hover .contact-text:after {
 
     .nav-link.quiet {
         margin-left: 0;
+    }
+
+    .overlay-container-rb {
+        margin-bottom: 2rem;
+        margin-right: 1.75rem;
     }
 
     .text-panel-content {
