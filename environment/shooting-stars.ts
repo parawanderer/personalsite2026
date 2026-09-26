@@ -392,6 +392,7 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashShadowSize', [128, 256, 512, 1024, 2048]);
         folder.add(s, 'splashShadowBias', -0.02, 0.02, 0.0005);
         folder.add(s, 'splashShadowNormalBias', 0, 0.2, 0.005);
+        folder.add(s, 'splashShadowOnPillars', 0, 1, 0.01);
         folder.add(s, 'shadowCasterWedgeDeg', 0, 89, 1);
         folder.add(s, 'shadowCasterPastImpact', 0, 20, 0.25);
         folder.add(s, 'shadowCasterWallMargin', -4, 10, 1);

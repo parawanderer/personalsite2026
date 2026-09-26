@@ -79,6 +79,32 @@ const macroVariation = /* glsl */ `
 #endif
 `;
 
+/**
+ * While a meteor's flash is on, pillar faces it doesn't reach (in a shadow from it, or turned away from it) look darker
+ * next to its brightness: their other light is dimmed too, fading out with distance from the flash. Faked, since a
+ * shadow only takes away the flash's own light, and the moons and sky would otherwise keep those faces as bright as ever.
+ * The flash is the only light casting shadows, so it's the first point light, and the shadow mask is its shadow.
+ */
+const flashShadowPars = /* glsl */ `
+#include <shadowmap_pars_fragment>
+#include <shadowmask_pars_fragment>
+// (edits) ${fileName}
+uniform float pillarFlashShadow;
+`;
+
+const flashShadowFrag = /* glsl */ `
+// (edits) ${fileName}
+#if defined( USE_SHADOWMAP ) && NUM_POINT_LIGHT_SHADOWS > 0
+    if (pillarFlashShadow > 0.0) {
+        vec3 toFlash = pointLights[0].position - geometryPosition;
+        float reach = 1.0 - smoothstep(0.0, pointLights[0].distance, length(toFlash));
+        float facing = smoothstep(-0.05, 0.25, dot(geometryNormal, normalize(toFlash)));
+        outgoingLight *= 1.0 - pillarFlashShadow * reach * (1.0 - getShadowMask() * facing);
+    }
+#endif
+#include <opaque_fragment>
+`;
+
 const hexSampled = (chunk: string, sampler: string, uv: string) => {
     const search = `texture2D( ${sampler}, ${uv} )`;
     if (!chunk.includes(search)) console.warn(`Shader chunk no longer contains "${search}"; hex tiling not applied to ${sampler}.`);
@@ -90,7 +116,9 @@ export const applyPillarSurface = (params: WebGLProgramParametersWithUniforms, u
     params.fragmentShader = params.fragmentShader
         .replace('#include <common>', `#include <common>\n${hexTilingPars}`)
         .replace('#include <map_fragment>', `${hexSampled(ShaderChunk.map_fragment, 'map', 'vMapUv')}\n${macroVariation}`)
-        .replace('#include <normal_fragment_maps>', hexSampled(ShaderChunk.normal_fragment_maps, 'normalMap', 'vNormalMapUv'));
+        .replace('#include <normal_fragment_maps>', hexSampled(ShaderChunk.normal_fragment_maps, 'normalMap', 'vNormalMapUv'))
+        .replace('#include <shadowmap_pars_fragment>', flashShadowPars)
+        .replace('#include <opaque_fragment>', flashShadowFrag);
     // AO and specular are low contrast, their repetition doesn't show, so they keep the plain (cheaper) lookup
 
     Object.assign(params.uniforms, uniforms);

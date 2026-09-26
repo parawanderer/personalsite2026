@@ -297,7 +297,11 @@ const shootingStars = new ShootingStars(scene, starTweaks.params, water,
     });
 if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
-shootingStars.onFlash = (color, amount) => particles.setFlash(color, amount);
+shootingStars.onFlash = (color, amount) => {
+    particles.setFlash(color, amount);
+    // comes on at once with the flash, eases off only near its end
+    walls.setFlashShadow(starTweaks.params.splashShadowOnPillars * Math.min(amount * 3, 1));
+};
 scheduler.add(shootingStars);
 
 // two suns/moons, following the time of day

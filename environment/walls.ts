@@ -209,6 +209,11 @@ export class Walls implements AnimatedEntity {
     /** how fast the fog drifts, 1 = normal (the day/night cycle slows it at night) */
     private fogSpeed = 1;
 
+    /** how much darker pillar faces a meteor's flash doesn't reach look right now, 0 to 1 */
+    public setFlashShadow(amount: number): void {
+        this.surfaceUniforms.pillarFlashShadow.value = amount;
+    }
+
     public setFogSpeed(speed: number): void {
         this.fogSpeed = speed;
     }
@@ -639,6 +644,8 @@ export class WallsFactory {
             macroStrength: { value: 0 },
             macroScale: { value: 0 },
             reflectionBelowY: { value: WATER_LEVEL_Y },
+            // how much darker faces the meteor flash doesn't reach look right now (shaders/pillar-surface.glsl.ts)
+            pillarFlashShadow: { value: 0 },
         };
         applySurfaceUniforms(surfaceUniforms, shape);
 

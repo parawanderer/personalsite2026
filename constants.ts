@@ -346,6 +346,8 @@ export interface ShootingStarSettings {
     /** shadow map offsets: too little shows speckles on lit surfaces, too much detaches shadows from what casts them */
     splashShadowBias: number;
     splashShadowNormalBias: number;
+    /** how much darker pillar faces the flash doesn't reach (shadowed, or turned away) look next to it (faked) */
+    splashShadowOnPillars: number;
     /**
      * which pillars cast those shadows: the ones in the channel (between its walls, give or take this many cells) from
      * the camera to this far past the impact, in a wedge widening from the camera at this half-angle; and only while the
@@ -403,6 +405,7 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashShadowSize: 1024,
     splashShadowBias: 0,
     splashShadowNormalBias: 0,
+    splashShadowOnPillars: 0.7,
     shadowCasterWallMargin: 0,
     shadowCasterPastImpact: 2,
     shadowCasterWedgeDeg: 45,
