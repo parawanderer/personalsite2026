@@ -91,8 +91,10 @@ const flightClock = new Clock();
 
 // hand-tweaking panel (?tweaks)
 const tweaks = new Tweaks(TWEAKS_ENABLED);
-const timeTweaks = tweaks.addFolder('Time', { paused: false });
-timeTweaks.params.paused = false; // never start paused after a reload
+const timeTweaks = tweaks.addFolder('Time', { paused: false, cycle: false, hoursPerSecond: 0.5 });
+// never start paused or cycling after a reload
+timeTweaks.params.paused = false;
+timeTweaks.params.cycle = false;
 timeTweaks.folder?.add(timeTweaks.params, 'paused').name('pause time').onChange((paused: boolean) => {
     if (paused) {
         clock.stop();
@@ -213,7 +215,27 @@ const dayNightTweaks = tweaks.addFolder('Day / night', DAY_NIGHT);
 const dayNight = new DayNight(dayNightTweaks.params);
 if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
 // time of day sits with the pause toggle; its value still belongs to (and saves with) the day/night settings
-if (timeTweaks.folder) dayNight.bindHourTweak(timeTweaks.folder, () => tweaks.persist('Day / night'));
+if (timeTweaks.folder) {
+    const hour = dayNight.bindHourTweak(timeTweaks.folder, () => tweaks.persist('Day / night'));
+    // plays the day through on a loop, to watch how it all evolves; runs on real time, so it goes on while paused
+    timeTweaks.folder.add(timeTweaks.params, 'cycle').name('play day on a loop').onChange((on: boolean) => {
+        // saved once when it stops, not every frame
+        if (!on) tweaks.persist('Day / night');
+    });
+    timeTweaks.folder.add(timeTweaks.params, 'hoursPerSecond', 0.01, 6, 0.01).name('hours per second');
+    let last = performance.now();
+    scheduler.add({
+        update: () => {
+            const now = performance.now();
+            // capped, so coming back to a background tab doesn't skip hours ahead
+            const dt = Math.min((now - last) / 1000, 0.1);
+            last = now;
+            if (!timeTweaks.params.cycle) return;
+            dayNight.advance(dt * timeTweaks.params.hoursPerSecond);
+            hour.updateDisplay();
+        },
+    });
+}
 {
     const light = (l: { color: Color, intensity: number }) => ({ color: l.color.clone(), intensity: l.intensity });
     const hemi = { ...light(ambientLight), ground: ambientLight.groundColor.clone() };

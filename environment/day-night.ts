@@ -65,8 +65,13 @@ export class DayNight implements AnimatedEntity {
     }
 
     /** the time of day slider, in a folder of its own choosing */
-    public bindHourTweak(folder: GUI, onChange: () => void): void {
-        folder.add(this.settings, 'hour', 0, 24, 0.05).name('time of day (h)').onChange(onChange);
+    public bindHourTweak(folder: GUI, onChange: () => void): { updateDisplay(): unknown } {
+        return folder.add(this.settings, 'hour', 0, 24, 0.05).name('time of day (h)').onChange(onChange);
+    }
+
+    /** moves the time of day on, wrapping around midnight */
+    public advance(hours: number): void {
+        this.settings.hour = (((this.settings.hour + hours) % 24) + 24) % 24;
     }
 
     public bindTweaks(folder: GUI): void {
