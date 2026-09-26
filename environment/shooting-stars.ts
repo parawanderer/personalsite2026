@@ -155,8 +155,6 @@ export class ShootingStars implements AnimatedEntity {
         this.streak.visible = false;
         scene.add(this.streak);
         // the pillars throw long shadows away from the impact; renders them six ways, but only while the flash is on
-        this.flash.shadow.bias = -0.002;
-        this.flash.shadow.normalBias = 0.02;
         this.flash.shadow.camera.near = 0.1;
         scene.add(this.flash);
         // the pillars chosen to cast the flash's shadows: only drawn into its shadow map, nothing on screen
@@ -320,6 +318,8 @@ export class ShootingStars implements AnimatedEntity {
             debug.needsUpdate = true;
         }
         this.flash.shadow.camera.far = s.splashLightRange;
+        this.flash.shadow.bias = s.splashShadowBias;
+        this.flash.shadow.normalBias = s.splashShadowNormalBias;
         if (this.flash.shadow.mapSize.x !== s.splashShadowSize) {
             this.flash.shadow.mapSize.set(s.splashShadowSize, s.splashShadowSize);
             this.flash.shadow.map?.dispose();
@@ -390,6 +390,8 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
         folder.add(s, 'splashShadows');
         folder.add(s, 'splashShadowSize', [128, 256, 512, 1024, 2048]);
+        folder.add(s, 'splashShadowBias', -0.02, 0.02, 0.0005);
+        folder.add(s, 'splashShadowNormalBias', 0, 0.2, 0.005);
         folder.add(s, 'shadowCasterWedgeDeg', 0, 89, 1);
         folder.add(s, 'shadowCasterPastImpact', 0, 20, 0.25);
         folder.add(s, 'shadowCasterWallMargin', -4, 10, 1);
