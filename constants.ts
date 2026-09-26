@@ -813,3 +813,47 @@ export const WATER_TOUCH: WaterTouchSettings = {
     particlePushRadius: 0.3,
     particlePush: 0.9,
 };
+
+// stars on the night sky (environment/stars.ts)
+export interface StarSettings {
+    brightness: number;
+    /** grid cells per unit of direction (finer: smaller gaps between stars), and the share of cells with a star */
+    density: number;
+    share: number;
+    /** size of each star, in pixels */
+    size: number;
+    /** how much they flicker, and how fast */
+    twinkle: number;
+    twinkleSpeed: number;
+    /** a tilted band where they're denser (how much denser, and its faint glow), and where it runs across the sky */
+    band: number;
+    bandGlow: number;
+    bandTiltDeg: number;
+    bandTurnDeg: number;
+    /** how far their colours vary, from bluish to warm */
+    tint: number;
+    /** how high above the horizon they've fully come through the haze (sine of the angle) */
+    horizon: number;
+    /** where the sky turns around (elevation above the horizon, direction), and how many turns it makes per day */
+    poleElevationDeg: number;
+    poleAzimuthDeg: number;
+    turnsPerDay: number;
+}
+
+export const STARS: StarSettings = {
+    brightness: 1,
+    density: 220,
+    share: 0.03,
+    size: 1.1,
+    twinkle: 0.35,
+    twinkleSpeed: 1.5,
+    band: 1.2,
+    bandGlow: 0.035,
+    bandTiltDeg: 35,
+    bandTurnDeg: 20,
+    tint: 0.6,
+    horizon: 0.15,
+    poleElevationDeg: 38,
+    poleAzimuthDeg: 150,
+    turnsPerDay: 1,
+};

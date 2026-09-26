@@ -42,6 +42,7 @@ import {
     FLIGHT_SETTINGS,
     WATER_LOOK,
     WATER_TOUCH,
+    STARS,
     DISTANCE_BLUR,
     PARTICLES,
     DAY_NIGHT,
@@ -66,6 +67,7 @@ import { Celestial } from './environment/celestial';
 import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
 import { WaterTouch } from './environment/water-touch';
+import { Stars } from './environment/stars';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
@@ -278,6 +280,13 @@ if (timeTweaks.folder) {
         .number((v) => renderer.toneMappingExposure = exposure * v, () => 1, 'nightExposureScale');
 }
 scheduler.add(dayNight);
+
+// stars on the night sky, behind the aurora
+const starFieldTweaks = tweaks.addFolder('Stars', STARS);
+const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTweaks.params.hour);
+if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
+dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
+scheduler.add(stars);
 
 // aurora on the night sky
 const auroraTweaks = tweaks.addFolder('Aurora', AURORA);
