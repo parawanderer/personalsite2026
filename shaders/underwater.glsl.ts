@@ -96,12 +96,10 @@ if (aboveWater > 0.0) {
 const frag = /* glsl */ `
 // (edits) ${fileName}
 if (viewUnderwater > 0.5) {
-    // the camera is under the water: submerged surfaces fade with their whole distance from it. What's above the water
-    // is only seen through the surface, which fades it (shaders/water-underside.glsl.ts)
-    if (vUnderwaterWorldPos.y < waterLevelY) {
-        float transmitted = exp(-underwaterViewDensity * length(cameraPosition - vUnderwaterWorldPos));
-        gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
-    }
+    // the camera is under the water: everything fades with its whole distance from it, above the surface too, so a
+    // pillar crossing the surface fades evenly along its length instead of turning crisp above the waterline
+    float transmitted = exp(-underwaterViewDensity * length(cameraPosition - vUnderwaterWorldPos));
+    gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
 } else if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
     // (cameras under the water here are the water's own mirror camera, which skips this)
     vec3 toCamera = cameraPosition - vUnderwaterWorldPos;

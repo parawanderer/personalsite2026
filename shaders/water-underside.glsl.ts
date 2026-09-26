@@ -57,9 +57,10 @@ void main() {
     // brightest towards its rim, where the light from low in the sky is bent in
     float rim = smoothstep(0.6, 0.66, cosine) * (1.0 - smoothstep(0.66, 0.8, cosine));
 
-    // the water between the camera and this point of the surface
+    // the water between the camera and this point of the surface (what's seen through the window fades by its own
+    // whole distance: shaders/underwater.glsl.ts)
     float transmitted = exp(-underwaterViewDensity * length(toSurface));
-    float see = window * transmitted * undersideClarity;
+    float see = window * undersideClarity;
 
     // outside the window: the depths mirrored, a little lighter than the water itself
     vec3 mirror = underwaterColor * (1.0 + undersideMirror * (1.0 - window));
