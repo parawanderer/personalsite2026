@@ -253,6 +253,23 @@ vec3 touchSurface(vec2 p, out float lip) {
     return result;
 }
 
+// the area a meteor's waves displace for real (the splash mesh, WATER_SPLASH): from the impact to the camera, while
+// they last; zero-sized otherwise
+uniform vec2 splashAreaCentre;
+uniform vec2 splashAreaHalf;
+
+// 1 inside the splash area, easing to 0 at its edges so it meets the flat plane seamlessly
+float splashAreaFade(vec2 p) {
+    if (splashAreaHalf.x <= 0.0) return 0.0;
+    vec2 off = abs(p - splashAreaCentre) / splashAreaHalf;
+    return 1.0 - smoothstep(0.75, 1.0, max(off.x, off.y));
+}
+
+bool insideSplashArea(vec2 p) {
+    vec2 off = abs(p - splashAreaCentre);
+    return splashAreaHalf.x > 0.0 && off.x < splashAreaHalf.x && off.y < splashAreaHalf.y;
+}
+
 // 1 in the middle of the displaced patch, easing to 0 at its edges so it meets the flat plane seamlessly
 float patchFade(vec2 p) {
     if (patchHalfSize <= 0.0) return 0.0;
@@ -277,9 +294,13 @@ vec4 displaced = modelMatrix * vec4( position, 1.0 );
     float unusedRim;
     float lift = displacementScale * patchFade(displaced.xz);
     displaced.y += pillarSurface(displaced.xz, lift, unusedDamp, unusedRim).x * lift;
-    displaced.y += splashRipple(displaced.xz).x * patchFade(displaced.xz);
+    // the splash waves stay at full height at the patch's edge where the splash mesh carries them on
+    displaced.y += splashRipple(displaced.xz).x * max(patchFade(displaced.xz), splashAreaFade(displaced.xz));
     float unusedLip;
     displaced.y += touchSurface(displaced.xz, unusedLip).x * patchFade(displaced.xz);
+#endif
+#ifdef WATER_SPLASH
+    displaced.y += splashRipple(displaced.xz).x * splashAreaFade(displaced.xz);
 #endif
 mirrorCoord = displaced;
 worldPosition = displaced;
@@ -296,6 +317,10 @@ export const interactionMain = /* glsl */ `
     float heightScale = mix(1.0, displacementScale, patchFade(worldPosition.xz));
 #else
     if (insidePatch(worldPosition.xz)) discard;
+    #ifndef WATER_SPLASH
+        // the splash mesh draws the water there
+        if (insideSplashArea(worldPosition.xz)) discard;
+    #endif
     float heightScale = 1.0;
 #endif
 

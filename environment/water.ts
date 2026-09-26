@@ -34,6 +34,8 @@ const pick = (uniforms: { [name: string]: IUniform }, names: string[]): { [name:
 };
 
 export const WATER_LEVEL_Y = -1;
+// how far past the impact (and the camera) the splash mesh reaches, so its edges sit where the waves have faded
+const SPLASH_AREA_MARGIN = 4;
 
 /**
  * Edits to three's Water shader:
@@ -169,11 +171,15 @@ export class Water implements AnimatedEntity {
         const renderReflection = this.water.onBeforeRender;
         this.water.onBeforeRender = (...args) => {
             const patch = this.patch;
+            const splash = this.splashMesh;
+            const splashShown = splash?.visible ?? false;
             if (patch) patch.visible = false;
+            if (splash) splash.visible = false;
             for (const hook of this.reflectionHooks) hook.before();
             renderReflection.apply(this.water, args);
             for (const hook of this.reflectionHooks) hook.after();
             if (patch) patch.visible = true;
+            if (splash) splash.visible = splashShown;
         };
     }
 
@@ -268,23 +274,7 @@ export class Water implements AnimatedEntity {
 
         const size = l.displacementRadius * 2;
         const segments = Math.min(1024, Math.ceil(size / Math.max(l.displacementSpacing, 0.002)));
-        const source = this.water.material;
-        const material = new ShaderMaterial({
-            vertexShader: source.vertexShader,
-            fragmentShader: source.fragmentShader,
-            // the water's own uniforms are shared, so every setting reaches both. Not three's light and shadow ones,
-            // though: three flags those per draw for re-upload, and sharing the flags leaves one of the two with stale
-            // shadow maps (and no shadows)
-            uniforms: { ...source.uniforms, ...UniformsUtils.clone(pick(source.uniforms, Object.keys(UniformsLib.lights))) },
-            defines: { WATER_PATCH: '' },
-            lights: source.lights,
-            fog: source.fog,
-            side: source.side,
-            transparent: source.transparent,
-        });
-        material.onBeforeCompile = source.onBeforeCompile;
-
-        this.patch = new Mesh(new PlaneGeometry(size, size, segments, segments), material);
+        this.patch = new Mesh(new PlaneGeometry(size, size, segments, segments), this.surfaceMaterial('WATER_PATCH'));
         this.patch.rotation.copy(this.water.rotation);
         this.patch.position.y = WATER_LEVEL_Y;
         // it moves with the camera, keep three from culling it by its (stale) bounds
@@ -293,6 +283,80 @@ export class Water implements AnimatedEntity {
         this.patch.receiveShadow = true;
         this.water.parent?.add(this.patch);
         this.surfaceUniforms.patchHalfSize.value = l.displacementRadius;
+    }
+
+    /**
+     * Another surface drawn with the water's material, with a define picking what displaces it
+     */
+    private surfaceMaterial(define: string): ShaderMaterial {
+        const source = this.water.material;
+        const material = new ShaderMaterial({
+            vertexShader: source.vertexShader,
+            fragmentShader: source.fragmentShader,
+            // the water's own uniforms are shared, so every setting reaches both. Not three's light and shadow ones,
+            // though: three flags those per draw for re-upload, and sharing the flags leaves one of the two with stale
+            // shadow maps (and no shadows)
+            uniforms: { ...source.uniforms, ...UniformsUtils.clone(pick(source.uniforms, Object.keys(UniformsLib.lights))) },
+            defines: { [define]: '' },
+            lights: source.lights,
+            fog: source.fog,
+            side: source.side,
+            transparent: source.transparent,
+        });
+        material.onBeforeCompile = source.onBeforeCompile;
+        return material;
+    }
+
+    private splashMesh?: Mesh<PlaneGeometry, ShaderMaterial>;
+
+    /**
+     * A meteor's waves displace the water for real from the impact to the camera: a coarser mesh (the waves are broad)
+     * laid over that stretch while they last, which the flat plane leaves out. Placed once per splashdown
+     */
+    private placeSplashMesh(impactX: number, impactZ: number): void {
+        const l = this.look;
+        const cam = this.camera.position;
+        const margin = SPLASH_AREA_MARGIN;
+        const width = Math.abs(impactX - cam.x) + margin * 2;
+        const depth = Math.abs(impactZ - cam.z) + margin * 2;
+        const spacing = Math.max(l.splashMeshSpacing, 0.02);
+        const geometry = new PlaneGeometry(width, depth, Math.min(600, Math.ceil(width / spacing)), Math.min(600, Math.ceil(depth / spacing)));
+        if (!this.splashMesh) {
+            this.splashMesh = new Mesh(geometry, this.surfaceMaterial('WATER_SPLASH'));
+            this.splashMesh.rotation.copy(this.water.rotation);
+            this.splashMesh.frustumCulled = false;
+            this.splashMesh.receiveShadow = this.water.receiveShadow;
+            this.water.parent?.add(this.splashMesh);
+        } else {
+            this.splashMesh.geometry.dispose();
+            this.splashMesh.geometry = geometry;
+        }
+        const centreX = (impactX + cam.x) / 2;
+        const centreZ = (impactZ + cam.z) / 2;
+        this.splashMesh.position.set(centreX, WATER_LEVEL_Y, centreZ);
+        this.splashMesh.visible = true;
+        (this.surfaceUniforms.splashAreaCentre.value as Vector2).set(centreX, centreZ);
+        (this.surfaceUniforms.splashAreaHalf.value as Vector2).set(width / 2, depth / 2);
+    }
+
+    /** how long a splashdown's waves last: the swell until it has mostly faded, the rings, the crater's swings */
+    private get splashSeconds(): number {
+        const l = this.look;
+        const swell = (l.splashSwellFade * 3) / Math.max(l.splashSwellSpeed, 0.05);
+        return Math.max(l.splashRippleSeconds, l.splashCraterSeconds * 4, swell);
+    }
+
+    private hideSplashMesh(): void {
+        if (this.splashMesh) this.splashMesh.visible = false;
+        (this.surfaceUniforms.splashAreaHalf.value as Vector2).set(0, 0);
+    }
+
+    /**
+     * Shows the splash mesh (or hides it again) so its shader can be compiled before the first splashdown needs it
+     */
+    public warmUpSplash(show: boolean): void {
+        if (show) this.placeSplashMesh(this.camera.position.x, this.camera.position.z - 10);
+        else this.hideSplashMesh();
     }
 
     /** snapped to the vertex spacing so the displaced surface doesn't swim as the camera moves */
@@ -314,6 +378,7 @@ export class Water implements AnimatedEntity {
      */
     public splash(x: number, z: number, light: Vector3): void {
         (this.surfaceUniforms.splashCenter.value as Vector2).set(x, z);
+        this.placeSplashMesh(x, z);
         (this.surfaceUniforms.splashLightPosition.value as Vector3).copy(light);
         this.splashStart = this.lastElapsed;
     }
@@ -326,6 +391,7 @@ export class Water implements AnimatedEntity {
     public set receivesShadows(receive: boolean) {
         this.water.receiveShadow = receive;
         if (this.patch) this.patch.receiveShadow = receive;
+        if (this.splashMesh) this.splashMesh.receiveShadow = receive;
     }
 
     /** the uniforms for the cursor pressing on the water, which environment/water-touch.ts keeps up to date */
@@ -481,6 +547,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashSwellSpeed', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashSwellWidth', 0.05, 3, 0.05).onChange(apply);
         folder.add(this.look, 'splashSwellFade', 0.5, 60, 0.25).onChange(apply);
+        folder.add(this.look, 'splashMeshSpacing', 0.03, 0.5, 0.01).name('splashMeshSpacing (next splash)');
         folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashWaterReach', 0, 3, 0.01).onChange(apply);
         folder.add(this.look, 'splashHighlight', 0, 20, 0.1).onChange(apply);
@@ -501,6 +568,7 @@ export class Water implements AnimatedEntity {
         this.followCamera();
         this.lastElapsed = clock.elapsedTime;
         this.surfaceUniforms.splashAge.value = clock.elapsedTime - this.splashStart;
+        if (this.splashMesh?.visible && clock.elapsedTime - this.splashStart > this.splashSeconds) this.hideSplashMesh();
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
             this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
             this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000;
@@ -614,6 +682,8 @@ export class WaterFactory {
             rimStrength: { value: 0 },
             interactionDistance: { value: 0 },
             patchCentre: { value: new Vector2() },
+            splashAreaCentre: { value: new Vector2() },
+            splashAreaHalf: { value: new Vector2() },
             patchHalfSize: { value: 0 },
             displacementScale: { value: 1 },
             interactionReach: { value: 0 },

@@ -521,6 +521,8 @@ export interface WaterLook {
     splashSwellSpeed: number;
     splashSwellWidth: number;
     splashSwellFade: number;
+    /** vertex spacing of the mesh the splash waves displace between the impact and the camera (finer: smoother, costlier) */
+    splashMeshSpacing: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
     /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
@@ -578,6 +580,7 @@ export const WATER_LOOK: WaterLook = {
     splashSwellSpeed: 1.6,
     splashSwellWidth: 0.45,
     splashSwellFade: 6,
+    splashMeshSpacing: 0.1,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
     splashHighlight: 4,
@@ -853,12 +856,12 @@ export interface StarSettings {
 }
 
 export const STARS: StarSettings = {
-    brightness: 1,
-    density: 220,
+    brightness: 0.5,
+    density: 145,
     share: 0.03,
     size: 1.1,
-    twinkle: 0.35,
-    twinkleSpeed: 1.5,
+    twinkle: 0.9,
+    twinkleSpeed: 1.0,
     band: 1.2,
     bandGlow: 0.035,
     bandTiltDeg: 35,

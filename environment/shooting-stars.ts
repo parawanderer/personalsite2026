@@ -217,9 +217,11 @@ export class ShootingStars implements AnimatedEntity {
         this.droplets.visible = true;
         this.streak.visible = true;
         this.onShadows?.(true);
+        this.water.warmUpSplash(true);
 
         render();
 
+        this.water.warmUpSplash(false);
         this.onShadows?.(false);
         this.casters.visible = false;
         this.casters.geometry.dispose();
