@@ -23,7 +23,14 @@ const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) =>
         opacity: { value: 1 },
         // the colour of the spray itself; what it looks like comes from the scene's lights on it
         albedo: { value: new Color() },
-        brightness: { value: 1 },
+        // the scene's own lights and the impact's flash light it separately, each with its own strength, so the
+        // mist (much paler than the rock around it) can settle to the scene's darkness once the flash is gone
+        environmentLight: { value: 1 },
+        flashLight: { value: 1 },
+        flashWorldPosition: { value: new Vector3() },
+        // puffs closer than this to the flash are lit as if they were this far away, so the ones right next to it
+        // don't stay blown out white long after the rest of the scene has gone dark again
+        flashNear: { value: 1 },
         // how much light gets through and around a puff to its far side, as mist scatters it
         translucency: { value: 0.5 },
         // pixels per world unit at distance 1
@@ -67,14 +74,17 @@ const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) =>
             float travelled = (1.0 - exp(-k * t)) / k;
             vec2 dir = vec2(cos(throwDir.x), sin(throwDir.x));
             vec3 v0 = vec3(dir * throwDir.y * spread * k, throwDir.z * height * k);
+            // launched a little faster upwards to make up for gravity, so it still reaches about the set height
+            // before the dense fluid collapses back in
+            v0.z += gravity / k;
             vec3 p = vec3(v0.x * travelled, v0.z * travelled - gravity / k * (t - travelled), v0.y * travelled);
             // starts from a patch of the surface, not a single point
             p.xz += dir * 0.15 * spread * (throwDir.w == 2.0 ? 1.0 : 0.3);
 
             float x = t / life;
-            // puffs swell as the mist thins out
-            float worldSize = size * puff.z * (0.5 + 0.9 * sqrt(x));
-            vAlpha = smoothstep(0.0, 0.06, x) * pow(1.0 - x, 1.3);
+            // puffs swell a little, but it's heavy spray, not dust; they stay until they've mostly fallen back in
+            float worldSize = size * puff.z * (0.6 + 0.5 * sqrt(x));
+            vAlpha = smoothstep(0.0, 0.06, x) * (1.0 - smoothstep(0.65, 1.0, x));
             // the low middle of the plume is in its own shadow
             float outside = smoothstep(0.0, spread * 0.6, length(p.xz));
             vBrightness = puff.w * (0.35 + 0.45 * smoothstep(0.0, height * 0.8, p.y) + 0.3 * outside);
@@ -97,7 +107,10 @@ const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) =>
 
         uniform float opacity;
         uniform vec3 albedo;
-        uniform float brightness;
+        uniform float environmentLight;
+        uniform float flashLight;
+        uniform vec3 flashWorldPosition;
+        uniform float flashNear;
         uniform float translucency;
         varying float vAlpha;
         varying float vBrightness;
@@ -153,10 +166,19 @@ const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) =>
                     irradiance += light.color * mistResponse(normal, light.direction);
                 }
             #endif
+            vec3 flash = vec3(0.0);
             #if NUM_POINT_LIGHTS > 0
+                vec3 flashView = (viewMatrix * vec4(flashWorldPosition, 1.0)).xyz;
                 for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
-                    getPointLightInfo(pointLights[i], position, light);
-                    irradiance += light.color * mistResponse(normal, light.direction);
+                    if (distance(pointLights[i].position, flashView) < 0.01) {
+                        vec3 toFlash = pointLights[i].position - position;
+                        float d = max(length(toFlash), flashNear);
+                        flash += pointLights[i].color * getDistanceAttenuation(d, pointLights[i].distance, pointLights[i].decay)
+                            * mistResponse(normal, normalize(toFlash));
+                    } else {
+                        getPointLightInfo(pointLights[i], position, light);
+                        irradiance += light.color * mistResponse(normal, light.direction);
+                    }
                 }
             #endif
             #if NUM_SPOT_LIGHTS > 0
@@ -165,7 +187,7 @@ const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) =>
                     irradiance += light.color * mistResponse(normal, light.direction);
                 }
             #endif
-            vec3 color = irradiance * BRDF_Lambert(albedo) * brightness * vBrightness * (0.8 + 0.4 * lumps);
+            vec3 color = (irradiance * environmentLight + flash * flashLight) * BRDF_Lambert(albedo) * vBrightness * (0.8 + 0.4 * lumps);
 
             #ifdef USE_FOG
                 // the pillars' fog, without its drifting noise
@@ -259,7 +281,10 @@ export class SplashMist {
     /**
      * @param pixelScale pixels per world unit at distance 1 (drawing buffer height times the projection's y scale / 2)
      */
-    public update(now: number, night: number, pixelScale: number): void {
+    /**
+     * @param flashAt where the impact's light is, so it can be told apart from the scene's own lights
+     */
+    public update(now: number, night: number, pixelScale: number, flashAt: Vector3): void {
         const s = this.settings;
         const age = now - this.start;
         const u = this.points.material.uniforms;
@@ -276,7 +301,10 @@ export class SplashMist {
         u.gravity.value = s.splashMistGravity;
         u.opacity.value = s.splashMistOpacity * night;
         u.albedo.value.set(s.splashMistColor);
-        u.brightness.value = s.splashMistBrightness;
+        u.environmentLight.value = s.splashMistEnvironmentLight;
+        u.flashLight.value = s.splashMistFlashLight;
+        u.flashWorldPosition.value.copy(flashAt);
+        u.flashNear.value = Math.max(s.splashMistFlashNear, 0.01);
         u.translucency.value = s.splashMistTranslucency;
         u.pixelScale.value = pixelScale;
     }

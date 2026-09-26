@@ -285,7 +285,7 @@ export class ShootingStars implements AnimatedEntity {
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
 
         this.updateSplash(sinceFlash);
-        this.mist.update(now, this.nightAmount, this.pixelScale());
+        this.mist.update(now, this.nightAmount, this.pixelScale(), this.flash.position);
     }
 
     private throwDroplets(): void {
@@ -355,7 +355,9 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashMistDrag', 0.1, 8, 0.05);
         folder.add(s, 'splashMistGravity', 0, 5, 0.05);
         folder.addColor(s, 'splashMistColor');
-        folder.add(s, 'splashMistBrightness', 0, 5, 0.05);
+        folder.add(s, 'splashMistEnvironmentLight', 0, 2, 0.01);
+        folder.add(s, 'splashMistFlashLight', 0, 1, 0.005);
+        folder.add(s, 'splashMistFlashNear', 0.01, 10, 0.05);
         folder.add(s, 'splashMistTranslucency', 0, 2, 0.05);
         folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splash + light)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
