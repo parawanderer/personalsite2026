@@ -1,4 +1,4 @@
-import { Camera, Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
+import { Camera, Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, UniformsLib, UniformsUtils, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
@@ -25,6 +25,13 @@ import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fog
 import { applyUnderwater } from "../shaders/underwater.glsl";
 import { displacedVertex, interactionMain, interactionPars } from "../shaders/water-interaction.glsl";
 import type { PillarField } from "./walls";
+
+/** the entries of `uniforms` named in `names` (the ones it has) */
+const pick = (uniforms: { [name: string]: IUniform }, names: string[]): { [name: string]: IUniform } => {
+    const picked: { [name: string]: IUniform } = {};
+    for (const n of names) if (n in uniforms) picked[n] = uniforms[n];
+    return picked;
+};
 
 export const WATER_LEVEL_Y = -1;
 
@@ -245,7 +252,10 @@ export class Water implements AnimatedEntity {
         const material = new ShaderMaterial({
             vertexShader: source.vertexShader,
             fragmentShader: source.fragmentShader,
-            uniforms: source.uniforms,
+            // the water's own uniforms are shared, so every setting reaches both. Not three's light and shadow ones,
+            // though: three flags those per draw for re-upload, and sharing the flags leaves one of the two with stale
+            // shadow maps (and no shadows)
+            uniforms: { ...source.uniforms, ...UniformsUtils.clone(pick(source.uniforms, Object.keys(UniformsLib.lights))) },
             defines: { WATER_PATCH: '' },
             lights: source.lights,
             fog: source.fog,
