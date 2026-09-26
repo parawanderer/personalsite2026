@@ -33,6 +33,7 @@ uniform float rippleScale;
 uniform float rippleAmp;
 uniform vec3 underwaterColor;
 uniform float underwaterViewDensity;
+uniform vec3 depthAbsorption;
 // how clearly the world above shows through the window, and how bright the mirror of the depths is around it
 uniform float undersideClarity;
 uniform float undersideMirror;
@@ -72,9 +73,11 @@ void main() {
     float transmitted = exp(-underwaterViewDensity * length(toSurface));
     float see = window * undersideClarity;
 
+    // the water between here and the camera, lit like the water halfway down to the camera
+    vec3 waterColor = underwaterColor * exp(-depthAbsorption * max((vWorld.y - cameraPosition.y) * 0.5, 0.0));
     // outside the window: the depths mirrored, a little lighter than the water itself
-    vec3 mirror = underwaterColor * (1.0 + undersideMirror * (1.0 - window));
-    vec3 color = mix(underwaterColor, mirror, transmitted) + underwaterColor * rim * transmitted * 0.8;
+    vec3 mirror = waterColor * (1.0 + undersideMirror * (1.0 - window));
+    vec3 color = mix(waterColor, mirror, transmitted) + waterColor * rim * transmitted * 0.8;
     gl_FragColor = vec4(color, 1.0 - see);
 }
 `;

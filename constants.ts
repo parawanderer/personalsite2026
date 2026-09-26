@@ -531,6 +531,12 @@ export interface WaterLook {
     undersideMirror: number;
     /** how thick the water looks from inside it (clearer than from above, where it hides the depths quickly) */
     underwaterViewDensity: number;
+    /**
+     * sunlight lost per metre of depth (what's deeper is darker, and so is the water), and how much faster red goes than
+     * blue (deeper is also bluer)
+     */
+    depthDarkening: number;
+    depthRedLoss: number;
     /** the rolling waves of the surface seen from under the water: their height and speed */
     surfaceWaveHeight: number;
     surfaceWaveSpeed: number;
@@ -595,6 +601,8 @@ export const WATER_LOOK: WaterLook = {
     splashMeshSpacing: 0.1,
     undersideClarity: 0.85,
     underwaterViewDensity: 0.4,
+    depthDarkening: 0.18,
+    depthRedLoss: 1.2,
     surfaceWaveHeight: 0.06,
     surfaceWaveSpeed: 1,
     undersideMirror: 0.6,

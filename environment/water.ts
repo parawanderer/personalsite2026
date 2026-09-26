@@ -253,12 +253,14 @@ export class Water implements AnimatedEntity {
             previous.call(skyMaterial, params, renderer);
             params.uniforms.viewUnderwater = this.underwaterUniforms.viewUnderwater;
             params.uniforms.skyUnderwaterColor = this.underwaterUniforms.underwaterColor;
+            params.uniforms.skyDepthAbsorption = this.underwaterUniforms.depthAbsorption;
+            params.uniforms.skyWaterLevel = this.underwaterUniforms.waterLevelY;
             params.vertexShader = params.vertexShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;')
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvSkyUnderWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
-                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;')
-                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(skyUnderwaterColor, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
+                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;\nuniform vec3 skyDepthAbsorption;\nuniform float skyWaterLevel;')
+                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(linearToOutputTexel(vec4(skyUnderwaterColor * exp(-skyDepthAbsorption * max(skyWaterLevel - cameraPosition.y, 0.0)), 1.0)).rgb, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
         };
         skyMaterial.needsUpdate = true;
     }
@@ -572,6 +574,8 @@ export class Water implements AnimatedEntity {
         uw.causticSharpness.value = l.causticSharpness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
         this.underwaterUniforms.underwaterViewDensity.value = l.underwaterViewDensity;
+        // red goes first, then green, blue last
+        (this.underwaterUniforms.depthAbsorption.value as Vector3).set(1 + l.depthRedLoss, 1 + l.depthRedLoss * 0.3, 1).multiplyScalar(l.depthDarkening);
         this.underwaterUniforms.surfaceWaveHeight.value = l.surfaceWaveHeight;
         const under = this.underside.material.uniforms;
         under.undersideClarity.value = l.undersideClarity;
@@ -588,6 +592,8 @@ export class Water implements AnimatedEntity {
         folder.addColor(this.look, 'underwaterColor').onChange(apply);
         folder.add(this.look, 'underwaterDensity', 0, 10, 0.05).onChange(apply);
         folder.add(this.look, 'underwaterViewDensity', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'depthDarkening', 0, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'depthRedLoss', 0, 4, 0.05).onChange(apply);
         folder.add(this.look, 'surfaceWaveHeight', 0, 0.4, 0.005).onChange(apply);
         folder.add(this.look, 'surfaceWaveSpeed', 0, 5, 0.05);
         folder.add(this.look, 'undersideClarity', 0, 1, 0.01).onChange(apply);
@@ -790,6 +796,7 @@ export class WaterFactory {
             surfaceWaveTime: { value: 0 },
             surfaceWaveFlow: surfaceUniforms.flowOffset,
             underwaterViewDensity: { value: 0.4 },
+            depthAbsorption: { value: new Vector3() },
             underwaterColor: { value: new Color() },
             underwaterDensity: { value: 0 },
             wetBandHeight: { value: 1 },
@@ -846,6 +853,7 @@ export class WaterFactory {
                 rippleAmp: surfaceUniforms.rippleAmp,
                 underwaterColor: underwaterUniforms.underwaterColor,
                 underwaterViewDensity: underwaterUniforms.underwaterViewDensity,
+                depthAbsorption: underwaterUniforms.depthAbsorption,
                 undersideClarity: { value: 1 },
                 undersideMirror: { value: 0 },
                 undersideRipple: { value: 1 },

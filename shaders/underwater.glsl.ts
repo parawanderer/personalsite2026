@@ -55,6 +55,13 @@ uniform vec3 underwaterColor;
 uniform float underwaterDensity;
 // how thick the water is from inside it: clearer than seen from above, where it has to hide the depths quickly
 uniform float underwaterViewDensity;
+// sunlight absorbed on its way down, per metre of depth, per colour (red goes first): what's deep is darker and bluer,
+// and so is the water itself the deeper the view goes
+uniform vec3 depthAbsorption;
+
+vec3 lightAtDepth(float depth) {
+    return exp(-depthAbsorption * max(depth, 0.0));
+}
 uniform float wetBandHeight;
 uniform float wetBandDarkness;
 uniform vec3 causticColor;
@@ -138,8 +145,17 @@ if (viewUnderwater > 0.5) {
     float inWater = vUnderwaterWorldPos.y > surfaceY
         ? (surfaceY - cameraPosition.y) / max(fromCamera.y, 1e-4)
         : 1.0;
+    // only as much light reaches a submerged surface as the water above it lets through
+    float depth = surfaceY - vUnderwaterWorldPos.y;
+    if (depth > 0.0) gl_FragColor.rgb *= linearToOutputTexel(vec4(lightAtDepth(depth), 1.0)).rgb;
+    // and the water in between is lit like the water at its depth: taken halfway along the stretch that's in water
+    float halfwayDepth = waterLevelY - (cameraPosition.y + fromCamera.y * 0.5 * clamp(inWater, 0.0, 1.0));
+    vec3 waterColor = underwaterColor * lightAtDepth(halfwayDepth);
     float transmitted = exp(-underwaterViewDensity * length(fromCamera) * clamp(inWater, 0.0, 1.0));
-    gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
+    // what's above the surface can only be seen through Snell's window, looking up steeply enough (like the ceiling,
+    // shaders/water-underside.glsl.ts); lower, the surface mirrors the depths, which also covers past the ceiling's edge
+    if (vUnderwaterWorldPos.y > surfaceY) transmitted *= smoothstep(0.55, 0.7, normalize(fromCamera).y);
+    gl_FragColor.rgb = mix(linearToOutputTexel(vec4(waterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
 } else if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
     // (cameras under the water here are the water's own mirror camera, which skips this)
     vec3 toCamera = cameraPosition - vUnderwaterWorldPos;
