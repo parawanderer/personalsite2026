@@ -775,6 +775,9 @@ export interface ParticleSettings {
     flakeGlow: number;
     /** how far the particles turn the colour of a meteor's flash while it's on (faked, not lit by it) */
     flashTint: number;
+    /** how far each set's far-away dots (a fixed-colour texture) are turned towards white */
+    dotWhiten1: number;
+    dotWhiten2: number;
     /** once on the water: how long particles float, then how fast they sink and over what depth they fade */
     floatSeconds: number;
     sinkSpeed: number;
@@ -805,6 +808,8 @@ export const PARTICLES: ParticleSettings = {
     flakeSpin: 0.35,
     flakeGlow: 0,
     flashTint: 0.85,
+    dotWhiten1: 0.7,
+    dotWhiten2: 0,
     floatSeconds: 12,
     sinkSpeed: 0.01,
     sinkDepth: 0.25,

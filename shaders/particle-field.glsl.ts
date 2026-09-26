@@ -255,6 +255,8 @@ vec3 transformed = dotCentre + (camRight * position.x + camUp * position.y) * do
 export const dotFragPars = /* glsl */ `
 // (edits) ${fileName}
 varying float dotOpacity;
+// how far this set's dot texture is turned towards white (its own colour is baked into the texture)
+uniform float dotWhiten;
 `;
 
 export const flashTintPars = /* glsl */ `
@@ -286,6 +288,8 @@ if (cameraPosition.y > particleWaterY) {
 export const dotFrag = /* glsl */ `
 // (edits) ${fileName}
 gl_FragColor.a *= dotOpacity;
+// towards white, keeping the texture's own shading (its brightest channel as the white's brightness)
+gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(max(gl_FragColor.r, max(gl_FragColor.g, gl_FragColor.b))), dotWhiten);
 `;
 
 /**

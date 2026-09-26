@@ -94,6 +94,8 @@ export class ParticleField implements AnimatedEntity {
     private readonly meshes: Mesh[] = [];
     private readonly uniforms: { [name: string]: IUniform };
     private readonly flakeMaterials: MeshStandardMaterial[] = [];
+    /** per particle set, how far its far-away dots are turned towards white */
+    private readonly dotWhiten = new Map<string, IUniform<number>>();
     /** per particle set, the share of it that's shown */
     private readonly shown = new Map<string, IUniform<number>>();
 
@@ -201,7 +203,9 @@ export class ParticleField implements AnimatedEntity {
 
             const dots = this.instanced(dotShape, seedAttribute, count);
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
-            dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown);
+            const whiten = { value: 0 };
+            this.dotWhiten.set(colour.colorKey, whiten);
+            dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown, whiten);
             this.materialHook?.(dotMaterial);
             this.add(new Mesh(dots, dotMaterial));
         }
@@ -256,13 +260,13 @@ export class ParticleField implements AnimatedEntity {
         Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
 
-    private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
+    private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>, whiten: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${dotPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', dotBeginVertex);
         params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${dotFragPars}\n${flashTintPars}`);
         params.fragmentShader = replace(params.fragmentShader, '#include <opaque_fragment>', flashTintFrag);
         params.fragmentShader = replace(params.fragmentShader, '#include <dithering_fragment>', `#include <dithering_fragment>\n${dotFrag}`);
-        Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
+        Object.assign(params.uniforms, this.uniforms, { particleShown: shown, dotWhiten: whiten });
     }
 
     /**
@@ -291,6 +295,8 @@ export class ParticleField implements AnimatedEntity {
         u.dotSize.value = s.dotSize;
         u.particleFloatTime.value = s.floatSeconds;
         u.particleSinkMurk.value = s.sinkMurk;
+        this.dotWhiten.get('flakeColor1')!.value = s.dotWhiten1;
+        this.dotWhiten.get('flakeColor2')!.value = s.dotWhiten2;
         u.particleSinkSpeed.value = s.sinkSpeed;
         u.particleSinkDepth.value = Math.max(s.sinkDepth, 1e-3);
         u.particlePillarMargin.value = s.pillarMargin;
@@ -366,6 +372,8 @@ export class ParticleField implements AnimatedEntity {
         folder.addColor(this.settings, 'flakeColor1').onChange(apply);
         folder.addColor(this.settings, 'flakeColor2').onChange(apply);
         folder.add(this.settings, 'flashTint', 0, 1, 0.01);
+        folder.add(this.settings, 'dotWhiten1', 0, 1, 0.01).name('dotWhiten1 (cyan, far)').onChange(apply);
+        folder.add(this.settings, 'dotWhiten2', 0, 1, 0.01).name('dotWhiten2 (orange, far)').onChange(apply);
         folder.add(this.settings, 'sinkMurk', 0, 100, 0.5).onChange(apply);
     }
 
