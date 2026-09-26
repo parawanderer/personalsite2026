@@ -54,6 +54,10 @@ export class VolcanicGlow implements AnimatedEntity {
     };
     private night = 0;
     private readonly direction = new Vector3();
+    private readonly toLight = new Vector3();
+    private readonly waterColor = new Color();
+    /** told the light's direction (towards it) and the colour the water scatters back, every frame */
+    public onWaterLight?: (direction: Vector3, color: Color) => void;
 
     constructor(scene: Scene, skyMaterial: MeshBasicMaterial, private readonly settings: VolcanicGlowSettings) {
         // always in the scene (zero intensity by day): adding or removing a light recompiles every lit material
@@ -99,6 +103,9 @@ export class VolcanicGlow implements AnimatedEntity {
         this.light.target.position.set(0, 0, 0);
         this.light.color.set(s.color);
         this.light.intensity = s.lightStrength * this.night * flicker;
+        this.toLight.copy(this.light.position).normalize();
+        this.waterColor.set(s.color).multiplyScalar(s.waterScatter * this.night * flicker);
+        this.onWaterLight?.(this.toLight, this.waterColor);
     }
 
     public bindTweaks(folder: GUI): void {
@@ -111,5 +118,6 @@ export class VolcanicGlow implements AnimatedEntity {
         folder.add(s, 'lightStrength', 0, 5, 0.05);
         folder.add(s, 'lightElevationDeg', 0, 45, 0.5);
         folder.add(s, 'flicker', 0, 1, 0.01);
+        folder.add(s, 'waterScatter', 0, 1, 0.005);
     }
 }

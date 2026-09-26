@@ -75,7 +75,8 @@ const WATER_EDITS: [string, string][] = [
             // darken its reflections too (they wouldn't really, but on the shiny far water they'd vanish otherwise)
             (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken) * mix(1.0, waterShadow, splashShadowReflection)
                 + (splashLight(length(worldPosition.xz - splashCenter)) * splashReliefLight(worldPosition.xyz, surfaceNormal)
-                    + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * waterShadow,
+                    + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * waterShadow
+                + volcanoWaterLight(surfaceNormal),
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
     ],
@@ -207,6 +208,12 @@ export class Water implements AnimatedEntity {
         private underwaterUniforms: { [name: string]: IUniform },
         private underside: Mesh<BufferGeometry, ShaderMaterial>) {
         this.hidePatchFromReflection();
+    }
+
+    /** the volcano's light on the water: towards it, and its colour times how much the fluid scatters back */
+    public setVolcanoLight(direction: Vector3, color: Color): void {
+        (this.surfaceUniforms.volcanoLightDir.value as Vector3).copy(direction);
+        (this.surfaceUniforms.volcanoLightColor.value as Color).copy(color);
     }
 
     /** how far the surface's ripples have drifted with the flow (shared, updated in place) */
@@ -757,6 +764,8 @@ export class WaterFactory {
             splashHighlight: { value: 0 },
             splashShininess: { value: 1 },
             splashRelief: { value: 0 },
+            volcanoLightDir: { value: new Vector3(0, 1, 0) },
+            volcanoLightColor: { value: new Color(0, 0, 0) },
             // how much darker the water is right now, next to a meteor's flash
             splashDarken: { value: 0 },
             // how much the flash's shadows darken the water's reflections right now

@@ -990,6 +990,8 @@ export interface VolcanicGlowSettings {
     lightElevationDeg: number;
     /** how much it flickers */
     flicker: number;
+    /** how much of its light the murky fluid scatters back (a dull red on the ripples facing it) */
+    waterScatter: number;
 }
 
 export const VOLCANIC_GLOW: VolcanicGlowSettings = {
@@ -1001,4 +1003,5 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     lightStrength: 4.5,
     lightElevationDeg: 14,
     flicker: 0.25,
+    waterScatter: 0.035,
 };

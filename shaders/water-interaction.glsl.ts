@@ -133,6 +133,16 @@ uniform vec3 splashLightPosition;
 uniform float splashHighlight;
 uniform float splashShininess;
 uniform float splashRelief;
+// the volcano's light at night (environment/volcanic-glow.ts): towards it, and its colour times how much of it the
+// murky fluid scatters back
+uniform vec3 volcanoLightDir;
+uniform vec3 volcanoLightColor;
+
+// the thick, ash-laden fluid isn't a clean mirror: it scatters some of the light falling on it back, most where its
+// surface (ripples, lips, swell) tilts towards the light
+vec3 volcanoWaterLight(vec3 normal) {
+    return volcanoLightColor * max(dot(normal, volcanoLightDir), 0.0);
+}
 
 // how much more (or less) of the flash's light a tilted bit of surface gets than flat water: the light comes in low,
 // almost level with the water, so slopes facing it (splash rings, ripples, the lips around the pillars) catch several

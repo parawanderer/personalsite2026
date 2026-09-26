@@ -346,6 +346,7 @@ const volcanoTweaks = tweaks.addFolder('Volcanic glow', VOLCANIC_GLOW);
 const volcano = new VolcanicGlow(scene, sky.material, volcanoTweaks.params);
 if (volcanoTweaks.folder) volcano.bindTweaks(volcanoTweaks.folder);
 dayNight.number((v) => volcano.setNight(v), () => 0, 'nightAurora');
+volcano.onWaterLight = (direction, color) => water.setVolcanoLight(direction, color);
 scheduler.add(volcano);
 
 // aurora on the night sky
