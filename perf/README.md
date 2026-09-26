@@ -33,7 +33,8 @@ Everything is injected into the page, so the site itself has no benchmark code:
 The scenarios:
 
 - `home`: the landing view.
-- `about`: the About panel open.
+- `about`: the first panel open (About in older versions, Links since). The name stays so results compare across the
+  change.
 - `flight`: free flight, holding W down the channel.
 
 They only click element ids that exist in every version of the site.

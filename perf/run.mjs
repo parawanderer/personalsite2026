@@ -205,9 +205,10 @@ const SCENARIOS = {
         async before() {},
         async after() {},
     },
+    // the first panel: About until it became Links (the name stays, so results compare across the change)
     about: {
         async before(page) {
-            await page.click('#aboutMeButton');
+            await page.click('#linksButton, #aboutMeButton');
             await sleep(SETTLE_MS);
         },
         async after() {},

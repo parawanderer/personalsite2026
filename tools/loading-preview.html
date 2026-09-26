@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Loading placeholders</title>
+    <!-- Shows the loading placeholders tools/loading-backgrounds.mjs made: open /tools/loading-preview.html on the dev server -->
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem;
+            background: #111;
+            color: #ddd;
+            font-family: sans-serif;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 6rem repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .heading {
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        /* the same layers as the real overlay (public/index.css), at a smaller size */
+        .loading-overlay {
+            position: relative;
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background-color: #182024;
+        }
+
+        .loading-overlay::before {
+            content: "";
+            position: absolute;
+            inset: -30px;
+            background-position: center;
+            background-size: cover;
+            filter: blur(8px);
+        }
+
+        /* the gradient column: the same backgrounds without their first layer, the image */
+        .gradient-only::before {
+            background-image: var(--gradient-only) !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="grid" id="grid">
+        <div></div>
+        <div class="heading">1. gradient (comes with the page)</div>
+        <div class="heading">2. blurred capture (a few KB)</div>
+    </div>
+    <script type="module">
+        // the generated styles, straight from the page
+        const page = await (await fetch('/index.html')).text();
+        const css = page.match(/<!-- loading-backgrounds:start[^>]*-->\s*<style>([\s\S]*?)<\/style>/)[1];
+        document.head.insertAdjacentHTML('beforeend', `<style>${css}</style>`);
+
+        const grid = document.getElementById('grid');
+        for (const [, time] of css.matchAll(/data-time="(\w+)"/g)) {
+            const block = css.match(new RegExp(`data-time="${time}"\\]::before \\{[\\s\\S]*?background-image:([\\s\\S]*?);\\s*\\}`))[1];
+            // everything after the first layer (the image) is the gradient
+            const gradientOnly = block.slice(block.indexOf('),') + 2).trim();
+            grid.insertAdjacentHTML('beforeend', `
+                <div class="heading">${time}</div>
+                <div class="loading-overlay gradient-only" data-time="${time}" style="--gradient-only: ${gradientOnly}"></div>
+                <div class="loading-overlay" data-time="${time}"></div>`);
+        }
+    </script>
+</body>
+</html>
