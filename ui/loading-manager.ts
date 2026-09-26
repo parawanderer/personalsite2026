@@ -8,7 +8,6 @@ const HIDDEN = "hidden";
 // https://threejs.org/docs/#api/en/loaders/managers/LoadingManager
 export class LoadingManager extends ThreeLoadingManger {
     private loadingOverlay: HTMLDivElement;
-    private loadingText: HTMLDivElement;
 
 
     constructor() {
@@ -19,13 +18,13 @@ export class LoadingManager extends ThreeLoadingManger {
         this.onStart = this._onStart;
         this.onError = this._onError;
 
-        this.loadingText = getByIdOrThrow("loadingText");
         this.loadingOverlay = getByIdOrThrow("loadingOverlay");
     }
 
     private _onProgress(url: string, loaded: number, total: number): void {
         console.log(`Loading file '${url}' (${loaded}/${total})`);
-        this.loadingText.innerHTML = `Loading files (${loaded}/${total})`;
+        // the title card's hairline fills with the progress
+        this.loadingOverlay.style.setProperty('--progress', String(loaded / Math.max(total, 1)));
     }
 
     private _onLoad(): void {

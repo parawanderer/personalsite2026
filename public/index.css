@@ -72,50 +72,76 @@ html, body {
     justify-content: center;
 }
 
-.loading-text {
+.loading-title {
     color: white;
-    font-size: 10pt;
-    margin-top: 2em;
-    margin-left: 0.5em;
-    text-align: center;
+    font-family: 'Computer Modern Serif', serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    letter-spacing: 0.22em;
+    /* letter-spacing trails the last letter, pull it back so the title stays centred */
+    margin-right: -0.22em;
+    text-transform: uppercase;
+    text-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
+    animation: loading-appear 1.2s ease both;
 }
 
-
-/**
-I got this from https://cssloaders.github.io/
-https://github.com/vineethtrv/css-loader
-*/
-.loader {
-    width: 48px;
-    height: 48px;
-    border: 2pt solid #FFF;
-    border-radius: 50%;
-    display: inline-block;
+/* a hairline that fills with the loading progress (--progress, set by ui/loading-manager.ts); a faint light travels
+   along it while nothing has finished yet */
+.loading-line {
     position: relative;
-    box-sizing: border-box;
-    animation: rotation 1s linear infinite;
-}
-.loader::after {
-    content: '';
-    box-sizing: border-box;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    border: 1.5pt solid transparent;
-    border-bottom-color: #da6b2b;
+    width: 11rem;
+    height: 1px;
+    margin-top: 1.6rem;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.18);
+    animation: loading-appear 1.2s ease 0.2s both;
 }
 
-@keyframes rotation {
-0% {
-    transform: rotate(0deg);
+.loading-line span {
+    position: absolute;
+    inset: 0;
+    background: white;
+    transform: scaleX(var(--progress, 0));
+    transform-origin: left;
+    transition: transform 0.6s ease;
 }
-100% {
-    transform: rotate(360deg);
+
+.loading-line::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: loading-travel 2.4s ease-in-out infinite;
 }
+
+.loading-text {
+    margin-top: 1.1rem;
+    color: white;
+    opacity: 0.6;
+    font-size: 0.68rem;
+    font-weight: 300;
+    letter-spacing: 0.32em;
+    margin-right: -0.32em;
+    text-transform: uppercase;
+    animation: loading-appear 1.2s ease 0.4s both;
+}
+
+@keyframes loading-appear {
+    from {
+        opacity: 0;
+        transform: translateY(0.4rem);
+    }
+}
+
+@keyframes loading-travel {
+    from {
+        left: -30%;
+    }
+    to {
+        left: 100%;
+    }
 }
 
 .mobile-warn {
