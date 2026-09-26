@@ -927,3 +927,26 @@ export const SENSOR: SensorSettings = {
     undershoot: 0.82,
     grainBoost: 1.0,
 };
+
+// shafts of sunlight in the water, seen from under it (postprocessing/god-rays.ts)
+export interface GodRaySettings {
+    enabled: boolean;
+    strength: number;
+    /** how big the bright patches the surface lets through are (higher: smaller, more shafts), and how sharply defined */
+    shaftScale: number;
+    sharpness: number;
+    /** how quickly they fade with depth, how far along the view they're gathered, and how fast they shift */
+    depthFade: number;
+    maxDistance: number;
+    speed: number;
+}
+
+export const GOD_RAYS: GodRaySettings = {
+    enabled: true,
+    strength: 0.35,
+    shaftScale: 0.9,
+    sharpness: 2.5,
+    depthFade: 0.3,
+    maxDistance: 9,
+    speed: 1,
+};

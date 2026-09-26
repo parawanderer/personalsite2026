@@ -11,6 +11,7 @@ import {
     Scene,
     SRGBColorSpace,
     Vector2,
+    Vector3,
     WebGLRenderer,
     CineonToneMapping
 } from 'three';
@@ -45,6 +46,7 @@ import {
     WATER_LOOK,
     WATER_TOUCH,
     SENSOR,
+    GOD_RAYS,
     STARS,
     DISTANCE_BLUR,
     PARTICLES,
@@ -70,6 +72,7 @@ import { Celestial } from './environment/celestial';
 import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
 import { SensorPass } from './postprocessing/sensor';
+import { GodRaysPass } from './postprocessing/god-rays';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
@@ -385,11 +388,12 @@ scheduler.add(shootingStars);
 const fogGlowTweaks = tweaks.addFolder('Suns through fog', { fogStart: SUN_THROUGH_FOG });
 skyGlowUniforms.glowFogStart.value = fogGlowTweaks.params.fogStart;
 fogGlowTweaks.folder?.add(fogGlowTweaks.params, 'fogStart', 0, 1, 0.01).onChange((v: number) => skyGlowUniforms.glowFogStart.value = v);
-([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const).forEach(([name, body], index) => {
+const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const).map(([name, body], index) => {
     const sunTweaks = tweaks.addFolder(name, body);
     const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour, index);
     if (sunTweaks.folder) sun.bindTweaks(sunTweaks.folder);
     scheduler.add(sun);
+    return { sun, body: sunTweaks.params };
 });
 
 
@@ -403,6 +407,12 @@ const composer = new EffectComposer(renderer);
 composer.renderTarget1.depthTexture = new DepthTexture(width, height);
 composer.renderTarget2.depthTexture = new DepthTexture(width, height);
 composer.addPass(new RenderPass(scene, camera));
+// shafts of sunlight while under the water; straight after the scene, while its depth still matches the frame
+const godRayTweaks = tweaks.addFolder('God rays', GOD_RAYS);
+const godRays = new GodRaysPass(camera, godRayTweaks.params);
+if (godRayTweaks.folder) godRays.bindTweaks(godRayTweaks.folder);
+composer.addPass(godRays);
+const godRaySun = { direction: new Vector3(), color: new Color(), up: 0 };
 const blurTweaks = tweaks.addFolder('Distance blur', DISTANCE_BLUR);
 const distanceBlur = new DistanceBlurPass(camera, blurTweaks.params);
 if (blurTweaks.folder) distanceBlur.bindTweaks(blurTweaks.folder);
@@ -453,6 +463,12 @@ const animate = () => {
     debugInfoUI.update();
     scheduler.doUpdates(clock);
     sensor.update(camera.aspect);
+    // the brightest sun that's up lights the water
+    const brightest = suns.reduce((a, b) => (b.sun.up * b.body.brightness > a.sun.up * a.body.brightness ? b : a));
+    godRaySun.direction.copy(brightest.sun.direction);
+    godRaySun.color.set(brightest.body.color).multiplyScalar(brightest.body.brightness);
+    godRaySun.up = brightest.sun.up;
+    godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySun, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity);
 
     composer.render();
 }
@@ -465,7 +481,9 @@ shootingStars.warmUp(() => {
     // and the view from under the water
     water.warmUpUnderwater(true);
     seabed.visible = true;
+    godRays.enabled = true;
     composer.render();
+    godRays.enabled = false;
     seabed.visible = false;
     water.warmUpUnderwater(false);
 });

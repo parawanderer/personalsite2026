@@ -209,6 +209,11 @@ export class Water implements AnimatedEntity {
         this.hidePatchFromReflection();
     }
 
+    /** how far the surface's ripples have drifted with the flow (shared, updated in place) */
+    public get flowOffset(): Vector2 {
+        return this.surfaceUniforms.flowOffset.value as Vector2;
+    }
+
     /** whether the camera is under the water right now */
     public get cameraUnderwater(): boolean {
         return this.camera.position.y < WATER_LEVEL_Y;
