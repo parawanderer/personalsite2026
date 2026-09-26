@@ -260,7 +260,7 @@ svg .anim * {
 /* reading text in the panels is set in a serif, against the spaced sans labels and the wordmark, like a poster's
    credits against its copy; titles keep the sans */
 .text-panel {
-    --reading-font: 'EB Garamond', Georgia, serif;
+    --reading-font: 'Computer Modern Serif', Georgia, serif;
 }
 
 .text-panel p, .text-panel li, .contact-text, .link-name, .link-note {
@@ -777,7 +777,7 @@ a.contact-item:hover .contact-text:after {
 }
 
 
-/* Paper variant (?paper): the page typeset like a paper's title page, in Computer Modern (the LaTeX font) */
+/* Computer Modern (the LaTeX font), for the text on the pages */
 
 @font-face {
     font-family: 'Computer Modern Serif';
@@ -803,77 +803,48 @@ a.contact-item:hover .contact-text:after {
     font-display: swap;
 }
 
+/* Title candidates (?title=...): the title as spaced serif capitals, also used for the pages' headings */
+
 .wordmark-text {
     display: none;
 }
 
-.paper .logo-primary {
+.title-candidate .logo-primary {
     display: none;
 }
 
-.paper .wordmark-text {
+.title-candidate .wordmark-text {
     display: block;
     color: white;
-    font-family: 'Computer Modern Serif', serif;
-    font-size: 3.6rem;
+    font-size: 2.9rem;
     line-height: 1;
     text-align: right;
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    margin-right: -0.22em;
+    white-space: nowrap;
     text-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
 }
 
-/* the author line under a title */
-.paper .name-title {
+.title-candidate .text-panel h1 {
+    font-weight: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+}
+
+.title-cm .wordmark-text, .title-cm .text-panel h1 {
     font-family: 'Computer Modern Serif', serif;
-    font-size: 1.15rem;
-    font-variant-caps: small-caps;
-    text-transform: none;
-    letter-spacing: 0.08em;
-    margin-right: 0;
-    opacity: 0.85;
 }
 
-.paper .name-title .text-sep {
-    width: 0;
-    margin: 0 0.5em;
+.title-bodoni .wordmark-text, .title-bodoni .text-panel h1 {
+    font-family: 'Bodoni Moda', serif;
 }
 
-/* the nav as section headings */
-.paper .nav-link, .paper .controls-explain, .paper .mobile-warn {
-    font-family: 'Computer Modern Serif', serif;
-    text-transform: none;
-    font-variant-caps: small-caps;
+.title-cormorant .wordmark-text, .title-cormorant .text-panel h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 300;
 }
 
-.paper .nav-link {
-    font-size: 1.15rem;
-    letter-spacing: 0.1em;
-}
-
-.paper .nav {
-    margin-right: -0.1em;
-}
-
-.paper .nav-link.quiet {
-    font-size: 1rem;
-    font-variant-caps: normal;
-    font-style: italic;
-    letter-spacing: 0.02em;
-}
-
-.paper .controls-explain dt, .paper .controls-explain dd {
-    font-size: 1rem;
-    letter-spacing: 0.08em;
-}
-
-.paper .text-panel {
-    --reading-font: 'Computer Modern Serif', serif;
-}
-
-.paper .text-panel h1 {
-    font-family: 'Computer Modern Serif', serif;
-    font-weight: bold;
-}
-
-.paper .link-note {
-    font-style: italic;
+.title-italiana .wordmark-text, .title-italiana .text-panel h1 {
+    font-family: 'Italiana', serif;
 }
