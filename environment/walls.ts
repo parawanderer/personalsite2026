@@ -235,6 +235,11 @@ export class Walls implements AnimatedEntity {
         this.surfaceUniforms.pillarFlashShadow.value = amount;
     }
 
+    /** switches the pillars' coloured fog on (above the water) or off (under it, where the water's fog takes over) */
+    public setAirFog(on: boolean): void {
+        this.fog.extensionUniforms.fogAmount.value = on ? 1 : 0;
+    }
+
     public setFogSpeed(speed: number): void {
         this.fogSpeed = speed;
     }
@@ -317,7 +322,8 @@ export class Walls implements AnimatedEntity {
 
     /**
      * The seabed's height at (x, z): a bowl across the channel, `depth` below the water in the middle and curving up
-     * towards the walls, meeting them a quarter of that below the water. Outside the channel, the edge height
+     * towards the walls, meeting them a quarter of that below the water, then rising to just under the surface beneath
+     * them. Outside the channel's rows, the edge height
      */
     public seabedAt(x: number, z: number, depth: number): number {
         const f = this.pillarField;
@@ -326,8 +332,13 @@ export class Walls implements AnimatedEntity {
         if (!span || !isFinite(span.min)) return edge;
         const left = f.origin.x + (span.min - 0.5) * f.cellSize;
         const right = f.origin.x + (span.max + 0.5) * f.cellSize;
-        const t = Math.min(Math.abs((x - (left + right) / 2) / ((right - left) / 2)), 1);
-        return WATER_LEVEL_Y - depth * (0.25 + 0.75 * Math.sqrt(1 - t * t));
+        const half = (right - left) / 2;
+        const across = Math.abs(x - (left + right) / 2);
+        const t = Math.min(across / half, 1);
+        const bowl = WATER_LEVEL_Y - depth * (0.25 + 0.75 * Math.sqrt(1 - t * t));
+        // past the channel's edge the rock rises to just under the surface, so what's under the walls is solid: the gaps
+        // between their pillars end in stone instead of opening onto water
+        return lerp(bowl, WATER_LEVEL_Y - 0.05, smoothstep(across - half, 0, 1.5));
     }
 
     /**
@@ -773,6 +784,7 @@ export class WallsFactory {
             fogParsVert,
             fogVert
         });
+        fogShader.extensionUniforms.fogAmount = { value: 1 };
 
         const surfaceUniforms: { [name: string]: IUniform<number> } = {
             hexScale: { value: 0 },

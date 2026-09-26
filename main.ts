@@ -211,26 +211,41 @@ water.addUnderwaterTo(walls.material);
 
 // the seabed under the channel: the tops of packed basalt columns in a bowl, only drawn while the camera is underwater
 const SEABED_COLUMN_RADIUS = 0.2;
-const seabedDepth = () => WATER_LEVEL_Y - water.seabedY;
+// deeper than the flat seabed the view from above uses (which the water has to hide quickly)
+const seabedDepth = () => pillarTweaks.params.seabedDepthBelow;
 const seabed = new Mesh(walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS), walls.material);
 seabed.visible = false;
 scene.add(seabed);
 // dark rock under the columns, so the gaps between them don't open onto the water; shown and hidden with them
-const seabedFloor = new Mesh(walls.buildSeabedFloor(seabedDepth(), 0.5), new MeshStandardMaterial({ color: 0x0c0d0e, roughness: 1 }));
+// only ever seen underwater, so no air fog: the water's fog is its fog
+const seabedFloor = new Mesh(walls.buildSeabedFloor(seabedDepth(), 0.5), new MeshStandardMaterial({ color: 0x0c0d0e, roughness: 1, fog: false }));
 water.addUnderwaterTo(seabedFloor.material);
 seabed.add(seabedFloor);
-pillarTweaks.folder?.add(pillarTweaks.params, 'seabedVariation', 0, 1, 0.01).onFinishChange(() => {
+const rebuildSeabed = () => {
     seabed.geometry.dispose();
     seabed.geometry = walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS);
+    seabedFloor.geometry.dispose();
+    seabedFloor.geometry = walls.buildSeabedFloor(seabedDepth(), 0.5);
+};
+pillarTweaks.folder?.add(pillarTweaks.params, 'seabedVariation', 0, 1, 0.01).onFinishChange(rebuildSeabed);
+pillarTweaks.folder?.add(pillarTweaks.params, 'seabedDepthBelow', 1, 12, 0.1).onFinishChange(() => {
+    rebuildSeabed();
+    extendPillarsToSeabed();
 });
-scheduler.add({ update: () => seabed.visible = water.cameraUnderwater });
+scheduler.add({
+    update: () => {
+        seabed.visible = water.cameraUnderwater;
+        walls.setAirFog(!water.cameraUnderwater);
+    },
+});
 water.setPillarField(walls.pillarField);
 particles.setPillarField(walls.pillarField);
-// pillars reach a little past the seabed
-water.setSeabedListener((depth) => {
-    pillarTweaks.params.depthBelowWater = depth + 0.2;
+// pillars reach a little past the seabed, whichever is deeper: the flat one seen from above or the columns from below
+const extendPillarsToSeabed = () => {
+    pillarTweaks.params.depthBelowWater = Math.max(WATER_LEVEL_Y - water.seabedY, seabedDepth()) + 0.2;
     walls.rebuild();
-});
+};
+water.setSeabedListener(extendPillarsToSeabed);
 scheduler.add(walls);
 
 // day/night: blends everything above from its own (day) values to the night palette by the time of day; last in the

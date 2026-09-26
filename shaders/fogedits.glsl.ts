@@ -57,6 +57,8 @@ export const fogParsFrag = /* glsl */ `
     uniform float fogNoiseImpact;
     uniform float fogNoiseSpeed;
     uniform float fogTime;
+    // 1 above the water, 0 while the camera is under it, where the water's own fog replaces this one
+    uniform float fogAmount;
     // END new
 
 	#ifdef FOG_EXP2
@@ -97,6 +99,7 @@ export const fogFrag = /* glsl */ `
 
 	#endif
 
+	fogFactor *= fogAmount;
 	gl_FragColor.rgb = mix( gl_FragColor.rgb, mix(fogNearColor, fogFarColor, fogFactor), fogFactor );
 ${skyGlowFrag}
 

@@ -637,6 +637,8 @@ export interface PillarLayout {
     rollVarianceDeg: number;
     /** the seabed's columns lean like the pillars, varying by this share of the pillars' variation */
     seabedVariation: number;
+    /** how deep the seabed's columns lie in the middle of the channel (seen from under the water) */
+    seabedDepthBelow: number;
     selfRotateDeg: number;
     /** pillars passing within this distance of the home camera are cut down, so none fill the landing view */
     /** every pillar reaches at least this far below the water surface; set from the water's seabedDepth */
@@ -715,7 +717,8 @@ export const PILLAR_LAYOUT: PillarLayout = {
     leanVarianceDeg: 10,
     yawVarianceDeg: 15,
     rollVarianceDeg: 1,
-    seabedVariation: 0.4,
+    seabedVariation: 0.9,
+    seabedDepthBelow: 5.5,
     selfRotateDeg: 10,
     depthBelowWater: 1.4,
     cameraClearRadius: 1.5,
@@ -794,7 +797,7 @@ export const PARTICLES: ParticleSettings = {
     dimpleDarkness: 0.12,
     dimpleRim: 0,
     dimpleRimColor: '#a1c4bf',
-    flakeColor1: '#7eb9b6',
+    flakeColor1: '#699694',
     flakeColor2: '#e1602d',
 };
 
