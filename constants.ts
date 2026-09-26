@@ -782,3 +782,29 @@ export const DUST_SIZE_RED = 0.005;
 
 export const DUST_CENTER = new Vector3(0, 1, CAMERA_INITIAL_Z + DUST_CAMERA_OFFSET_FRONT);
 export const ROTATING_DUST_CENTER = new Vector3(CAMERA_INITIAL_X, CAMERA_INITIAL_Y, CAMERA_INITIAL_Z-1.5);
+// pressing on the water with the cursor (environment/water-touch.ts)
+export interface WaterTouchSettings {
+    enabled: boolean;
+    /** size of the dent, how deep it goes, and how high its lip rises (as a share of the depth) */
+    radius: number;
+    depth: number;
+    lip: number;
+    /** how quickly it presses in, and how slowly the dent and the trail behind it refill */
+    pressSeconds: number;
+    refillSeconds: number;
+    /** how far apart the points along a dragged trail are */
+    trailSpacing: number;
+    /** the small ring sent out when pressing down */
+    ringHeight: number;
+}
+
+export const WATER_TOUCH: WaterTouchSettings = {
+    enabled: true,
+    radius: 0.12,
+    depth: 0.05,
+    lip: 0.35,
+    pressSeconds: 0.15,
+    refillSeconds: 3,
+    trailSpacing: 0.08,
+    ringHeight: 0.012,
+};

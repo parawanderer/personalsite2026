@@ -209,6 +209,22 @@ export class Walls implements AnimatedEntity {
     /** how fast the fog drifts, 1 = normal (the day/night cycle slows it at night) */
     private fogSpeed = 1;
 
+    /**
+     * Whether any pillar stands in the way of the straight line from `from` to `to` (each pillar taken as its axis with
+     * its radius around it, which is close enough for picking)
+     */
+    public blocksLine(from: Vector3, to: Vector3): boolean {
+        for (const c of this.shadowCandidates) {
+            for (const piece of c.pieces) {
+                const axis = new Vector3(0, 1, 0).applyAxisAngle(X_AXIS, piece.leanRad).applyAxisAngle(Z_AXIS, piece.rollRad);
+                const a = piece.centre.clone().addScaledVector(axis, -piece.height / 2);
+                const b = piece.centre.clone().addScaledVector(axis, piece.height / 2);
+                if (segmentDistance(from, to, a, b) < piece.radius) return true;
+            }
+        }
+        return false;
+    }
+
     /** how much darker pillar faces a meteor's flash doesn't reach look right now, 0 to 1 */
     public setFlashShadow(amount: number): void {
         this.surfaceUniforms.pillarFlashShadow.value = amount;
@@ -490,6 +506,29 @@ const createPillarField = (mask: number[][], extraOffsetZ: number): PillarField 
     cellSize: SCALE_FACTOR,
     size: new Vector2(mask.length, mask[0].length),
 });
+
+/** shortest distance between the segments p1-q1 and p2-q2 */
+const segmentDistance = (p1: Vector3, q1: Vector3, p2: Vector3, q2: Vector3): number => {
+    const d1 = q1.clone().sub(p1);
+    const d2 = q2.clone().sub(p2);
+    const r = p1.clone().sub(p2);
+    const a = d1.dot(d1);
+    const e = d2.dot(d2);
+    const f = d2.dot(r);
+    const c = d1.dot(r);
+    const b = d1.dot(d2);
+    const denom = a * e - b * b;
+    let s = denom > 1e-9 ? Math.min(Math.max((b * f - c * e) / denom, 0), 1) : 0;
+    let t = (b * s + f) / e;
+    if (t < 0) {
+        t = 0;
+        s = Math.min(Math.max(-c / a, 0), 1);
+    } else if (t > 1) {
+        t = 1;
+        s = Math.min(Math.max((b - c) / a, 0), 1);
+    }
+    return p1.clone().addScaledVector(d1, s).distanceTo(p2.clone().addScaledVector(d2, t));
+};
 
 /** a pillar (all its pieces, if broken), and its cell */
 interface ShadowCandidate {

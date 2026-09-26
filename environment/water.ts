@@ -23,7 +23,7 @@ import { AnimatedEntity } from "../entity/animated-entity";
 import { customFogExtension, ShaderExtension } from "./animated-fog";
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fogedits.glsl";
 import { applyUnderwater } from "../shaders/underwater.glsl";
-import { displacedVertex, interactionMain, interactionPars } from "../shaders/water-interaction.glsl";
+import { displacedVertex, interactionMain, interactionPars, TOUCH_POINTS } from "../shaders/water-interaction.glsl";
 import type { PillarField } from "./walls";
 
 /** the entries of `uniforms` named in `names` (the ones it has) */
@@ -304,6 +304,20 @@ export class Water implements AnimatedEntity {
     /**
      * @param flash how bright the flash is right now, 0 to 1: the rest of the water darkens by as much, relatively
      */
+    /** the uniforms for the cursor pressing on the water, which environment/water-touch.ts keeps up to date */
+    public get touchUniforms() {
+        const u = this.surfaceUniforms;
+        return {
+            points: u.touchPoints.value as Vector3[],
+            radius: u.touchRadius,
+            depth: u.touchDepth,
+            lip: u.touchLip,
+            ringCenter: u.touchRingCenter.value as Vector2,
+            ringAge: u.touchRingAge,
+            ringHeight: u.touchRingHeight,
+        };
+    }
+
     public setSplashGlow(color: Color, intensity: number, flash: number): void {
         (this.surfaceUniforms.splashGlow.value as Color).copy(color).multiplyScalar(intensity);
         this.surfaceUniforms.splashDarken.value = this.splashDarkenScale * flash;
@@ -525,6 +539,14 @@ export class WaterFactory {
             splashRippleSeconds: { value: 1 },
             splashGlow: { value: new Color(0, 0, 0) },
             splashGlowRadius: { value: 1 },
+            // the cursor pressing on the water (environment/water-touch.ts)
+            touchPoints: { value: Array.from({ length: TOUCH_POINTS }, () => new Vector3()) },
+            touchRadius: { value: 1 },
+            touchDepth: { value: 0 },
+            touchLip: { value: 0 },
+            touchRingCenter: { value: new Vector2() },
+            touchRingAge: { value: 1e3 },
+            touchRingHeight: { value: 0 },
             splashWaterReach: { value: 0 },
             splashLightPosition: { value: new Vector3() },
             splashHighlight: { value: 0 },

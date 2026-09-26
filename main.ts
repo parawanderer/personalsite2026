@@ -41,6 +41,7 @@ import {
     GRAIN_STYLE,
     FLIGHT_SETTINGS,
     WATER_LOOK,
+    WATER_TOUCH,
     DISTANCE_BLUR,
     PARTICLES,
     DAY_NIGHT,
@@ -64,6 +65,7 @@ import { DayNight } from './environment/day-night';
 import { Celestial } from './environment/celestial';
 import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
+import { WaterTouch } from './environment/water-touch';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
@@ -410,6 +412,12 @@ fgMngr.setFreeFlightCallback((isFreeFlight) => {
     freeFlight = isFreeFlight;
     updateBlur();
 });
+
+// pressing on the water with the cursor; off in free flight, where clicking looks around
+const touchTweaks = tweaks.addFolder('Water touch', WATER_TOUCH);
+const waterTouch = new WaterTouch(camera, renderer.domElement, water, walls, touchTweaks.params, () => !freeFlight);
+if (touchTweaks.folder) waterTouch.bindTweaks(touchTweaks.folder);
+scheduler.add(waterTouch);
 
 const cameraTweaks = tweaks.addFolder('Camera', {});
 if (cameraTweaks.folder) new CameraTweaks(camera, goHome).bind(cameraTweaks.folder);

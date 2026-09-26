@@ -2,6 +2,9 @@ import { toFileName } from "./util";
 
 const fileName = toFileName(import.meta.url);
 
+/** how many points the cursor's dent and its trail use (environment/water-touch.ts) */
+export const TOUCH_POINTS = 16;
+
 /**
  * How the (thick, viscous) water meets the pillars, as surface normals on the flat water plane:
  * - a meniscus: the surface climbs the rock in a narrow lip, which gives a rim of light around each pillar
@@ -181,6 +184,53 @@ vec3 splashRipple(vec2 p) {
     return vec3(h, g);
 }
 
+// pressing on the water with the cursor: a dent with a little raised lip around it where it's held, and the trail it
+// leaves when dragged, refilling slowly. Each point is (x, z, strength); the strengths already include how far each
+// one has refilled (environment/water-touch.ts). Returns (height, gradient x, z) and the lip's share, for its rim colour
+uniform vec3 touchPoints[${TOUCH_POINTS}];
+uniform float touchRadius;
+uniform float touchDepth;
+uniform float touchLip;
+uniform vec2 touchRingCenter;
+uniform float touchRingAge;
+uniform float touchRingHeight;
+
+vec3 touchSurface(vec2 p, out float lip) {
+    vec3 result = vec3(0.0);
+    lip = 0.0;
+    float r2Dent = touchRadius * touchRadius;
+    float lipAt = touchRadius * 1.6;
+    float lipWidth = touchRadius * 0.6;
+    for (int i = 0; i < ${TOUCH_POINTS}; i++) {
+        float w = touchPoints[i].z;
+        if (w <= 0.0) continue;
+        vec2 d = p - touchPoints[i].xy;
+        float r2 = dot(d, d);
+        if (r2 > 9.0 * r2Dent) continue;
+        float r = sqrt(r2);
+        float dent = w * touchDepth * exp(-r2 / r2Dent);
+        float x = (r - lipAt) / lipWidth;
+        float rim = w * touchDepth * touchLip * exp(-x * x);
+        result.x += rim - dent;
+        // d(h)/dr, then along d
+        float dhdr = dent * 2.0 * r / r2Dent - rim * 2.0 * x / lipWidth;
+        if (r > 1e-4) result.yz += d / r * dhdr;
+        lip = max(lip, w * exp(-x * x));
+    }
+
+    // a ring spreading out from where it was pressed
+    if (touchRingAge < 2.5) {
+        vec2 d = p - touchRingCenter;
+        float r = length(d);
+        float x = (r - 0.12 - touchRingAge * 0.5) / 0.08;
+        float fade = (1.0 - touchRingAge / 2.5) / (1.0 + r * 3.0);
+        float h = touchRingHeight * fade * exp(-x * x);
+        result.x += h;
+        if (r > 1e-4) result.yz += d / r * (-2.0 * x / 0.08) * h;
+    }
+    return result;
+}
+
 // 1 in the middle of the displaced patch, easing to 0 at its edges so it meets the flat plane seamlessly
 float patchFade(vec2 p) {
     if (patchHalfSize <= 0.0) return 0.0;
@@ -206,6 +256,8 @@ vec4 displaced = modelMatrix * vec4( position, 1.0 );
     float lift = displacementScale * patchFade(displaced.xz);
     displaced.y += pillarSurface(displaced.xz, lift, unusedDamp, unusedRim).x * lift;
     displaced.y += splashRipple(displaced.xz).x * patchFade(displaced.xz);
+    float unusedLip;
+    displaced.y += touchSurface(displaced.xz, unusedLip).x * patchFade(displaced.xz);
 #endif
 mirrorCoord = displaced;
 worldPosition = displaced;
@@ -229,6 +281,11 @@ export const interactionMain = /* glsl */ `
 vec3 splashWaves = splashRipple(worldPosition.xz);
 surfaceNormal = normalize(surfaceNormal - vec3(splashWaves.y, 0.0, splashWaves.z));
 
+// pressing on the water with the cursor
+float touchLipShare;
+vec3 touchWaves = touchSurface(worldPosition.xz, touchLipShare);
+surfaceNormal = normalize(surfaceNormal - vec3(touchWaves.y, 0.0, touchWaves.z));
+
 float pillarRim = 0.0;
 float interactionFade = 1.0 - smoothstep(interactionDistance * 0.7, interactionDistance, length(eye - worldPosition.xyz));
 if (interactionFade > 0.0) {
@@ -239,4 +296,6 @@ if (interactionFade > 0.0) {
     surfaceNormal = normalize(surfaceNormal - vec3(grad.x, 0.0, grad.y) * interactionFade);
     pillarRim = rim * interactionFade;
 }
+// the cursor's dent gets the same rim of light along its lip as the pillars do
+pillarRim = max(pillarRim, touchLipShare * 0.6);
 `;
