@@ -24,13 +24,15 @@ const streakMaterial = () => new ShaderMaterial({
         uniform vec3 head;
         uniform vec3 tail;
         uniform float width;
+        uniform float sparkle;
         varying vec2 vStreak;
         void main() {
             // x runs from the tail (-0.5) to the head (0.5), y across the streak, which always faces the camera
             float along = position.x + 0.5;
             vec3 p = mix(tail, head, along);
             vec3 side = normalize(cross(head - tail, cameraPosition - p));
-            p += side * position.y * width * mix(0.3, 1.0, along);
+            // the lingering train spreads out as it fades, like smoke
+            p += side * position.y * width * mix(0.3, 1.0, along) * (1.0 + sparkle * 1.5);
             vStreak = vec2(along, position.y * 2.0);
             gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
         }
@@ -42,13 +44,24 @@ const streakMaterial = () => new ShaderMaterial({
         uniform float sparkle;
         varying vec2 vStreak;
         void main() {
-            float core = 1.0 - smoothstep(0.0, 1.0, abs(vStreak.y));
+            // a soft core that gets softer as the train spreads
+            float core = 1.0 - smoothstep(0.0, mix(1.0, 1.6, sparkle), abs(vStreak.y));
+            core *= core;
             // bright at the head while flying; the lingering train glows along its length instead
             float along = mix(pow(vStreak.x, 3.0), 0.35 + 0.65 * vStreak.x, sparkle);
-            // the train breaks up into flickering bits
-            float bit = fract(sin(floor(vStreak.x * 70.0) * 91.3 + floor(time * 24.0) * 17.1) * 43758.5453);
-            float flicker = mix(1.0, step(0.5, bit) * 2.0, sparkle);
-            gl_FragColor = vec4(color * along * core * core * flicker * intensity, 1.0);
+            // the train fades unevenly: smooth, slowly drifting brightness along it, not segments
+            float x = vStreak.x * 9.0 + time * 0.6;
+            float i0 = floor(x);
+            float f = fract(x);
+            f = f * f * (3.0 - 2.0 * f);
+            float h0 = fract(sin(i0 * 91.3) * 43758.5453);
+            float h1 = fract(sin((i0 + 1.0) * 91.3) * 43758.5453);
+            float unevenness = mix(1.0, 0.35 + 1.1 * mix(h0, h1, f), sparkle);
+            // a few tiny points twinkling near where it burned out
+            float cell = floor(vStreak.x * 140.0);
+            float spark = step(0.93, fract(sin(cell * 12.9898 + floor(time * 10.0) * 78.233) * 43758.5453));
+            float sparks = spark * smoothstep(0.55, 1.0, vStreak.x) * (1.0 - smoothstep(0.0, 0.35, abs(vStreak.y))) * sparkle * 1.5;
+            gl_FragColor = vec4(color * (along * core * unevenness + sparks) * intensity, 1.0);
         }
     `,
     transparent: true,
