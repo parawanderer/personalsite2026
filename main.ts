@@ -48,6 +48,7 @@ import {
     SENSOR,
     GOD_RAYS,
     STARS,
+    VOLCANIC_GLOW,
     DISTANCE_BLUR,
     PARTICLES,
     DAY_NIGHT,
@@ -75,6 +76,7 @@ import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
+import { VolcanicGlow } from './environment/volcanic-glow';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
@@ -338,6 +340,13 @@ const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTwea
 if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
 dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(stars);
+
+// a volcano past the walls at night: a red glow on one horizon, and its light on the pillars
+const volcanoTweaks = tweaks.addFolder('Volcanic glow', VOLCANIC_GLOW);
+const volcano = new VolcanicGlow(scene, sky.material, volcanoTweaks.params);
+if (volcanoTweaks.folder) volcano.bindTweaks(volcanoTweaks.folder);
+dayNight.number((v) => volcano.setNight(v), () => 0, 'nightAurora');
+scheduler.add(volcano);
 
 // aurora on the night sky
 const auroraTweaks = tweaks.addFolder('Aurora', AURORA);

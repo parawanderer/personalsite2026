@@ -189,8 +189,8 @@ export const DAY_NIGHT: DayNightSettings = {
     nightAmbientScale: 0.52,
     nightSpotColor: '#60708a',
     nightSpotScale: 0.27,
-    nightDiffuseColor: '#e58a8a',
-    nightDiffuseScale: 0.65,
+    nightDiffuseColor: '#8a93a5',
+    nightDiffuseScale: 0.3,
     nightExposureScale: 1,
     nightUnderwaterColor: '#0c1a1c',
     nightCausticColor: '#2d3a49',
@@ -969,4 +969,31 @@ export const GOD_RAYS: GodRaySettings = {
     onSurfaces: 0.8,
     minElevationDeg: 15,
     wallHeight: 4,
+};
+
+// at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars
+// (environment/volcanic-glow.ts)
+export interface VolcanicGlowSettings {
+    color: string;
+    /** which way it lies (0 down the channel, 90 is +x), how wide its glow is along the horizon, and how high it reaches */
+    azimuthDeg: number;
+    widthDeg: number;
+    height: number;
+    /** how bright the glow in the sky is, and the light it throws on the pillars (and how low that comes in) */
+    skyStrength: number;
+    lightStrength: number;
+    lightElevationDeg: number;
+    /** how much it flickers */
+    flicker: number;
+}
+
+export const VOLCANIC_GLOW: VolcanicGlowSettings = {
+    color: '#ff4a1c',
+    azimuthDeg: 160,
+    widthDeg: 40,
+    height: 0.1,
+    skyStrength: 0.18,
+    lightStrength: 4.5,
+    lightElevationDeg: 14,
+    flicker: 0.25,
 };
