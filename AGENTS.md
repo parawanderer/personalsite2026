@@ -43,6 +43,10 @@ them. Without `?tweaks` everything runs on the defaults.
 - The owner tunes values in `constants.ts` while you work. Never revert or overwrite their uncommitted changes; it's
   fine for them to land in your commits. Commits end with a `Co-Authored-By` line for the agent.
 - Comments explain why, in plain sentences, the way the surrounding code does.
+- The pillars' fog (`shaders/fogedits.glsl.ts`) is deliberately not physical: it paints surfaces along an orange-to-teal
+  ramp by distance, ending in the sky's colour, which simplifies the background into flat colour shapes like a painted
+  backdrop. Don't make it realistic; that makes the scene busy and plain. Physical accuracy is welcome elsewhere only
+  where it looks better.
 
 ## Traps (all hit before)
 
