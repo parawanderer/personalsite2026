@@ -12,6 +12,7 @@ import { fbm2D, makeRng } from '../utils/random';
 import { buildPillarMesh, PillarInstance } from './pillar-geometry';
 import { applyPillarSurface } from '../shaders/pillar-surface.glsl';
 import { WATER_LEVEL_Y } from './water';
+import { skipChangedHighlight } from '../ui/tweaks';
 
 
 const WATER = -1.0;
@@ -263,6 +264,7 @@ export class Walls implements AnimatedEntity {
 
         folder.add(l, 'randomSeed').name('random seed per load');
         const seed = folder.add(l, 'seed', 0, 9999, 1).onFinishChange(rebuild);
+        skipChangedHighlight(seed);
         // setValue only fires onChange, so rebuild explicitly
         folder.add({ reroll: () => { seed.setValue(randomSeed()); rebuild(); } }, 'reroll').name('Reroll seed');
         folder.add(l, 'jitter', 0, 0.5, 0.01).onFinishChange(rebuild);

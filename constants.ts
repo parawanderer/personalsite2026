@@ -386,7 +386,7 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashLightRange: 30,
     splashWaterGlow: 6.5,
     splashShadows: true,
-    splashShadowSize: 512,
+    splashShadowSize: 1024,
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
@@ -400,10 +400,10 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashMistDrag: 2,
     splashMistGravity: 3,
     splashMistColor: '#e4eced',
-    splashMistEnvironmentLight: 0.3,
-    splashMistFlashLight: 0.05,
+    splashMistEnvironmentLight: 0.05,
+    splashMistFlashLight: 0.17,
     splashMistFlashNear: 2.5,
-    splashMistTranslucency: 0.6,
+    splashMistTranslucency: 2.0,
     trainSeconds: 1.4,
 };
 

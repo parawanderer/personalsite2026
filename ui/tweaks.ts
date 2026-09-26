@@ -48,16 +48,35 @@ const rememberCollapsed = (gui: GUI, title: string) => {
     }).observe(gui.domElement, { attributes: true, attributeFilter: ['class'] });
 };
 
+const CHANGED_CLASS = 'tweak-changed';
+const CHANGED_STYLE = `.lil-gui .controller.${CHANGED_CLASS} > .name { color: #ffd84a; }`;
+
+type Controller = ReturnType<GUI['controllersRecursive']>[number];
+
+/** for values picked at runtime (like a random seed), which would otherwise always show as changed */
+export const skipChangedHighlight = (controller: { domElement: HTMLElement }): void => {
+    controller.domElement.dataset.noDefault = '';
+};
+
+const sameValue = (a: unknown, b: unknown): boolean => {
+    if (typeof a === 'number' && typeof b === 'number') return Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(b));
+    if (typeof a === 'string' && typeof b === 'string') return a.toLowerCase() === b.toLowerCase();
+    return a === b;
+};
+
 /**
  * Hand-tweaking panel (three's bundled lil-gui). Enable with `?tweaks` in the URL or DEBUG.
  *
  * Values changed in the panel, and which folders are collapsed, persist in localStorage so they survive reloads.
+ * The names of controls whose value differs from its default in constants.ts show in yellow.
  * "Copy values" puts the current values on the clipboard to paste back into constants.ts.
  * When disabled, every folder simply gets its defaults.
  */
 export class Tweaks {
     private readonly gui?: GUI;
     private readonly folders = new Map<string, object>();
+    /** each folder's defaults, by its params object, so any control on those params can be compared */
+    private readonly defaults = new WeakMap<object, object>();
 
     constructor(enabled: boolean) {
         if (!enabled) return;
@@ -66,6 +85,28 @@ export class Tweaks {
         this.gui.add({ copy: () => this.copyValues() }, 'copy').name('Copy values');
         this.gui.add({ reset: () => this.resetAll() }, 'reset').name('Reset all (reloads)');
         rememberCollapsed(this.gui, 'Tweaks');
+
+        const style = document.createElement('style');
+        style.textContent = CHANGED_STYLE;
+        document.head.appendChild(style);
+        this.gui.onChange(({ controller }) => this.markChanged(controller));
+        // controls are added over time (some folders only once their scene part has loaded)
+        let queued = false;
+        new MutationObserver(() => {
+            if (queued) return;
+            queued = true;
+            queueMicrotask(() => {
+                queued = false;
+                this.gui?.controllersRecursive().forEach((c) => this.markChanged(c));
+            });
+        }).observe(this.gui.domElement, { childList: true, subtree: true });
+    }
+
+    private markChanged(controller: Controller): void {
+        const defaults = this.defaults.get(controller.object) as Record<string, unknown> | undefined;
+        if (!defaults || !(controller.property in defaults) || 'noDefault' in controller.domElement.dataset) return;
+        const changed = !sameValue(controller.getValue(), defaults[controller.property]);
+        controller.domElement.classList.toggle(CHANGED_CLASS, changed);
     }
 
     /**
@@ -75,6 +116,7 @@ export class Tweaks {
     public addFolder<T extends object>(name: string, defaults: T): { params: T, folder?: GUI } {
         const params: T = { ...defaults };
         this.folders.set(name, params);
+        this.defaults.set(params, { ...defaults });
 
         if (!this.gui) return { params };
 
