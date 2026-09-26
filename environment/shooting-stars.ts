@@ -1,4 +1,4 @@
-import { AdditiveBlending, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Scene, ShaderMaterial, Vector3 } from 'three';
+import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
@@ -10,6 +10,24 @@ const SPLASH_X = [-2, 1];
 const SPLASH_Z = [-14, -6];
 // how long a meteor takes to burn out in the sky once it's done
 const BURNOUT_SECONDS = 0.35;
+// the splash: droplets thrown up at impact, how long the jet takes to rise and fall, gravity on the droplets
+const DROPLETS = 90;
+const JET_SECONDS = 1.1;
+const GRAVITY = 4;
+
+/** a soft round dot for the droplets */
+const dotTexture = () => {
+    const c = document.createElement('canvas');
+    c.width = c.height = 32;
+    const g = c.getContext('2d')!;
+    const r = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+    r.addColorStop(0, 'rgba(255,255,255,1)');
+    r.addColorStop(0.4, 'rgba(255,255,255,0.6)');
+    r.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = r;
+    g.fillRect(0, 0, 32, 32);
+    return new CanvasTexture(c);
+};
 
 const streakMaterial = () => new ShaderMaterial({
     uniforms: {
@@ -89,7 +107,13 @@ interface Meteor {
  */
 export class ShootingStars implements AnimatedEntity {
     private readonly streak: Mesh<PlaneGeometry, ShaderMaterial>;
-    private readonly flash = new PointLight(0xffffff, 0, 12, 1.5);
+    private readonly flash = new PointLight(0xffffff, 0, 30, 1.2);
+    /** the column of water shooting up from the impact */
+    private readonly jet: Mesh<PlaneGeometry, ShaderMaterial>;
+    private readonly droplets: Points<BufferGeometry, PointsMaterial>;
+    private readonly dropletVelocity = new Float32Array(DROPLETS * 3);
+    private readonly impact = new Vector3();
+    private lastSplashSince = 0;
     private readonly flashColor = new Color();
     /** the last meteor's streak, lingering and fading */
     private trainStart = -1e3;
@@ -108,6 +132,25 @@ export class ShootingStars implements AnimatedEntity {
         this.streak.visible = false;
         scene.add(this.streak);
         scene.add(this.flash);
+
+        this.jet = new Mesh(new PlaneGeometry(1, 1, 8, 1), streakMaterial());
+        this.jet.frustumCulled = false;
+        this.jet.visible = false;
+        scene.add(this.jet);
+
+        const dropletGeometry = new BufferGeometry();
+        dropletGeometry.setAttribute('position', new BufferAttribute(new Float32Array(DROPLETS * 3), 3));
+        this.droplets = new Points(dropletGeometry, new PointsMaterial({
+            map: dotTexture(),
+            size: 0.08,
+            transparent: true,
+            blending: AdditiveBlending,
+            depthWrite: false,
+            fog: false,
+        }));
+        this.droplets.frustumCulled = false;
+        this.droplets.visible = false;
+        scene.add(this.droplets);
     }
 
     public setNight(amount: number): void {
@@ -171,8 +214,10 @@ export class ShootingStars implements AnimatedEntity {
                 this.burnoutTail.copy(u.tail.value);
                 if (m.splash) {
                     const impact = m.start.clone().addScaledVector(m.direction, m.speed * m.duration);
-                    this.flash.position.set(impact.x, WATER_LEVEL_Y + 0.4, impact.z);
+                    this.flash.position.set(impact.x, WATER_LEVEL_Y + 0.6, impact.z);
                     this.flashStart = now;
+                    this.impact.set(impact.x, WATER_LEVEL_Y, impact.z);
+                    this.throwDroplets();
                     this.water.splash(impact.x, impact.z);
                 }
                 this.meteor = undefined;
@@ -214,9 +259,63 @@ export class ShootingStars implements AnimatedEntity {
             : 0;
         this.flashColor.set(s.color);
         this.flash.intensity = s.splashLight * flash;
+        this.flash.distance = s.splashLightRange;
         this.flash.color.copy(this.flashColor);
         this.flash.visible = flash > 0;
-        this.water.setSplashGlow(this.flashColor, s.splashLight * 0.04 * flash);
+        this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
+
+        this.updateSplash(sinceFlash);
+    }
+
+    private throwDroplets(): void {
+        const s = this.settings;
+        const p = this.droplets.geometry.getAttribute('position') as BufferAttribute;
+        for (let k = 0; k < DROPLETS; k++) {
+            p.setXYZ(k, this.impact.x, this.impact.y, this.impact.z);
+            // a cone, mostly upwards, some flung far out
+            const angle = Math.random() * Math.PI * 2;
+            const out = Math.pow(Math.random(), 1.5) * s.splashSpread;
+            const up = s.splashHeight * (0.5 + Math.random() * 0.8);
+            this.dropletVelocity.set([Math.cos(angle) * out, Math.sqrt(2 * GRAVITY * up), Math.sin(angle) * out], k * 3);
+        }
+        this.lastSplashSince = 0;
+        p.needsUpdate = true;
+    }
+
+    /** the jet rises and falls back; the droplets fly and fall, vanishing as they go under */
+    private updateSplash(since: number): void {
+        const s = this.settings;
+        const active = this.flashStart >= 0 && since < JET_SECONDS * 1.6;
+        this.jet.visible = active && since < JET_SECONDS;
+        this.droplets.visible = active;
+        if (!active) return;
+
+        if (this.jet.visible) {
+            const t = since / JET_SECONDS;
+            const u = this.jet.material.uniforms;
+            u.tail.value.copy(this.impact);
+            u.head.value.copy(this.impact).setY(this.impact.y + s.splashHeight * Math.sin(Math.PI * Math.min(t * 1.3, 1)));
+            u.width.value = s.width * 3;
+            u.color.value.set(s.color);
+            u.intensity.value = s.brightness * 0.8 * (1 - t) * this.nightAmount;
+            u.sparkle.value = 0.6;
+        }
+
+        const p = this.droplets.geometry.getAttribute('position') as BufferAttribute;
+        // real elapsed time, so the droplets fly the same at any frame rate (capped against long stalls)
+        const dt = Math.min(Math.max(since - this.lastSplashSince, 0), 0.1);
+        this.lastSplashSince = since;
+        for (let k = 0; k < DROPLETS; k++) {
+            const v = this.dropletVelocity;
+            v[k * 3 + 1] -= GRAVITY * dt;
+            const y = p.getY(k) + v[k * 3 + 1] * dt;
+            // gone once it falls back in
+            p.setXYZ(k, p.getX(k) + v[k * 3] * dt, y < this.impact.y ? -1e3 : y, p.getZ(k) + v[k * 3 + 2] * dt);
+        }
+        p.needsUpdate = true;
+        this.droplets.material.color.set(s.color);
+        this.droplets.material.opacity = Math.max(0, 1 - since / (JET_SECONDS * 1.6)) * this.nightAmount;
+        this.droplets.material.size = s.splashDropletSize;
     }
 
     public bindTweaks(folder: GUI, now: () => number): void {
@@ -230,7 +329,12 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'length', 0.5, 40, 0.5);
         folder.add(s, 'width', 0.02, 1, 0.01);
         folder.add(s, 'splashChance', 0, 1, 0.01);
-        folder.add(s, 'splashLight', 0, 300, 1);
+        folder.add(s, 'splashLight', 0, 2000, 5);
+        folder.add(s, 'splashLightRange', 1, 80, 1);
+        folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
+        folder.add(s, 'splashHeight', 0, 5, 0.05);
+        folder.add(s, 'splashSpread', 0, 5, 0.05);
+        folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);
         folder.add(s, 'splashSeconds', 0.1, 5, 0.1);
         folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splashdowns)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');

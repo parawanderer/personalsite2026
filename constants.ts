@@ -335,8 +335,15 @@ export interface ShootingStarSettings {
     width: number;
     /** chance one comes down into the far end of the channel instead */
     splashChance: number;
-    /** the light where it hits the water, and how long it lasts */
+    /** the light where it hits the water, how far it reaches, and how long it lasts */
     splashLight: number;
+    splashLightRange: number;
+    /** brightness of the glow on the water itself around the impact */
+    splashWaterGlow: number;
+    /** how high the jet and the droplets go, how far out the droplets fly, and their size */
+    splashHeight: number;
+    splashSpread: number;
+    splashDropletSize: number;
     splashSeconds: number;
     /** how long the glowing train of a splashdown lingers after the impact, breaking up (sky meteors just burn out) */
     trainSeconds: number;
@@ -352,7 +359,12 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     length: 10,
     width: 0.25,
     splashChance: 0.25,
-    splashLight: 80,
+    splashLight: 600,
+    splashLightRange: 30,
+    splashWaterGlow: 20,
+    splashHeight: 1.4,
+    splashSpread: 1.2,
+    splashDropletSize: 0.08,
     splashSeconds: 0.9,
     trainSeconds: 1.4,
 };
@@ -470,11 +482,11 @@ export const WATER_LOOK: WaterLook = {
     causticScale: 7.5,
     causticSpeed: 0.17,
     causticSharpness: 8,
-    splashRippleHeight: 0.02,
-    splashRippleSpeed: 1.2,
-    splashWavelength: 0.18,
-    splashRippleSeconds: 5,
-    splashGlowRadius: 1.2,
+    splashRippleHeight: 0.05,
+    splashRippleSpeed: 1.5,
+    splashWavelength: 0.35,
+    splashRippleSeconds: 6,
+    splashGlowRadius: 3.5,
     wetBandHeight: 0.09,
     wetBandDarkness: 0,
 };
