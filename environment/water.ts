@@ -327,6 +327,9 @@ export class Water implements AnimatedEntity {
         u.splashWavelength.value = Math.max(l.splashWavelength, 1e-3);
         u.splashRippleSeconds.value = Math.max(l.splashRippleSeconds, 1e-3);
         u.splashGlowRadius.value = Math.max(l.splashGlowRadius, 1e-3);
+        u.splashCraterDepth.value = l.splashCraterDepth;
+        u.splashCraterRadius.value = Math.max(l.splashCraterRadius, 1e-3);
+        u.splashCraterSeconds.value = Math.max(l.splashCraterSeconds, 1e-3);
         this.updatePatch();
         u.surfaceOpacity.value = l.surfaceOpacity;
         u.fresnelPower.value = l.fresnelPower;
@@ -395,6 +398,9 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashRippleSpeed', 0.1, 5, 0.05).onChange(apply);
         folder.add(this.look, 'splashWavelength', 0.02, 1, 0.01).onChange(apply);
         folder.add(this.look, 'splashRippleSeconds', 0.5, 15, 0.1).onChange(apply);
+        folder.add(this.look, 'splashCraterDepth', 0, 1.5, 0.01).onChange(apply);
+        folder.add(this.look, 'splashCraterRadius', 0.05, 4, 0.05).onChange(apply);
+        folder.add(this.look, 'splashCraterSeconds', 0.1, 5, 0.05).onChange(apply);
         folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
@@ -479,6 +485,9 @@ export class WaterFactory {
             splashRippleSeconds: { value: 1 },
             splashGlow: { value: new Color(0, 0, 0) },
             splashGlowRadius: { value: 1 },
+            splashCraterDepth: { value: 0 },
+            splashCraterRadius: { value: 1 },
+            splashCraterSeconds: { value: 1 },
             pillarDataA: { value: emptyField },
             pillarDataB: { value: emptyField },
             pillarGridOrigin: { value: new Vector2() },

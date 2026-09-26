@@ -265,7 +265,9 @@ scheduler.add(aurora);
 
 // shooting stars at night, now and then one coming down into the channel
 const starTweaks = tweaks.addFolder('Shooting stars', SHOOTING_STARS);
-const shootingStars = new ShootingStars(scene, starTweaks.params, water);
+const drawingBufferSize = new Vector2();
+const shootingStars = new ShootingStars(scene, starTweaks.params, water,
+    () => renderer.getDrawingBufferSize(drawingBufferSize).y * camera.projectionMatrix.elements[5] / 2);
 if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(shootingStars);

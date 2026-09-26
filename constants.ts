@@ -344,6 +344,19 @@ export interface ShootingStarSettings {
     splashHeight: number;
     splashSpread: number;
     splashDropletSize: number;
+    /** the spray plume: how many puffs, their size, how high and wide it goes, how long it hangs */
+    splashMistCount: number;
+    splashMistSize: number;
+    splashMistHeight: number;
+    splashMistSpread: number;
+    splashMistSeconds: number;
+    splashMistOpacity: number;
+    /** higher: thrown out faster and stopped sooner, so it billows out and hangs; gravity pulls it back down */
+    splashMistDrag: number;
+    splashMistGravity: number;
+    /** how lit the plume is on its own, and how much more while the impact's light is on */
+    splashMistAmbient: number;
+    splashMistFlashLit: number;
     /** how long the glowing train of a splashdown (and the impact's light) lingers, breaking up (sky meteors just burn out) */
     trainSeconds: number;
 }
@@ -364,6 +377,16 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
+    splashMistCount: 600,
+    splashMistSize: 0.9,
+    splashMistHeight: 2.5,
+    splashMistSpread: 2,
+    splashMistSeconds: 3,
+    splashMistOpacity: 0.35,
+    splashMistDrag: 2.5,
+    splashMistGravity: 0.8,
+    splashMistAmbient: 0.12,
+    splashMistFlashLit: 1.2,
     trainSeconds: 1.4,
 };
 
@@ -445,6 +468,10 @@ export interface WaterLook {
     splashRippleSpeed: number;
     splashWavelength: number;
     splashRippleSeconds: number;
+    /** the crater where it lands: how deep, how wide, and how long one sink-and-rebound takes (it settles over a few) */
+    splashCraterDepth: number;
+    splashCraterRadius: number;
+    splashCraterSeconds: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
     /** darker, wet band on the pillars just above the surface */
@@ -484,6 +511,9 @@ export const WATER_LOOK: WaterLook = {
     splashRippleSpeed: 1.5,
     splashWavelength: 0.35,
     splashRippleSeconds: 6,
+    splashCraterDepth: 0.35,
+    splashCraterRadius: 0.8,
+    splashCraterSeconds: 1.4,
     splashGlowRadius: 3.5,
     wetBandHeight: 0.09,
     wetBandDarkness: 0,

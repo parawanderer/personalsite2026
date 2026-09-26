@@ -3,6 +3,7 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
 import { ShootingStarSettings } from '../constants';
+import { SplashMist } from './splash-mist';
 import { Water, WATER_LEVEL_Y } from './water';
 
 // the far end of the channel, where splashdowns land (x across the channel, z along it)
@@ -131,8 +132,17 @@ export class ShootingStars implements AnimatedEntity {
     private nextAt = 0;
     private flashStart = -1;
     private nightAmount = 0;
+    private readonly mist: SplashMist;
 
-    constructor(scene: Scene, private readonly settings: ShootingStarSettings, private readonly water: Water) {
+    /**
+     * @param pixelScale pixels per world unit at distance 1, for sizing the plume's puffs
+     */
+    constructor(
+        scene: Scene,
+        private readonly settings: ShootingStarSettings,
+        private readonly water: Water,
+        private readonly pixelScale: () => number,
+    ) {
         this.streak = new Mesh(new PlaneGeometry(1, 1, 16, 1), streakMaterial());
         this.streak.frustumCulled = false;
         this.streak.visible = false;
@@ -152,6 +162,9 @@ export class ShootingStars implements AnimatedEntity {
         this.droplets.frustumCulled = false;
         this.droplets.visible = false;
         scene.add(this.droplets);
+
+        this.mist = new SplashMist(settings);
+        scene.add(this.mist.points);
     }
 
     public setNight(amount: number): void {
@@ -224,6 +237,7 @@ export class ShootingStars implements AnimatedEntity {
                     this.flashStart = now;
                     this.impact.set(impact.x, WATER_LEVEL_Y, impact.z);
                     this.throwDroplets();
+                    this.mist.splash(this.impact, now);
                     this.water.splash(impact.x, impact.z);
                 }
                 this.meteor = undefined;
@@ -270,6 +284,7 @@ export class ShootingStars implements AnimatedEntity {
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
 
         this.updateSplash(sinceFlash);
+        this.mist.update(now, flash, this.nightAmount, this.pixelScale());
     }
 
     private throwDroplets(): void {
@@ -329,6 +344,16 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashHeight', 0, 5, 0.05);
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);
+        folder.add(s, 'splashMistCount', 0, 2000, 10);
+        folder.add(s, 'splashMistSize', 0.05, 4, 0.05);
+        folder.add(s, 'splashMistHeight', 0, 8, 0.05);
+        folder.add(s, 'splashMistSpread', 0, 8, 0.05);
+        folder.add(s, 'splashMistSeconds', 0.2, 10, 0.1);
+        folder.add(s, 'splashMistOpacity', 0, 1, 0.01);
+        folder.add(s, 'splashMistDrag', 0.1, 8, 0.05);
+        folder.add(s, 'splashMistGravity', 0, 5, 0.05);
+        folder.add(s, 'splashMistAmbient', 0, 1, 0.01);
+        folder.add(s, 'splashMistFlashLit', 0, 5, 0.05);
         folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splash + light)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
     }

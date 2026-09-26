@@ -114,10 +114,14 @@ uniform float splashRippleHeight;
 uniform float splashRippleSpeed;
 uniform float splashWavelength;
 uniform float splashRippleSeconds;
+uniform float splashCraterDepth;
+uniform float splashCraterRadius;
+uniform float splashCraterSeconds;
 uniform vec3 splashGlow;
 uniform float splashGlowRadius;
 
-// rings spreading from a meteor impact: a wave packet travelling outwards, fading with time and distance.
+// rings spreading from a meteor impact: a wave packet travelling outwards, fading with time and distance,
+// and the crater where it landed, which sinks, rebounds into a mound and settles over a few swings, only near the impact.
 // Returns (height, gradient x, z)
 vec3 splashRipple(vec2 p) {
     if (splashAge >= splashRippleSeconds) return vec3(0.0);
@@ -130,6 +134,16 @@ vec3 splashRipple(vec2 p) {
     float k = 6.2831853 / splashWavelength;
     float h = splashRippleHeight * packet * fade * cos(k * x);
     float dhdr = -splashRippleHeight * packet * fade * k * sin(k * x);
+
+    float swing = splashAge / splashCraterSeconds;
+    if (swing < 4.0) {
+        float r2 = splashCraterRadius * splashCraterRadius;
+        float bowl = exp(-r * r / r2);
+        float c = splashCraterDepth * cos(6.2831853 * swing) * exp(-swing * 1.2) * smoothstep(4.0, 3.0, swing);
+        h -= c * bowl;
+        dhdr += c * bowl * 2.0 * r / r2;
+    }
+
     vec2 g = r > 1e-4 ? d / r * dhdr : vec2(0.0);
     return vec3(h, g);
 }
