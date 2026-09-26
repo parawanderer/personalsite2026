@@ -477,10 +477,10 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashCraterDepth', 0, 1.5, 0.01).onChange(apply);
         folder.add(this.look, 'splashCraterRadius', 0.05, 4, 0.05).onChange(apply);
         folder.add(this.look, 'splashCraterSeconds', 0.1, 5, 0.05).onChange(apply);
-        folder.add(this.look, 'splashSwellHeight', 0, 0.6, 0.005).onChange(apply);
+        folder.add(this.look, 'splashSwellHeight', 0, 2, 0.01).onChange(apply);
         folder.add(this.look, 'splashSwellSpeed', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashSwellWidth', 0.05, 3, 0.05).onChange(apply);
-        folder.add(this.look, 'splashSwellFade', 0.5, 30, 0.25).onChange(apply);
+        folder.add(this.look, 'splashSwellFade', 0.5, 60, 0.25).onChange(apply);
         folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashWaterReach', 0, 3, 0.01).onChange(apply);
         folder.add(this.look, 'splashHighlight', 0, 20, 0.1).onChange(apply);
