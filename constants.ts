@@ -8,7 +8,7 @@ export const DEBUG = false;
 export const TWEAKS_ENABLED = DEBUG || new URLSearchParams(window.location.search).has('tweaks');
 
 export const TITLE_HOME = "Home";
-export const TITLE_ABOUT_ME = "About Me";
+export const TITLE_LINKS = "Links";
 export const TITLE_CONTACT = "Contact";
 
 
@@ -47,14 +47,14 @@ export const CAMERA_HOME_POS = new Vector3(-2.3892, -0.4283, 4.5683);
 /** point the camera looks at */
 export const CAMERA_HOME_DIR = new Vector3(-1.7774, -0.6989, 3.8250);
 
-export const CAMERA_ABOUT_ME_X = -0.8113;
-export const CAMERA_ABOUT_ME_Y = -0.5845;
-export const CAMERA_ABOUT_ME_Z = 3.5314;
-export const CAMERA_ABOUT_ME_DIRECTION_X = -3;
-export const CAMERA_ABOUT_ME_DIRECTION_Y = -2;
-export const CAMERA_ABOUT_ME_DIRECTION_Z = 0;
-export const CAMERA_ABOUT_ME_POS = new Vector3(CAMERA_ABOUT_ME_X, CAMERA_ABOUT_ME_Y, CAMERA_ABOUT_ME_Z);
-export const CAMERA_ABOUT_ME_DIR = new Vector3(CAMERA_ABOUT_ME_DIRECTION_X, CAMERA_ABOUT_ME_DIRECTION_Y, CAMERA_ABOUT_ME_DIRECTION_Z-1);
+export const CAMERA_LINKS_X = -0.8113;
+export const CAMERA_LINKS_Y = -0.5845;
+export const CAMERA_LINKS_Z = 3.5314;
+export const CAMERA_LINKS_DIRECTION_X = -3;
+export const CAMERA_LINKS_DIRECTION_Y = -2;
+export const CAMERA_LINKS_DIRECTION_Z = 0;
+export const CAMERA_LINKS_POS = new Vector3(CAMERA_LINKS_X, CAMERA_LINKS_Y, CAMERA_LINKS_Z);
+export const CAMERA_LINKS_DIR = new Vector3(CAMERA_LINKS_DIRECTION_X, CAMERA_LINKS_DIRECTION_Y, CAMERA_LINKS_DIRECTION_Z-1);
 
 export const CAMERA_CONTACT_X = 0;
 export const CAMERA_CONTACT_Y = 0;
@@ -114,7 +114,7 @@ export const GRAIN_STYLE: GrainStyle = {
 // distance blur (postprocessing/distance-blur.ts)
 export interface DistanceBlurSettings {
     enabled: boolean;
-    /** the blur fades in while a text panel (about, contact) is open, and out again on home and in free flight */
+    /** the blur fades in while a text panel (links, contact) is open, and out again on home and in free flight */
     transitionSeconds: number;
     /** show the blur all the time, for tuning it */
     alwaysOn: boolean;

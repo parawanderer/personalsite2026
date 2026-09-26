@@ -266,8 +266,56 @@ svg .anim * {
     margin-bottom: 2em;
 }
 
-.about-me-title {
+.links-title {
     margin-bottom: 1.5em;
+}
+
+.link-list {
+    list-style: none;
+    margin: 0 0 1em;
+    padding: 0;
+}
+
+.link-list li + li {
+    margin-top: 1.4em;
+}
+
+.link-item {
+    display: flex;
+    flex-direction: column;
+    width: fit-content;
+    margin-left: 5pt;
+    text-decoration: none;
+    color: white;
+}
+
+.link-name {
+    font-size: 14pt;
+    font-weight: 400;
+    position: relative;
+}
+
+/* the same underline as the contact links */
+.link-name:after {
+    content: "";
+    border-top: 1.5pt solid white;
+    width: 0%;
+    position: absolute;
+    bottom: -2pt;
+    left: 0;
+    border-radius: 4pt;
+    transition: width 0.5s ease-in-out;
+}
+
+a.link-item:hover .link-name:after {
+    width: 100%;
+}
+
+.link-note {
+    font-size: 11pt;
+    font-weight: 300;
+    line-height: 1.5;
+    color: #ffffffa0;
 }
 
 .hidden-panel {

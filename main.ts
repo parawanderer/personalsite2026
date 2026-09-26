@@ -29,8 +29,8 @@ import {
     TEXTURE_PARTICLE_RED,
     CUBE_LIGHT_COLOR,
     DEBUG,
-    CAMERA_ABOUT_ME_POS,
-    CAMERA_ABOUT_ME_DIR,
+    CAMERA_LINKS_POS,
+    CAMERA_LINKS_DIR,
     CAMERA_CONTACT_POS,
     CAMERA_CONTACT_DIR,
     CAMERA_HOME_POS,
@@ -398,8 +398,8 @@ fgMngr.setHomeCallback(() => {
     panelOpen = false;
     updateBlur();
 });
-fgMngr.setAboutMeCallback(() => {
-    moveCameraTo(camera, CAMERA_ABOUT_ME_POS.clone(), CAMERA_ABOUT_ME_DIR.clone());
+fgMngr.setLinksCallback(() => {
+    moveCameraTo(camera, CAMERA_LINKS_POS.clone(), CAMERA_LINKS_DIR.clone());
     panelOpen = true;
     updateBlur();
 });

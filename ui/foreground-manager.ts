@@ -1,7 +1,7 @@
 import { InteractionManager } from "../interact";
 import { getByIdOrThrow } from "../utils/document";
 
-import { TITLE_HOME, TITLE_ABOUT_ME, TITLE_CONTACT } from '../constants';
+import { TITLE_HOME, TITLE_LINKS, TITLE_CONTACT } from '../constants';
 
 
 const ANIMATE_APPEAR = 'animate-appear';
@@ -26,8 +26,8 @@ export class ForegroundManager {
     private onPressHomeButtonCallback?: () => void;
     private onFreeFlightCallback?: (isFreeFlight: boolean) => void;
 
-    private readonly aboutMeButton: HTMLButtonElement;
-    private onPressAboutMeButtonCallback?: () => void;
+    private readonly linksButton: HTMLButtonElement;
+    private onPressLinksButtonCallback?: () => void;
 
     private readonly contactButton: HTMLButtonElement;
     private onPressContactButtonCallback?: () => void;
@@ -57,12 +57,12 @@ export class ForegroundManager {
         this.returnFromFreeFlightButton = getByIdOrThrow("returnFromFreeFlight");
 
         this.homeButton = getByIdOrThrow('homeButton');
-        this.aboutMeButton = getByIdOrThrow('aboutMeButton');
+        this.linksButton = getByIdOrThrow('linksButton');
         this.contactButton = getByIdOrThrow('contactButton');
 
         this.homeButton.addEventListener("click", () => this.onPressHome());
 
-        this.aboutMeButton.addEventListener("click", () => this.onPressAboutMe());
+        this.linksButton.addEventListener("click", () => this.onPressLinks());
 
         this.contactButton.addEventListener("click", () => this.onPressContact());
 
@@ -153,17 +153,17 @@ export class ForegroundManager {
         this.onPressHomeButtonCallback();
     }
 
-    private onPressAboutMe() {
-        console.log("Clicked about me button!");
+    private onPressLinks() {
+        console.log("Clicked links button!");
 
         this.hiddenPanel.classList.add(SHOW);
         this.hiddenPanel.classList.remove(FLIPPED);
-        this.setCurrent(this.aboutMeButton);
+        this.setCurrent(this.linksButton);
 
-        document.title = TITLE_ABOUT_ME;
+        document.title = TITLE_LINKS;
 
-        if (!this.onPressAboutMeButtonCallback) return;
-        this.onPressAboutMeButtonCallback();
+        if (!this.onPressLinksButtonCallback) return;
+        this.onPressLinksButtonCallback();
     }
 
     private onPressContact() {
@@ -185,7 +185,7 @@ export class ForegroundManager {
     }
 
     private setCurrent(current: HTMLElement) {
-        for (const button of [this.homeButton, this.aboutMeButton, this.contactButton]) {
+        for (const button of [this.homeButton, this.linksButton, this.contactButton]) {
             if (button === current) {
                 button.setAttribute('aria-current', 'page');
             } else {
@@ -194,8 +194,8 @@ export class ForegroundManager {
         }
     }
 
-    public setAboutMeCallback(callback: () => void) {
-        this.onPressAboutMeButtonCallback = callback;
+    public setLinksCallback(callback: () => void) {
+        this.onPressLinksButtonCallback = callback;
     }
 
     private dismissHints(): void {

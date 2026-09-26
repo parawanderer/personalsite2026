@@ -69,13 +69,31 @@
     <main class="hud hideable-ui">
         <section id="hiddenPanel" class="flip-panel hidden-panel">
             <div class="flip-panel-inner">
-                <div class="flip-panel-front text-panel about-me-panel">
+                <div class="flip-panel-front text-panel links-panel">
                     <div class="text-panel-content">
-                        <h1 class="about-me-title">Title</h1>
+                        <h1 class="links-title">Links</h1>
                         <span class="line"></span>
-                        <p>
-                            Body text
-                        </p>
+                        <!-- TODO: placeholders, fill in the real work -->
+                        <ul class="link-list">
+                            <li>
+                                <a class="link-item" href="#" target="_blank" rel="noopener">
+                                    <span class="link-name">Project one</span>
+                                    <span class="link-note">One line on what it is</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="link-item" href="#" target="_blank" rel="noopener">
+                                    <span class="link-name">Project two</span>
+                                    <span class="link-note">One line on what it is</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="link-item" href="#" target="_blank" rel="noopener">
+                                    <span class="link-name">Project three</span>
+                                    <span class="link-note">One line on what it is</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
                 </div>
                 <div class="flip-panel-back text-panel contact-panel">
@@ -109,15 +127,15 @@
 
         <header id="logo" class="logo-container">
             <img id="logo-img" class="logo-primary animate-appear" src="wanderdev2_white.svg" alt="Wander.Dev Logo"/>
-            <div class="name-title animate-appear">
+            <!-- <div class="name-title animate-appear">
                 Shane B. <span class="text-sep"></span> Computer Scientist
-            </div>
+            </div> -->
         </header>
 
         <nav class="nav">
             <div class="nav-primary">
                 <button class="grain-button wide animate-appear" id="homeButton" aria-current="page">Home</button>
-                <button class="grain-button wide animate-appear" id="aboutMeButton">About</button>
+                <button class="grain-button wide animate-appear" id="linksButton">Links</button>
                 <button class="grain-button wide animate-appear" id="contactButton">Contact</button>
             </div>
             <div class="nav-secondary">
@@ -125,10 +143,10 @@
                     <img src="/lock_open_right_materialicons3_google.svg" alt="">
                     <span>Inspect Scene</span>
                 </button>
-                <a class="grain-button small animate-appear" href="https://github.com/parawanderer/personalsite2026" target="_blank" rel="noopener">
+                <!-- <a class="grain-button small animate-appear" href="https://github.com/parawanderer/personalsite2026" target="_blank" rel="noopener">
                     <img src="/github-mark-white.svg" alt="">
                     <span>Source</span>
-                </a>
+                </a> -->
             </div>
         </nav>
     </main>
