@@ -263,6 +263,7 @@ varying float vParticleSunk;
 // the water's underwater colour, and how fast a sinking particle disappears into it (per metre of depth)
 uniform vec3 particleMurkColor;
 uniform float particleSinkMurk;
+uniform float particleWaterY;
 uniform vec3 particleFlashColor;
 uniform float particleFlash;
 `;
@@ -274,9 +275,12 @@ export const flashTintFrag = /* glsl */ `
 #include <opaque_fragment>
 // (edits) ${fileName}
 gl_FragColor.rgb = mix(gl_FragColor.rgb, particleFlashColor, particleFlash);
-// sinking: seen through the thick water it's quickly swallowed by its colour, so it clearly goes under (in output
-// colours, like the rest of the underwater shading)
-gl_FragColor.rgb = mix(gl_FragColor.rgb, linearToOutputTexel(vec4(particleMurkColor, 1.0)).rgb, 1.0 - exp(-particleSinkMurk * vParticleSunk));
+// sinking, seen from above: through the thick water it's quickly swallowed by its colour, so it clearly goes under (in
+// output colours, like the rest of the underwater shading). From under the water it's right there with the camera,
+// and fades by its distance like everything else instead
+if (cameraPosition.y > particleWaterY) {
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, linearToOutputTexel(vec4(particleMurkColor, 1.0)).rgb, 1.0 - exp(-particleSinkMurk * vParticleSunk));
+}
 `;
 
 export const dotFrag = /* glsl */ `
