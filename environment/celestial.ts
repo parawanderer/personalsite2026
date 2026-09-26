@@ -125,7 +125,8 @@ export class Celestial implements AnimatedEntity {
 
         this.light.color.set(b.color);
         this.light.intensity = b.lightIntensity * this.up;
-        this.light.visible = this.light.intensity > 0;
+        // stays in the scene at zero intensity rather than being hidden: adding or removing a light recompiles every
+        // lit material's shader, a stall
         this.light.position.copy(this.camera.position).addScaledVector(this.direction, 50);
         this.light.target.position.copy(this.camera.position);
     }

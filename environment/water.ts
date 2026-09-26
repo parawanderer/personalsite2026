@@ -322,6 +322,12 @@ export class Water implements AnimatedEntity {
     /**
      * @param flash how bright the flash is right now, 0 to 1: the rest of the water darkens by as much, relatively
      */
+    /** whether the water shows the meteor flash's shadows (off while there's no flash: a uniform, not a recompile) */
+    public set receivesShadows(receive: boolean) {
+        this.water.receiveShadow = receive;
+        if (this.patch) this.patch.receiveShadow = receive;
+    }
+
     /** the uniforms for the cursor pressing on the water, which environment/water-touch.ts keeps up to date */
     public get touchUniforms() {
         const u = this.surfaceUniforms;

@@ -1,4 +1,4 @@
-import { AdditiveBlending, IUniform, MeshBasicMaterial, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
+import { AdditiveBlending, BoxGeometry, IUniform, MeshBasicMaterial, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
@@ -133,6 +133,9 @@ export class ShootingStars implements AnimatedEntity {
     private flashStart = -1;
     private nightAmount = 0;
     private hasCasters = false;
+    private shadowsShown = false;
+    /** told when the flash's shadows should start or stop showing, for the surfaces that receive them */
+    public onShadows?: (shown: boolean) => void;
     /** told the flash's colour and brightness (0 to 1) every frame, for things that fake its light */
     public onFlash?: (color: Color, amount: number) => void;
     private readonly mist: SplashMist;
@@ -192,6 +195,39 @@ export class ShootingStars implements AnimatedEntity {
 
         this.mist = new SplashMist(settings, fog);
         scene.add(this.mist.points);
+    }
+
+    /**
+     * Draws one frame (with `render`) with everything a splashdown shows: the shadow-casting pillars and the surfaces
+     * receiving their shadows, the plume, the droplets and the streak, so their shaders are compiled now, behind the
+     * loading screen, instead of stalling the first impact. The flash light and its shadows never switch off (that
+     * would change the scene's light setup, and three.js would drop the compiled shaders and redo them all at the next
+     * impact), so these stay compiled.
+     */
+    public warmUp(render: () => void): void {
+        const flash = this.flash;
+        flash.intensity = 0;
+        flash.position.set(0, WATER_LEVEL_Y + 0.6, -10);
+        flash.castShadow = true;
+        flash.shadow.needsUpdate = true;
+        this.casters.geometry.dispose();
+        this.casters.geometry = this.shadowCasters(flash.position) ?? new BoxGeometry(0.1, 0.1, 0.1);
+        this.casters.visible = true;
+        this.mist.points.visible = true;
+        this.droplets.visible = true;
+        this.streak.visible = true;
+        this.onShadows?.(true);
+
+        render();
+
+        this.onShadows?.(false);
+        this.casters.visible = false;
+        this.casters.geometry.dispose();
+        this.casters.geometry = new BufferGeometry();
+        this.hasCasters = false;
+        this.mist.points.visible = false;
+        this.droplets.visible = false;
+        this.streak.visible = false;
     }
 
     public setNight(amount: number): void {
@@ -311,8 +347,15 @@ export class ShootingStars implements AnimatedEntity {
         this.flashColor.set(s.color);
         this.flash.intensity = s.splashLight * flash;
         this.flash.distance = s.splashLightRange;
-        this.flash.castShadow = s.splashShadows && this.hasCasters;
-        this.casters.visible = this.flash.visible && this.flash.castShadow;
+        // the light and its shadows stay on all the time (see warmUp): switching either changes the scene's light setup,
+        // which recompiles every lit material's shader. Whether its shadows show is left to the surfaces receiving them
+        this.flash.castShadow = s.splashShadows;
+        const shadowsShown = s.splashShadows && this.hasCasters && flash > 0;
+        this.casters.visible = shadowsShown;
+        if (shadowsShown !== this.shadowsShown) {
+            this.shadowsShown = shadowsShown;
+            this.onShadows?.(shadowsShown);
+        }
         // debugging: which pillars those are, drawn over them in magenta
         const debug = this.casters.material;
         if (debug.colorWrite !== s.showShadowCasters) {
@@ -330,7 +373,7 @@ export class ShootingStars implements AnimatedEntity {
             this.flash.shadow.needsUpdate = true;
         }
         this.flash.color.copy(this.flashColor);
-        this.flash.visible = flash > 0;
+
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash, flash);
         this.onFlash?.(this.flashColor, flash);
 

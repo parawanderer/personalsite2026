@@ -55,6 +55,13 @@ them. Without `?tweaks` everything runs on the defaults.
 - **Materials that share a uniforms object share three's light and shadow uniforms too**, which three flags per draw;
   one of them ends up with stale shadow maps. The camera-following water patch copies three's light uniforms for that
   reason (`environment/water.ts`).
+- **Never switch lights (or their `castShadow`) on and off.** Changing the scene's light setup makes three.js recompile
+  every lit material's shader, a stall of 100+ ms, and it drops the old versions, so switching back recompiles again.
+  Lights stay in the scene at zero intensity; shadows are shown or not with objects' `receiveShadow`, a plain uniform.
+  `ShootingStars.warmUp` draws one frame with everything a splashdown shows before the page appears, so those shaders
+  are compiled up front. Anything new that appears only now and then needs the same.
+- **Shader edits are string replacements that can collide**: two edits of the same line (like the water's albedo line)
+  only work if each matches a part the other leaves alone. `applyEdits` warns in the console when a search misses.
 - **three's Water shader already declares** `sunDirection`, a local `distance` and friends; name your additions apart
   (`glowSun...`) and use `length(a - b)`. `half` is reserved in GLSL.
 - **Shadow bias hides shadows under grazing light**: the meteor flash sits 0.6 m above the water, so its shadows use

@@ -310,7 +310,15 @@ if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.e
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
 // the flash's shadows on the pillars are left out of the water's reflection: every pillar pixel would look them up a
 // second time, for shadows the blurred, rippled reflection barely shows
-water.aroundReflection(() => walls.receivesShadows = false, () => walls.receivesShadows = true);
+let flashShadowsShown = false;
+water.aroundReflection(() => walls.receivesShadows = false, () => walls.receivesShadows = flashShadowsShown);
+// the flash's shadows are only looked up while they show
+shootingStars.onShadows = (shown) => {
+    flashShadowsShown = shown;
+    walls.receivesShadows = shown;
+    water.receivesShadows = shown;
+};
+shootingStars.onShadows(false);
 shootingStars.onFlash = (color, amount) => {
     particles.setFlash(color, amount);
     // comes on at once with the flash, eases off only near its end
@@ -383,6 +391,8 @@ const animate = () => {
 
     composer.render();
 }
+// compile the shaders a meteor's splashdown needs now, behind the loading screen, instead of stalling its impact
+shootingStars.warmUp(() => composer.render());
 renderer.setAnimationLoop(animate);
 
 

@@ -215,7 +215,8 @@ export class Aurora implements AnimatedEntity {
 
         this.light.color.set(s.colorLow).lerp(new Color(s.colorHigh), 0.35);
         this.light.intensity = s.lightIntensity * amount;
-        this.light.visible = this.light.intensity > 0;
+        // stays in the scene at zero intensity rather than being hidden: adding or removing a light recompiles every
+        // lit material's shader, a stall
     }
 
     public bindTweaks(folder: GUI): void {
