@@ -39,6 +39,8 @@ const streakMaterial = () => new ShaderMaterial({
         time: { value: 0 },
         // 0 while the meteor flies, rising to 1 as its train lingers and breaks up
         sparkle: { value: 0 },
+        // nothing shows below the water line, so a splashdown's train always ends at the surface
+        waterLevel: { value: WATER_LEVEL_Y },
     },
     vertexShader: /* glsl */ `
         uniform vec3 head;
@@ -46,6 +48,7 @@ const streakMaterial = () => new ShaderMaterial({
         uniform float width;
         uniform float sparkle;
         varying vec2 vStreak;
+        varying float vWorldY;
         void main() {
             // x runs from the tail (-0.5) to the head (0.5), y across the streak, which always faces the camera
             float along = position.x + 0.5;
@@ -54,6 +57,7 @@ const streakMaterial = () => new ShaderMaterial({
             // the lingering train spreads out as it fades, like smoke
             p += side * position.y * width * mix(0.3, 1.0, along) * (1.0 + sparkle * 1.5);
             vStreak = vec2(along, position.y * 2.0);
+            vWorldY = p.y;
             gl_Position = projectionMatrix * viewMatrix * vec4(p, 1.0);
         }
     `,
@@ -62,7 +66,9 @@ const streakMaterial = () => new ShaderMaterial({
         uniform float intensity;
         uniform float time;
         uniform float sparkle;
+        uniform float waterLevel;
         varying vec2 vStreak;
+        varying float vWorldY;
         void main() {
             // a soft core that gets softer as the train spreads
             float core = 1.0 - smoothstep(0.0, mix(1.0, 1.6, sparkle), abs(vStreak.y));
@@ -81,7 +87,9 @@ const streakMaterial = () => new ShaderMaterial({
             float cell = floor(vStreak.x * 140.0);
             float spark = step(0.93, fract(sin(cell * 12.9898 + floor(time * 10.0) * 78.233) * 43758.5453));
             float sparks = spark * smoothstep(0.55, 1.0, vStreak.x) * (1.0 - smoothstep(0.0, 0.35, abs(vStreak.y))) * sparkle * 1.5;
-            gl_FragColor = vec4(color * (along * core * unevenness + sparks) * intensity, 1.0);
+            // cut off at the surface, softly enough to hide the ripples moving it
+            float aboveWater = smoothstep(waterLevel - 0.03, waterLevel + 0.03, vWorldY);
+            gl_FragColor = vec4(color * (along * core * unevenness + sparks) * intensity * aboveWater, 1.0);
         }
     `,
     transparent: true,
@@ -207,6 +215,11 @@ export class ShootingStars implements AnimatedEntity {
                 this.burnoutTail.copy(u.tail.value);
                 if (m.splash) {
                     const impact = m.start.clone().addScaledVector(m.direction, m.speed * m.duration);
+                    // the head goes on under the water, deep enough that its whole (spreading) end is below the surface
+                    // and the train is cut by the water line, not by where the last frame happened to leave it
+                    const under = (s.width * 2.5 + 0.2) / Math.max(Math.abs(m.direction.y), 0.3);
+                    u.head.value.copy(impact).addScaledVector(m.direction, under);
+                    u.tail.value.copy(impact).addScaledVector(m.direction, -s.length);
                     this.flash.position.set(impact.x, WATER_LEVEL_Y + 0.6, impact.z);
                     this.flashStart = now;
                     this.impact.set(impact.x, WATER_LEVEL_Y, impact.z);
@@ -245,11 +258,10 @@ export class ShootingStars implements AnimatedEntity {
             }
         }
 
-        // the impact: an instant, bright flash that dies away quickly, lighting the pillars and the water
+        // the impact: an instant, bright flash lighting the pillars and the water, dying away with the train
         const sinceFlash = now - this.flashStart;
-        const flash = this.flashStart >= 0 && sinceFlash < s.splashSeconds
-            ? Math.exp(-sinceFlash / (s.splashSeconds * 0.22)) * (1 - sinceFlash / s.splashSeconds)
-            : 0;
+        const flashAge = sinceFlash / Math.max(s.trainSeconds, 1e-3);
+        const flash = this.flashStart >= 0 && flashAge < 1 ? Math.pow(1 - flashAge, 1.5) : 0;
         this.flashColor.set(s.color);
         this.flash.intensity = s.splashLight * flash;
         this.flash.distance = s.splashLightRange;
@@ -311,14 +323,13 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'length', 0.5, 40, 0.5);
         folder.add(s, 'width', 0.02, 1, 0.01);
         folder.add(s, 'splashChance', 0, 1, 0.01);
-        folder.add(s, 'splashLight', 0, 2000, 5);
+        folder.add(s, 'splashLight', 0, 5000, 5);
         folder.add(s, 'splashLightRange', 1, 80, 1);
         folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
         folder.add(s, 'splashHeight', 0, 5, 0.05);
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);
-        folder.add(s, 'splashSeconds', 0.1, 5, 0.1);
-        folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splashdowns)');
+        folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splash + light)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
     }
 }

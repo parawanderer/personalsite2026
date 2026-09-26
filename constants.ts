@@ -335,7 +335,7 @@ export interface ShootingStarSettings {
     width: number;
     /** chance one comes down into the far end of the channel instead */
     splashChance: number;
-    /** the light where it hits the water, how far it reaches, and how long it lasts */
+    /** the light where it hits the water and how far it reaches; it dies away with the train (trainSeconds) */
     splashLight: number;
     splashLightRange: number;
     /** brightness of the glow on the water itself around the impact */
@@ -344,8 +344,7 @@ export interface ShootingStarSettings {
     splashHeight: number;
     splashSpread: number;
     splashDropletSize: number;
-    splashSeconds: number;
-    /** how long the glowing train of a splashdown lingers after the impact, breaking up (sky meteors just burn out) */
+    /** how long the glowing train of a splashdown (and the impact's light) lingers, breaking up (sky meteors just burn out) */
     trainSeconds: number;
 }
 
@@ -359,13 +358,12 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     length: 10,
     width: 0.25,
     splashChance: 0.25,
-    splashLight: 600,
+    splashLight: 2000,
     splashLightRange: 30,
-    splashWaterGlow: 20,
+    splashWaterGlow: 6.5,
     splashHeight: 1.4,
-    splashSpread: 1.2,
-    splashDropletSize: 0.08,
-    splashSeconds: 0.9,
+    splashSpread: 2.35,
+    splashDropletSize: 0.05,
     trainSeconds: 1.4,
 };
 
