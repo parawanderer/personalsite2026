@@ -57,8 +57,9 @@ const WATER_EDITS: [string, string][] = [
     ],
     [
         // the shadow is looked up once and reused below: each lookup is several texture reads, on every water pixel
-        "vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );",
-        "float waterShadow = getShadowMask();\nvec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * waterShadow, reflectionSample + specularLight, reflectance );"
+        // only the start of the line: the reflectance edit below rewrites its end
+        "vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(),",
+        "float waterShadow = getShadowMask();\nvec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * waterShadow,"
     ],
     [
         "gl_FragColor = vec4( outgoingLight, alpha );",
