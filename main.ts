@@ -470,7 +470,7 @@ const animate = () => {
         godRaySuns[k].color.set(body.color).multiplyScalar(body.brightness);
         godRaySuns[k].up = sun.up;
     });
-    godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, walls.channelEdges(camera.position.z));
+    godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, walls.channelEdges(camera.position.z), 1 - dayNight.nightAmount);
 
     composer.render();
 }

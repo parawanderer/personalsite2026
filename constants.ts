@@ -255,9 +255,10 @@ export const SUN_SMALL: CelestialBody = {
     brightness: 1.6,
     haloScale: 3,
     haloStrength: 0.2,
-    riseHour: 3,
-    hoursUp: 11,
-    periodHours: 16,
+    // up during the day only, like the large one (the sky is night-dark by the hour), but a shorter, quicker arc
+    riseHour: 8,
+    hoursUp: 10,
+    periodHours: 24,
     azimuthRise: -120,
     azimuthSet: 60,
     peakElevation: 40,

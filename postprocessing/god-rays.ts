@@ -123,7 +123,11 @@ export class GodRaysPass extends Pass {
      * @param suns each sun: towards it, its colour times brightness, and 0 to 1 for how far it's risen; brightest first
      * @param flow how far the surface has drifted (shared with the water)
      */
-    public update(underwater: boolean, waterLevel: number, suns: { direction: Vector3, color: Color, up: number }[], time: number, flow: Vector2, viewDensity: number, walls?: { left: number, right: number }): void {
+    /**
+     * @param daylight 1 by day, 0 at night: the world is drawn night-dark by the hour, so no shafts then even if a sun
+     *                 is up (only possible with tweaked orbits)
+     */
+    public update(underwater: boolean, waterLevel: number, suns: { direction: Vector3, color: Color, up: number }[], time: number, flow: Vector2, viewDensity: number, walls: { left: number, right: number } | undefined, daylight: number): void {
         const s = this.settings;
         const u = this.material.uniforms;
         const dirs = shaftUniforms.shaftLightDir.value as Vector3[];
@@ -151,7 +155,7 @@ export class GodRaysPass extends Pass {
             const elevation = Math.asin(Math.min(Math.max(sun.direction.y, -1), 1)) * 180 / Math.PI;
             const high = Math.min(Math.max((elevation - s.minElevationDeg) / 20, 0), 1);
             // mostly white: the water filters the sun's own tint out
-            colors[k].copy(sun.color).lerp(WHITE, 0.6).multiplyScalar(on ? sun.up * high * high * (3 - 2 * high) : 0);
+            colors[k].copy(sun.color).lerp(WHITE, 0.6).multiplyScalar(on ? sun.up * high * high * (3 - 2 * high) * daylight : 0);
             any ||= colors[k].r + colors[k].g + colors[k].b > 0;
         });
         this.enabled = any;
