@@ -244,6 +244,7 @@ if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
         .number((v) => water.surface.fresnelPower.value = v, () => w.fresnelPower, 'nightFresnelPower')
         .number((v) => water.surface.reflectionStrength.value = v, () => 1, 'nightReflectionStrength')
         .number((v) => water.surface.reflectionGrey.value = v, () => 1, 'nightReflectionGrey')
+        .number((v) => { walls.setFogSpeed(v); water.setFogSpeed(v); }, () => 1, 'nightFogSpeed')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
         .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')

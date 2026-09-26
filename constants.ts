@@ -174,6 +174,8 @@ export interface DayNightSettings {
     nightReflectionGrey: number;
     /** fill colour of the menu buttons at night */
     nightMenuFill: string;
+    /** how fast the coloured fog drifts at night, 1 = as by day, 0 = still */
+    nightFogSpeed: number;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -203,6 +205,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightReflectionStrength: 3.28,
     nightReflectionGrey: 0.3,
     nightMenuFill: '#1e2e39',
+    nightFogSpeed: 0,
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x

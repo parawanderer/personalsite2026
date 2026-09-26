@@ -205,6 +205,12 @@ const distanceToPillar = (point: Vector3, centre: Vector3, axis: Vector3, height
 
 export class Walls implements AnimatedEntity {
     private lastFogUpdate: number = 0;
+    /** how fast the fog drifts, 1 = normal (the day/night cycle slows it at night) */
+    private fogSpeed = 1;
+
+    public setFogSpeed(speed: number): void {
+        this.fogSpeed = speed;
+    }
 
     constructor(
         private readonly mask: number[][],
@@ -233,7 +239,7 @@ export class Walls implements AnimatedEntity {
         if (!uniforms) return;
 
         if (clock.oldTime - this.lastFogUpdate >= FOG_UPDATE_EVERY_MS) {
-            uniforms['fogTime'].value += FOG_UPDATE_BY;
+            uniforms['fogTime'].value += FOG_UPDATE_BY * this.fogSpeed;
             this.lastFogUpdate = clock.oldTime;
         }
     }

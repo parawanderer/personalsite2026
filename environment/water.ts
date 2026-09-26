@@ -129,6 +129,12 @@ const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) =>
 export class Water implements AnimatedEntity {
     private lastWaterUpdate: number = 0;
     private lastFogUpdate: number = 0;
+    /** how fast the fog drifts, 1 = normal (the day/night cycle slows it at night) */
+    private fogSpeed = 1;
+
+    public setFogSpeed(speed: number): void {
+        this.fogSpeed = speed;
+    }
 
     /** how fast the surface drifts (world units per second, x and z), for things floating on it */
     public readonly flowVelocity = new Vector2();
@@ -413,7 +419,7 @@ export class Water implements AnimatedEntity {
 
         const uniforms = this.fogShader.getUniforms();
         if (uniforms && clock.oldTime - this.lastFogUpdate >= FOG_UPDATE_EVERY_MS) {
-            uniforms['fogTime'].value += FOG_UPDATE_BY;
+            uniforms['fogTime'].value += FOG_UPDATE_BY * this.fogSpeed;
             this.lastFogUpdate = clock.oldTime;
         }
     }
