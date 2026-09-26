@@ -602,7 +602,7 @@ export const WATER_LOOK: WaterLook = {
     undersideClarity: 0.85,
     underwaterViewDensity: 0.4,
     depthDarkening: 0.18,
-    depthColor: '#2c6a60',
+    depthColor: '#4a4630',
     surfaceWaveHeight: 0.06,
     surfaceWaveSpeed: 1,
     undersideMirror: 0.6,
