@@ -214,6 +214,10 @@ const seabedDepth = () => WATER_LEVEL_Y - water.seabedY;
 const seabed = new Mesh(walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS), walls.material);
 seabed.visible = false;
 scene.add(seabed);
+pillarTweaks.folder?.add(pillarTweaks.params, 'seabedVariation', 0, 1, 0.01).onFinishChange(() => {
+    seabed.geometry.dispose();
+    seabed.geometry = walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS);
+});
 scheduler.add({ update: () => seabed.visible = water.cameraUnderwater });
 water.setPillarField(walls.pillarField);
 particles.setPillarField(walls.pillarField);

@@ -333,7 +333,8 @@ export class Walls implements AnimatedEntity {
     /**
      * The seabed as the tops of tightly packed basalt columns (like the Giant's Causeway): a hexagonal grid over the
      * channel and a little under its walls, each column's top on the bowl (seabedAt), nudged up or down, the odd one
-     * sunken deeper. Built from the same hexagonal prisms as the pillars
+     * sunken deeper. They lean the same way as the pillars, varying less (seabedVariation). Built from the same
+     * hexagonal prisms as the pillars
      */
     public buildSeabed(depth: number, radius: number): BufferGeometry {
         const f = this.pillarField;
@@ -354,17 +355,23 @@ export class Walls implements AnimatedEntity {
         const instances: PillarInstance[] = [];
         for (let c = 0, x = minX; x <= maxX; c++, x += columnStep) {
             for (let z = minZ + (c % 2) * rowStep / 2; z <= maxZ; z += rowStep) {
-                const [nudge, sinkRoll, sinkDepth, uvU, uvV] = Array.from({ length: 5 }, rng);
+                const [nudge, sinkRoll, sinkDepth, uvU, uvV, lean, roll, spin] = Array.from({ length: 8 }, rng);
                 let top = this.seabedAt(x, z, depth) + (nudge - 0.6) * 0.12;
                 if (sinkRoll < 0.05) top -= 0.15 + sinkDepth * 0.25;
+                const l = this.layout;
+                const v = l.seabedVariation;
+                const leanRad = degToRad(l.leanDeg + (lean - 0.5) * l.leanVarianceDeg * v);
+                const rollRad = degToRad((roll * 2 - 1) * Math.max(l.rollVarianceDeg, 4) * v);
+                // the top stays on the bowl; the column hangs from it along its (tilted) axis
+                const axis = new Vector3(0, 1, 0).applyAxisAngle(X_AXIS, leanRad).applyAxisAngle(Z_AXIS, rollRad);
                 instances.push({
-                    centre: new Vector3(x, top - height / 2, z),
+                    centre: new Vector3(x, top, z).addScaledVector(axis, -height / 2),
                     height,
                     // a hair smaller than the grid, so neighbouring sides don't fight over the same place
                     radius: radius * 0.985,
-                    spinRad: 0,
-                    leanRad: 0,
-                    rollRad: 0,
+                    spinRad: degToRad((spin * 2 - 1) * l.selfRotateDeg * v),
+                    leanRad,
+                    rollRad,
                     uvOffsetU: uvU * 100,
                     uvOffsetV: uvV * 100,
                     bevel: 0,

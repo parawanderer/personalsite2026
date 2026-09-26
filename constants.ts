@@ -635,6 +635,8 @@ export interface PillarLayout {
     leanVarianceDeg: number;
     yawVarianceDeg: number;
     rollVarianceDeg: number;
+    /** the seabed's columns lean like the pillars, varying by this share of the pillars' variation */
+    seabedVariation: number;
     selfRotateDeg: number;
     /** pillars passing within this distance of the home camera are cut down, so none fill the landing view */
     /** every pillar reaches at least this far below the water surface; set from the water's seabedDepth */
@@ -713,6 +715,7 @@ export const PILLAR_LAYOUT: PillarLayout = {
     leanVarianceDeg: 10,
     yawVarianceDeg: 15,
     rollVarianceDeg: 1,
+    seabedVariation: 0.4,
     selfRotateDeg: 10,
     depthBelowWater: 1.4,
     cameraClearRadius: 1.5,
