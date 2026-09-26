@@ -356,9 +356,11 @@ export interface ShootingStarSettings {
     /** higher: thrown out faster and stopped sooner, so it billows out and hangs; gravity pulls it back down */
     splashMistDrag: number;
     splashMistGravity: number;
-    /** how lit the plume is on its own, and how much more while the impact's light is on */
-    splashMistAmbient: number;
-    splashMistFlashLit: number;
+    /** the spray's own colour and how bright it looks; the scene's lights (and the impact's flash) light it */
+    splashMistColor: string;
+    splashMistBrightness: number;
+    /** how far light wraps around a puff to its far side, as mist scatters it */
+    splashMistTranslucency: number;
     /** how long the glowing train of a splashdown (and the impact's light) lingers, breaking up (sky meteors just burn out) */
     trainSeconds: number;
 }
@@ -388,8 +390,9 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashMistOpacity: 0.5,
     splashMistDrag: 2.5,
     splashMistGravity: 0.8,
-    splashMistAmbient: 0.12,
-    splashMistFlashLit: 1.2,
+    splashMistColor: '#e4eced',
+    splashMistBrightness: 1,
+    splashMistTranslucency: 0.6,
     trainSeconds: 1.4,
 };
 

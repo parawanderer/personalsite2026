@@ -1,4 +1,4 @@
-import { AdditiveBlending, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
+import { AdditiveBlending, IUniform, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
@@ -142,6 +142,7 @@ export class ShootingStars implements AnimatedEntity {
         private readonly settings: ShootingStarSettings,
         private readonly water: Water,
         private readonly pixelScale: () => number,
+        fog: { fogNearColor: IUniform; fogFarColor: IUniform },
     ) {
         this.streak = new Mesh(new PlaneGeometry(1, 1, 16, 1), streakMaterial());
         this.streak.frustumCulled = false;
@@ -163,7 +164,7 @@ export class ShootingStars implements AnimatedEntity {
         this.droplets.visible = false;
         scene.add(this.droplets);
 
-        this.mist = new SplashMist(settings);
+        this.mist = new SplashMist(settings, fog);
         scene.add(this.mist.points);
     }
 
@@ -284,7 +285,7 @@ export class ShootingStars implements AnimatedEntity {
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
 
         this.updateSplash(sinceFlash);
-        this.mist.update(now, flash, this.nightAmount, this.pixelScale());
+        this.mist.update(now, this.nightAmount, this.pixelScale());
     }
 
     private throwDroplets(): void {
@@ -353,8 +354,9 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashMistOpacity', 0, 1, 0.01);
         folder.add(s, 'splashMistDrag', 0.1, 8, 0.05);
         folder.add(s, 'splashMistGravity', 0, 5, 0.05);
-        folder.add(s, 'splashMistAmbient', 0, 1, 0.01);
-        folder.add(s, 'splashMistFlashLit', 0, 5, 0.05);
+        folder.addColor(s, 'splashMistColor');
+        folder.add(s, 'splashMistBrightness', 0, 5, 0.05);
+        folder.add(s, 'splashMistTranslucency', 0, 2, 0.05);
         folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splash + light)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
     }

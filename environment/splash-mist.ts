@@ -1,12 +1,18 @@
-import { BufferAttribute, BufferGeometry, Color, NormalBlending, Points, ShaderMaterial, Vector3 } from 'three';
+import { BufferAttribute, BufferGeometry, Color, IUniform, NormalBlending, Points, ShaderMaterial, UniformsLib, UniformsUtils, Vector3 } from 'three';
 
 import { ShootingStarSettings } from '../constants';
 
 // enough for the count slider's maximum; the slider only changes how many are drawn
 const MAX_PUFFS = 2000;
 
-const mistMaterial = () => new ShaderMaterial({
+/**
+ * @param fog the pillars' fog colours (near and far), shared so the plume fades into the same haze they do
+ */
+const mistMaterial = (fog: { fogNearColor: IUniform; fogFarColor: IUniform }) => new ShaderMaterial({
     uniforms: {
+        ...UniformsUtils.merge([UniformsLib.lights, UniformsLib.fog]),
+        fogNearColor: fog.fogNearColor,
+        fogFarColor: fog.fogFarColor,
         age: { value: 1e3 },
         height: { value: 1 },
         spread: { value: 1 },
@@ -15,9 +21,11 @@ const mistMaterial = () => new ShaderMaterial({
         drag: { value: 1 },
         gravity: { value: 1 },
         opacity: { value: 1 },
-        color: { value: new Color() },
-        // how lit it is: a little on its own, much more while the impact's light is on it
-        light: { value: 0 },
+        // the colour of the spray itself; what it looks like comes from the scene's lights on it
+        albedo: { value: new Color() },
+        brightness: { value: 1 },
+        // how much light gets through and around a puff to its far side, as mist scatters it
+        translucency: { value: 0.5 },
         // pixels per world unit at distance 1
         pixelScale: { value: 1 },
     },
@@ -40,6 +48,10 @@ const mistMaterial = () => new ShaderMaterial({
         varying float vLocalY;
         varying float vRadius;
         varying vec2 vSeed;
+        varying vec3 vViewPosition;
+        #ifdef USE_FOG
+            varying float vFogDepth;
+        #endif
 
         void main() {
             float t = age - puff.x;
@@ -63,7 +75,7 @@ const mistMaterial = () => new ShaderMaterial({
             // puffs swell as the mist thins out
             float worldSize = size * puff.z * (0.5 + 0.9 * sqrt(x));
             vAlpha = smoothstep(0.0, 0.06, x) * pow(1.0 - x, 1.3);
-            // lit from above and outside: the low middle of the plume is in its own shadow
+            // the low middle of the plume is in its own shadow
             float outside = smoothstep(0.0, spread * 0.6, length(p.xz));
             vBrightness = puff.w * (0.35 + 0.45 * smoothstep(0.0, height * 0.8, p.y) + 0.3 * outside);
             vLocalY = p.y;
@@ -72,18 +84,38 @@ const mistMaterial = () => new ShaderMaterial({
 
             vec4 mv = modelViewMatrix * vec4(p, 1.0);
             gl_Position = projectionMatrix * mv;
+            vViewPosition = mv.xyz;
+            #ifdef USE_FOG
+                vFogDepth = -mv.z;
+            #endif
             gl_PointSize = worldSize * pixelScale / max(-mv.z, 0.1);
         }
     `,
     fragmentShader: /* glsl */ `
+        #include <common>
+        #include <lights_pars_begin>
+
         uniform float opacity;
-        uniform vec3 color;
-        uniform float light;
+        uniform vec3 albedo;
+        uniform float brightness;
+        uniform float translucency;
         varying float vAlpha;
         varying float vBrightness;
         varying float vLocalY;
         varying float vRadius;
         varying vec2 vSeed;
+        varying vec3 vViewPosition;
+        #ifdef USE_FOG
+            uniform float fogDensity;
+            uniform vec3 fogNearColor;
+            uniform vec3 fogFarColor;
+            varying float vFogDepth;
+        #endif
+
+        // light arriving at a point of mist: wrapped around to the far side, as mist scatters it
+        float mistResponse(vec3 normal, vec3 toLight) {
+            return saturate((dot(normal, toLight) + translucency) / (1.0 + translucency));
+        }
 
         float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float noise(vec2 p) {
@@ -105,15 +137,49 @@ const mistMaterial = () => new ShaderMaterial({
             // cauliflower edges: the lumps eat into the soft outline, and the inside stays fairly solid
             float body = smoothstep(0.0, 0.35, (1.0 - r2) * 0.9 + (lumps - 0.5) * 0.9);
             float a = body * vAlpha * opacity;
-            // lighter on top, where the light catches it
-            float shade = vBrightness * (0.7 + 0.3 * -c.y) * (0.8 + 0.4 * lumps);
-            gl_FragColor = vec4(color * light * shade, clamp(a, 0.0, 1.0));
+
+            // each puff is lit as a small sphere facing the camera (the lumps bumping its surface) by the scene's own
+            // lights: moons, aurora, sky, and the impact's flash while it's on
+            vec3 normal = normalize(vec3(c.x, -c.y, sqrt(1.0 - r2) + 0.3 * (lumps - 0.5)));
+            vec3 position = vViewPosition + normal * vRadius;
+            vec3 irradiance = getAmbientLightIrradiance(ambientLightColor);
+            #if NUM_HEMI_LIGHTS > 0
+                for (int i = 0; i < NUM_HEMI_LIGHTS; i++) irradiance += getHemisphereLightIrradiance(hemisphereLights[i], normal);
+            #endif
+            IncidentLight light;
+            #if NUM_DIR_LIGHTS > 0
+                for (int i = 0; i < NUM_DIR_LIGHTS; i++) {
+                    getDirectionalLightInfo(directionalLights[i], light);
+                    irradiance += light.color * mistResponse(normal, light.direction);
+                }
+            #endif
+            #if NUM_POINT_LIGHTS > 0
+                for (int i = 0; i < NUM_POINT_LIGHTS; i++) {
+                    getPointLightInfo(pointLights[i], position, light);
+                    irradiance += light.color * mistResponse(normal, light.direction);
+                }
+            #endif
+            #if NUM_SPOT_LIGHTS > 0
+                for (int i = 0; i < NUM_SPOT_LIGHTS; i++) {
+                    getSpotLightInfo(spotLights[i], position, light);
+                    irradiance += light.color * mistResponse(normal, light.direction);
+                }
+            #endif
+            vec3 color = irradiance * BRDF_Lambert(albedo) * brightness * vBrightness * (0.8 + 0.4 * lumps);
+
+            #ifdef USE_FOG
+                // the pillars' fog, without its drifting noise
+                float fogFactor = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+                color = mix(color, mix(fogNearColor, fogFarColor, fogFactor), fogFactor);
+            #endif
+            gl_FragColor = vec4(color, clamp(a, 0.0, 1.0));
         }
     `,
     transparent: true,
     blending: NormalBlending,
     depthWrite: false,
-    fog: false,
+    fog: true,
+    lights: true,
 });
 
 /**
@@ -128,14 +194,14 @@ export class SplashMist {
     private readonly throwDir = new BufferAttribute(new Float32Array(MAX_PUFFS * 4), 4);
     private readonly puff = new BufferAttribute(new Float32Array(MAX_PUFFS * 4), 4);
 
-    constructor(private readonly settings: ShootingStarSettings) {
+    constructor(private readonly settings: ShootingStarSettings, fog: { fogNearColor: IUniform; fogFarColor: IUniform }) {
         const geometry = new BufferGeometry();
         // the positions are worked out in the shader; this only gives three.js a vertex count
         geometry.setAttribute('position', new BufferAttribute(new Float32Array(MAX_PUFFS * 3), 3));
         geometry.setAttribute('throwDir', this.throwDir);
         geometry.setAttribute('puff', this.puff);
 
-        this.points = new Points(geometry, mistMaterial());
+        this.points = new Points(geometry, mistMaterial(fog));
         this.points.frustumCulled = false;
         this.points.visible = false;
         // over the water, which would otherwise draw over the parts of it that are in front of the surface behind
@@ -191,10 +257,9 @@ export class SplashMist {
     }
 
     /**
-     * @param light how strongly the impact's light is on it right now, 0 to 1
      * @param pixelScale pixels per world unit at distance 1 (drawing buffer height times the projection's y scale / 2)
      */
-    public update(now: number, light: number, night: number, pixelScale: number): void {
+    public update(now: number, night: number, pixelScale: number): void {
         const s = this.settings;
         const age = now - this.start;
         const u = this.points.material.uniforms;
@@ -210,8 +275,9 @@ export class SplashMist {
         u.drag.value = s.splashMistDrag;
         u.gravity.value = s.splashMistGravity;
         u.opacity.value = s.splashMistOpacity * night;
-        u.color.value.set(s.color);
-        u.light.value = s.splashMistAmbient + s.splashMistFlashLit * light;
+        u.albedo.value.set(s.splashMistColor);
+        u.brightness.value = s.splashMistBrightness;
+        u.translucency.value = s.splashMistTranslucency;
         u.pixelScale.value = pixelScale;
     }
 }
