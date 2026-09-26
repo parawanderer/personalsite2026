@@ -939,6 +939,13 @@ export interface GodRaySettings {
     depthFade: number;
     maxDistance: number;
     speed: number;
+    /** whether the second sun casts its own shafts too (costs about twice as much), and how brightly they light what they hit */
+    bothSuns: boolean;
+    onSurfaces: number;
+    /** how high a sun has to be before its light makes shafts (lower, it glances off the surface and the walls block it) */
+    minElevationDeg: number;
+    /** how high above the water the canyon's walls block the light (modelled as two long upright planes; 0: off) */
+    wallHeight: number;
 }
 
 export const GOD_RAYS: GodRaySettings = {
@@ -949,4 +956,8 @@ export const GOD_RAYS: GodRaySettings = {
     depthFade: 0.3,
     maxDistance: 9,
     speed: 1,
+    bothSuns: true,
+    onSurfaces: 0.8,
+    minElevationDeg: 15,
+    wallHeight: 4,
 };

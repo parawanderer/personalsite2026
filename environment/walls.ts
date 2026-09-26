@@ -327,6 +327,14 @@ export class Walls implements AnimatedEntity {
         return this.channelSpan;
     }
 
+    /** where the channel's walls stand (x of its left and right edge) at z, or undefined outside the channel's rows */
+    public channelEdges(z: number): { left: number, right: number } | undefined {
+        const f = this.pillarField;
+        const span = this.spans[Math.round((z - f.origin.y) / f.cellSize)];
+        if (!span || !isFinite(span.min)) return undefined;
+        return { left: f.origin.x + (span.min - 0.5) * f.cellSize, right: f.origin.x + (span.max + 0.5) * f.cellSize };
+    }
+
     /**
      * The seabed's height at (x, z): a bowl across the channel, `depth` below the water in the middle and curving up
      * towards the walls, meeting them a quarter of that below the water, then rising to just under the surface beneath

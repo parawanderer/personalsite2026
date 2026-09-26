@@ -1,6 +1,7 @@
 import { IUniform, WebGLProgramParametersWithUniforms } from "three";
 
 import { toFileName } from "./util";
+import { shaftPars, shaftUniforms } from "./sun-shafts.glsl";
 
 const fileName = toFileName(import.meta.url);
 
@@ -44,6 +45,7 @@ vUnderwaterWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
 
 const parsFrag = /* glsl */ `
 ${surfaceWavePars}
+${shaftPars}
 // (edits) ${fileName}
 varying vec3 vUnderwaterWorldPos;
 uniform float waterLevelY;
@@ -124,6 +126,14 @@ if (viewUnderwater > 0.5) {
     // own fog covers: shaders/fogedits.glsl.ts), so the walls above keep their colour, as from above
     // the surface there, with its waves, so the waterline on the pillars rises and falls with the ceiling
     float surfaceY = waterLevelY + surfaceWave(vUnderwaterWorldPos.xz);
+    // the sun's shafts fall on what's under the water, on the sides facing them (the face's normal from the screen
+    // derivatives, so every material gets it, turned to face the camera)
+    if (vUnderwaterWorldPos.y < surfaceY && shaftOnSurfaces > 0.0) {
+        vec3 faceNormal = normalize(cross(dFdx(vUnderwaterWorldPos), dFdy(vUnderwaterWorldPos)));
+        if (dot(faceNormal, cameraPosition - vUnderwaterWorldPos) < 0.0) faceNormal = -faceNormal;
+        vec3 shafts = shaftLightOn(vUnderwaterWorldPos, surfaceY - vUnderwaterWorldPos.y, faceNormal);
+        gl_FragColor.rgb += linearToOutputTexel(vec4(shafts * shaftOnSurfaces, 1.0)).rgb;
+    }
     vec3 fromCamera = vUnderwaterWorldPos - cameraPosition;
     float inWater = vUnderwaterWorldPos.y > surfaceY
         ? (surfaceY - cameraPosition.y) / max(fromCamera.y, 1e-4)
@@ -159,5 +169,5 @@ export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, unif
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <color_fragment>', wetBand);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <opaque_fragment>', caustics);
     params.fragmentShader = insertBefore(params.fragmentShader, '#include <premultiplied_alpha_fragment>', frag);
-    Object.assign(params.uniforms, uniforms);
+    Object.assign(params.uniforms, uniforms, shaftUniforms);
 };
