@@ -120,6 +120,10 @@ uniform float splashRippleSeconds;
 uniform float splashCraterDepth;
 uniform float splashCraterRadius;
 uniform float splashCraterSeconds;
+uniform float splashSwellHeight;
+uniform float splashSwellSpeed;
+uniform float splashSwellWidth;
+uniform float splashSwellFade;
 uniform vec3 splashGlow;
 uniform float splashGlowRadius;
 uniform float splashWaterReach;
@@ -160,16 +164,34 @@ vec3 splashLight(float d) {
 // and the crater where it landed, which sinks, rebounds into a mound and settles over a few swings, only near the impact.
 // Returns (height, gradient x, z)
 vec3 splashRipple(vec2 p) {
-    if (splashAge >= splashRippleSeconds) return vec3(0.0);
     vec2 d = p - splashCenter;
     float r = length(d);
-    float x = r - splashAge * splashRippleSpeed;
-    float packetWidth = splashWavelength * 1.5;
-    float packet = exp(-x * x / (packetWidth * packetWidth));
-    float fade = (1.0 - splashAge / splashRippleSeconds) / (1.0 + r * 1.5);
-    float k = 6.2831853 / splashWavelength;
-    float h = splashRippleHeight * packet * fade * cos(k * x);
-    float dhdr = -splashRippleHeight * packet * fade * k * sin(k * x);
+    float h = 0.0;
+    float dhdr = 0.0;
+
+    if (splashAge < splashRippleSeconds) {
+        float x = r - splashAge * splashRippleSpeed;
+        float packetWidth = splashWavelength * 1.5;
+        float packet = exp(-x * x / (packetWidth * packetWidth));
+        float fade = (1.0 - splashAge / splashRippleSeconds) / (1.0 + r * 1.5);
+        float k = 6.2831853 / splashWavelength;
+        h += splashRippleHeight * packet * fade * cos(k * x);
+        dhdr += -splashRippleHeight * packet * fade * k * sin(k * x);
+    }
+
+    // the swell: the one broad wave a big impact pushes out, as the thick fluid would carry it: slow, rounded, with a
+    // shallow trough behind, widening and losing height quickly with the distance it has travelled
+    float travelled = splashAge * splashSwellSpeed;
+    if (splashSwellHeight > 0.0 && travelled < splashSwellFade * 5.0) {
+        float w = splashSwellWidth * (1.0 + travelled * 0.25);
+        float a = splashSwellHeight * exp(-travelled / splashSwellFade) * smoothstep(0.0, 0.15, splashAge);
+        float x = r - travelled;
+        float crest = exp(-x * x / (w * w));
+        float xt = x + w * 1.4;
+        float trough = 0.4 * exp(-xt * xt / (w * w));
+        h += a * (crest - trough);
+        dhdr += a * (-2.0 * x / (w * w) * crest + 2.0 * xt / (w * w) * trough);
+    }
 
     float swing = splashAge / splashCraterSeconds;
     if (swing < 4.0) {

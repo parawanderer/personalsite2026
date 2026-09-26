@@ -513,6 +513,14 @@ export interface WaterLook {
     splashCraterDepth: number;
     splashCraterRadius: number;
     splashCraterSeconds: number;
+    /**
+     * the swell a big impact pushes out: height at the impact, speed (slow, thick fluid), width of its crest, and the
+     * distance over which it loses most of its height
+     */
+    splashSwellHeight: number;
+    splashSwellSpeed: number;
+    splashSwellWidth: number;
+    splashSwellFade: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
     /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
@@ -566,6 +574,10 @@ export const WATER_LOOK: WaterLook = {
     splashCraterDepth: 0.35,
     splashCraterRadius: 0.8,
     splashCraterSeconds: 1.4,
+    splashSwellHeight: 0.18,
+    splashSwellSpeed: 1.6,
+    splashSwellWidth: 0.45,
+    splashSwellFade: 6,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
     splashHighlight: 4,

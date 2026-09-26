@@ -396,6 +396,10 @@ export class Water implements AnimatedEntity {
         u.splashCraterDepth.value = l.splashCraterDepth;
         u.splashCraterRadius.value = Math.max(l.splashCraterRadius, 1e-3);
         u.splashCraterSeconds.value = Math.max(l.splashCraterSeconds, 1e-3);
+        u.splashSwellHeight.value = l.splashSwellHeight;
+        u.splashSwellSpeed.value = l.splashSwellSpeed;
+        u.splashSwellWidth.value = Math.max(l.splashSwellWidth, 1e-3);
+        u.splashSwellFade.value = Math.max(l.splashSwellFade, 1e-3);
         this.updatePatch();
         u.surfaceOpacity.value = l.surfaceOpacity;
         u.fresnelPower.value = l.fresnelPower;
@@ -467,6 +471,10 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashCraterDepth', 0, 1.5, 0.01).onChange(apply);
         folder.add(this.look, 'splashCraterRadius', 0.05, 4, 0.05).onChange(apply);
         folder.add(this.look, 'splashCraterSeconds', 0.1, 5, 0.05).onChange(apply);
+        folder.add(this.look, 'splashSwellHeight', 0, 0.6, 0.005).onChange(apply);
+        folder.add(this.look, 'splashSwellSpeed', 0.1, 6, 0.05).onChange(apply);
+        folder.add(this.look, 'splashSwellWidth', 0.05, 3, 0.05).onChange(apply);
+        folder.add(this.look, 'splashSwellFade', 0.5, 30, 0.25).onChange(apply);
         folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashWaterReach', 0, 3, 0.01).onChange(apply);
         folder.add(this.look, 'splashHighlight', 0, 20, 0.1).onChange(apply);
@@ -577,6 +585,10 @@ export class WaterFactory {
             splashCraterDepth: { value: 0 },
             splashCraterRadius: { value: 1 },
             splashCraterSeconds: { value: 1 },
+            splashSwellHeight: { value: 0 },
+            splashSwellSpeed: { value: 1 },
+            splashSwellWidth: { value: 1 },
+            splashSwellFade: { value: 1 },
             pillarDataA: { value: emptyField },
             pillarDataB: { value: emptyField },
             pillarGridOrigin: { value: new Vector2() },
