@@ -1,4 +1,4 @@
-import { Box2, BufferGeometry, Camera, Clock, DataTexture, FloatType, IUniform, Line3, NearestFilter, RGBAFormat, Vector2, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
+import { Box2, BufferGeometry, PlaneGeometry, Camera, Clock, DataTexture, FloatType, IUniform, Line3, NearestFilter, RGBAFormat, Vector2, LoadingManager, Mesh, MeshPhysicalMaterial, Object3DEventMap, RepeatWrapping, Scene, SRGBColorSpace, Vector3 } from 'three';
 import { degToRad, lerp, smoothstep } from 'three/src/math/MathUtils.js';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
@@ -336,6 +336,27 @@ export class Walls implements AnimatedEntity {
      * sunken deeper. They lean the same way as the pillars, varying less (seabedVariation). Built from the same
      * hexagonal prisms as the pillars
      */
+    /**
+     * A floor under the seabed's columns, following the same bowl a little below their lowest tops, so the gaps between
+     * them end in dark rock instead of open water
+     */
+    public buildSeabedFloor(depth: number, below: number): BufferGeometry {
+        const f = this.pillarField;
+        const width = f.size.x * f.cellSize;
+        const length = f.size.y * f.cellSize;
+        const spacing = 0.25;
+        const geometry = new PlaneGeometry(width, length, Math.ceil(width / spacing), Math.ceil(length / spacing));
+        geometry.rotateX(-Math.PI / 2);
+        const position = geometry.getAttribute('position');
+        for (let k = 0; k < position.count; k++) {
+            const x = position.getX(k) + f.origin.x + width / 2;
+            const z = position.getZ(k) + f.origin.y + length / 2;
+            position.setXYZ(k, x, this.seabedAt(x, z, depth) - below, z);
+        }
+        geometry.computeVertexNormals();
+        return geometry;
+    }
+
     public buildSeabed(depth: number, radius: number): BufferGeometry {
         const f = this.pillarField;
         const rng = makeRng(this.layout.seed + 7);

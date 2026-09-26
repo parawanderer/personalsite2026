@@ -6,6 +6,7 @@ import {
     Color,
     FogExp2,
     Mesh,
+    MeshStandardMaterial,
     PerspectiveCamera,
     Scene,
     SRGBColorSpace,
@@ -214,6 +215,10 @@ const seabedDepth = () => WATER_LEVEL_Y - water.seabedY;
 const seabed = new Mesh(walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS), walls.material);
 seabed.visible = false;
 scene.add(seabed);
+// dark rock under the columns, so the gaps between them don't open onto the water; shown and hidden with them
+const seabedFloor = new Mesh(walls.buildSeabedFloor(seabedDepth(), 0.5), new MeshStandardMaterial({ color: 0x0c0d0e, roughness: 1 }));
+water.addUnderwaterTo(seabedFloor.material);
+seabed.add(seabedFloor);
 pillarTweaks.folder?.add(pillarTweaks.params, 'seabedVariation', 0, 1, 0.01).onFinishChange(() => {
     seabed.geometry.dispose();
     seabed.geometry = walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS);
