@@ -147,7 +147,6 @@ const restoreLegacyReflectance = (params: WebGLProgramParametersWithUniforms) =>
 
 
 export class Water implements AnimatedEntity {
-    private lastWaterUpdate: number = 0;
     private lastFogUpdate: number = 0;
     /** how fast the fog drifts, 1 = normal (the day/night cycle slows it at night) */
     private fogSpeed = 1;
@@ -632,6 +631,7 @@ export class Water implements AnimatedEntity {
      * Deals with higher than 60 FPS refresh rates... hopefully
      */
     private lastElapsed = 0;
+    private lastWaterElapsed = 0;
 
     public update(clock: Clock): void {
         this.followCamera();
@@ -642,13 +642,15 @@ export class Water implements AnimatedEntity {
             this.viewingUnderwater = this.cameraUnderwater;
             this.setUnderwaterView(this.viewingUnderwater);
         }
-        if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
-            this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
-            this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000;
-            const flow = this.surfaceUniforms.flowDir.value as Vector2;
-            (this.surfaceUniforms.flowOffset.value as Vector2).addScaledVector(flow, this.look.flowSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000);
-            this.lastWaterUpdate = clock.oldTime;
-        }
+        // advanced by the time that really passed (capped against long stalls), at the speeds tuned at a steady 60 fps.
+        // It used to step a fixed 1/60 s at most once per frame, which ran slow whenever frames came in late, and then
+        // the floating particles (on real time) drifted faster than the ripples carrying them
+        const dt = Math.min(Math.max(clock.elapsedTime - this.lastWaterElapsed, 0), 0.1);
+        this.lastWaterElapsed = clock.elapsedTime;
+        this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale * dt * 1000 / UPDATE_WATER_EVERY_MS;
+        this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * dt;
+        const flow = this.surfaceUniforms.flowDir.value as Vector2;
+        (this.surfaceUniforms.flowOffset.value as Vector2).addScaledVector(flow, this.look.flowSpeed * this.timeScale * dt);
 
         const uniforms = this.fogShader.getUniforms();
         if (uniforms && clock.oldTime - this.lastFogUpdate >= FOG_UPDATE_EVERY_MS) {
