@@ -67,10 +67,21 @@ export class Grain {
         this.apply();
     }
 
+    private fillOverride?: string;
+
+    /**
+     * Overrides the fill colour (the day/night cycle shifts it); only touches the page when the colour changes
+     */
+    public setFillColor(hex: string): void {
+        if (hex === this.fillOverride) return;
+        this.fillOverride = hex;
+        document.documentElement.style.setProperty('--grain-fill-color', hex);
+    }
+
     public apply(): void {
         const s = this.style;
         const root = document.documentElement.style;
-        root.setProperty('--grain-fill-color', s.fillColor);
+        root.setProperty('--grain-fill-color', this.fillOverride ?? s.fillColor);
         root.setProperty('--grain-fill-opacity', String(s.fillOpacity));
         root.setProperty('--grain-fill-opacity-hover', String(s.fillOpacityHover));
         root.setProperty('--grain-hover-transition', `${s.hoverTransitionMs}ms`);

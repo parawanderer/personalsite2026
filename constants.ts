@@ -172,6 +172,8 @@ export interface DayNightSettings {
     nightReflectionStrength: number;
     /** the same for grey, colourless reflections (the dark sky, fog), so they don't turn into a grey sheen */
     nightReflectionGrey: number;
+    /** fill colour of the menu buttons at night */
+    nightMenuFill: string;
 }
 
 export const DAY_NIGHT: DayNightSettings = {
@@ -200,6 +202,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFresnelPower: 1.88,
     nightReflectionStrength: 3.28,
     nightReflectionGrey: 0.3,
+    nightMenuFill: '#273035',
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
@@ -305,7 +308,7 @@ export const AURORA: AuroraSettings = {
     waterSoftness: 0.1,
     waterStretch: 2.3,
     waterRipple: 0.47,
-    waterBlur: 12,
+    waterBlur: 13.5,
     fadeInStart: 21,
     fadeInEnd: 22.5,
     fadeOutStart: 3,

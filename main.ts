@@ -341,6 +341,10 @@ fgMngr.init();
 const grainTweaks = tweaks.addFolder('UI grain', GRAIN_STYLE);
 const grain = new Grain(grainTweaks.params);
 if (grainTweaks.folder) grain.bindTweaks(grainTweaks.folder);
+// the buttons darken towards the night with the rest of the scene
+const menuFill = new Color();
+dayNight.color(menuFill, () => grainTweaks.params.fillColor, 'nightMenuFill');
+scheduler.add({ update: () => grain.setFillColor(`#${menuFill.getHexString()}`) });
 
 // some positions that look nice
 const goHome = () => moveCameraTo(camera, CAMERA_HOME_POS.clone(), CAMERA_HOME_DIR.clone());
