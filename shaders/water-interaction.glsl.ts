@@ -122,6 +122,19 @@ uniform float splashGlowRadius;
 uniform float splashWaterReach;
 uniform float splashDarken;
 uniform float splashShadowReflection;
+uniform vec3 splashLightPosition;
+uniform float splashHighlight;
+uniform float splashShininess;
+
+// the flash's highlight on the surface, by how it's tilted: the flash sits low over the water, so the raised lips
+// facing it and the ripple slopes towards it catch it brightly, while those facing away stay dark
+vec3 splashGlint(vec3 position, vec3 normal, vec3 eyePosition) {
+    vec3 toLight = splashLightPosition - position;
+    float d = length(toLight);
+    vec3 halfway = normalize(toLight / d + normalize(eyePosition - position));
+    float r2 = splashGlowRadius * splashGlowRadius;
+    return splashGlow * splashHighlight * pow(max(dot(normal, halfway), 0.0), splashShininess) * r2 / (r2 + d * d);
+}
 
 // the impact's light on the water, by distance from it: a bright glow around it, and a fainter light reaching far
 // across the water, falling off like a light does, for the pillars' long shadows to show in

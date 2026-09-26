@@ -267,7 +267,7 @@ export class ShootingStars implements AnimatedEntity {
                     this.casters.geometry = casters ?? new BufferGeometry();
                     this.hasCasters = casters !== null;
                     this.mist.splash(this.impact, now);
-                    this.water.splash(impact.x, impact.z);
+                    this.water.splash(impact.x, impact.z, this.flash.position);
                 }
                 this.meteor = undefined;
             } else {

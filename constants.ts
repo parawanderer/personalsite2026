@@ -428,7 +428,7 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashMistFlashLight: 0.17,
     splashMistFlashNear: 2.5,
     splashMistTranslucency: 2.0,
-    trainSeconds: 1.4,
+    trainSeconds: 1.0,
 };
 
 // fog
@@ -517,6 +517,9 @@ export interface WaterLook {
     splashGlowRadius: number;
     /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
     splashWaterReach: number;
+    /** the flash's highlight on the water by its tilt (raised lips around the pillars, ripples): brightness, and sharpness (higher: thinner glints) */
+    splashHighlight: number;
+    splashShininess: number;
     /** how much darker the rest of the water gets at the flash's peak, next to its brightness */
     splashWaterDarken: number;
     /** how much the flash's shadows darken the water's reflections as well (fake, but they'd vanish on the shiny far water otherwise) */
@@ -563,6 +566,8 @@ export const WATER_LOOK: WaterLook = {
     splashCraterSeconds: 1.4,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
+    splashHighlight: 4,
+    splashShininess: 80,
     splashWaterDarken: 0.5,
     splashShadowOnReflection: 0.8,
     wetBandHeight: 0.09,
