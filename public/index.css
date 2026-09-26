@@ -492,38 +492,99 @@ a.contact-item:hover .contact-text:after {
 }
 
 .name-title {
+    /* a quiet credit under the title, not a second headline */
     color: white;
+    opacity: 0.72;
     font-weight: 300;
-    font-size: 1.35rem;
-    letter-spacing: 0.02em;
-    margin-top: 1rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    /* letter-spacing trails the last letter, pull it back so the line ends flush with the wordmark */
+    margin-right: -0.3em;
+    margin-top: 1.3rem;
     display: flex;
     align-items: center;
     justify-content: flex-end;
 }
 
 .text-sep {
-    width: 3pt;
-    height: 3pt;
+    width: 2pt;
+    height: 2pt;
     display: inline-block;
     background: white;
-    margin: 0 0.9rem;
+    margin: 0 1.1rem 0 0.8rem;
     border-radius: 10pt;
 }
+
+/* Nav: plain spaced type along the bottom margin, like a poster's credits */
 
 .nav {
     grid-column: 2;
     grid-row: 2;
     align-self: end;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1rem;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 2.4rem;
+    /* the last word's trailing letter-spacing, so the line ends flush with the wordmark above */
+    margin-right: -0.32em;
 }
 
-.nav-primary, .nav-secondary {
-    display: flex;
-    gap: 1rem;
+.nav-link {
+    position: relative;
+    padding: 0.5em 0;
+    border: 0;
+    background: none;
+    color: white;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 300;
+    font-size: 0.85rem;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    opacity: 0.6;
+    /* keeps the type readable over the bright parts of the scene */
+    text-shadow: 0 0 14px rgba(0, 0, 0, 0.35);
+    transition: opacity 400ms ease;
+}
+
+/* a hairline under the current page, drawn in on hover */
+.nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0.32em;
+    bottom: 0.1em;
+    border-top: 1px solid white;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 500ms ease;
+}
+
+.nav-link:hover, .nav-link:focus-visible, .nav-link[aria-current="page"] {
+    opacity: 1;
+    outline: 0;
+}
+
+.nav-link:hover::after, .nav-link:focus-visible::after, .nav-link[aria-current="page"]::after {
+    transform: scaleX(1);
+}
+
+/* free flight: there if you look for it */
+.nav-link.quiet {
+    opacity: 0.32;
+    font-size: 0.7rem;
+    letter-spacing: 0.22em;
+    margin-left: 0.6rem;
+}
+
+.nav-link.quiet::after {
+    right: 0.22em;
+}
+
+.nav-link.quiet:hover, .nav-link.quiet:focus-visible {
+    opacity: 0.85;
 }
 
 
@@ -586,17 +647,6 @@ a.contact-item:hover .contact-text:after {
     font-weight: 500;
 }
 
-/* wide, letterboxed main nav */
-.grain-button.wide {
-    min-width: 11.5rem;
-    justify-content: center;
-    padding: 0.85em 1.5em;
-    font-weight: 300;
-    letter-spacing: 0.32em;
-    /* letter-spacing adds trailing space after the last letter, pull it back so the text stays centred */
-    text-indent: 0.32em;
-}
-
 .grain-button.small {
     font-size: 0.72rem;
     padding: 0.6em 1.2em;
@@ -647,16 +697,14 @@ a.contact-item:hover .contact-text:after {
     .nav {
         grid-column: 1;
         grid-row: 3;
-        align-items: flex-start;
-    }
-
-    .nav-primary {
+        justify-content: flex-start;
         flex-wrap: wrap;
+        gap: 0.4rem 1.8rem;
+        margin-right: 0;
     }
 
-    .grain-button.wide {
-        min-width: 0;
-        flex: 1;
+    .nav-link.quiet {
+        margin-left: 0;
     }
 
     .text-panel-content {
@@ -671,7 +719,7 @@ a.contact-item:hover .contact-text:after {
 
 @media (max-width: 500px) {
     .name-title {
-        font-size: 1rem;
+        font-size: 0.68rem;
     }
 
     .grain-button {
@@ -679,9 +727,9 @@ a.contact-item:hover .contact-text:after {
         padding: 0.7em 1.1em;
     }
 
-    .grain-button.wide {
-        letter-spacing: 0.18em;
-        text-indent: 0.18em;
+    .nav-link {
+        font-size: 0.75rem;
+        letter-spacing: 0.22em;
     }
 
     .text-panel-content p, .text-panel-content .contact-text {
