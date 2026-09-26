@@ -413,6 +413,13 @@ fgMngr.setFreeFlightCallback((isFreeFlight) => {
     updateBlur();
 });
 
+// clicking (or double/triple clicking) the scene shouldn't select the UI's text next to it; the click itself still
+// goes through (free flight locks the mouse on click)
+document.addEventListener('mousedown', (e) => {
+    const target = e.target as Element | null;
+    if (target === renderer.domElement || target?.closest?.('.window-outline')) e.preventDefault();
+});
+
 // pressing on the water with the cursor; off in free flight, where clicking looks around
 const touchTweaks = tweaks.addFolder('Water touch', WATER_TOUCH);
 const waterTouch = new WaterTouch(camera, renderer.domElement, water, walls, touchTweaks.params, () => !freeFlight);
