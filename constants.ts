@@ -340,7 +340,7 @@ export interface ShootingStarSettings {
     splashLightRange: number;
     /** brightness of the glow on the water itself around the impact */
     splashWaterGlow: number;
-    /** how high the jet and the droplets go, how far out the droplets fly, and their size */
+    /** how high the splash's column of droplets goes, how far out its crown flies, and the droplets' size */
     splashHeight: number;
     splashSpread: number;
     splashDropletSize: number;

@@ -212,6 +212,8 @@ scheduler.add(walls);
 const dayNightTweaks = tweaks.addFolder('Day / night', DAY_NIGHT);
 const dayNight = new DayNight(dayNightTweaks.params);
 if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
+// time of day sits with the pause toggle; its value still belongs to (and saves with) the day/night settings
+if (timeTweaks.folder) dayNight.bindHourTweak(timeTweaks.folder, () => tweaks.persist('Day / night'));
 {
     const light = (l: { color: Color, intensity: number }) => ({ color: l.color.clone(), intensity: l.intensity });
     const hemi = { ...light(ambientLight), ground: ambientLight.groundColor.clone() };

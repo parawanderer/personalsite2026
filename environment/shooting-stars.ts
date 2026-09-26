@@ -10,9 +10,9 @@ const SPLASH_X = [-2, 1];
 const SPLASH_Z = [-14, -6];
 // how long a meteor takes to burn out in the sky once it's done
 const BURNOUT_SECONDS = 0.35;
-// the splash: droplets thrown up at impact, how long the jet takes to rise and fall, gravity on the droplets
-const DROPLETS = 90;
-const JET_SECONDS = 1.1;
+// the splash: droplets thrown up at impact, how long they last, gravity on them
+const DROPLETS = 140;
+const SPLASH_SECONDS = 1.1;
 const GRAVITY = 4;
 
 /** a soft round dot for the droplets */
@@ -108,8 +108,6 @@ interface Meteor {
 export class ShootingStars implements AnimatedEntity {
     private readonly streak: Mesh<PlaneGeometry, ShaderMaterial>;
     private readonly flash = new PointLight(0xffffff, 0, 30, 1.2);
-    /** the column of water shooting up from the impact */
-    private readonly jet: Mesh<PlaneGeometry, ShaderMaterial>;
     private readonly droplets: Points<BufferGeometry, PointsMaterial>;
     private readonly dropletVelocity = new Float32Array(DROPLETS * 3);
     private readonly impact = new Vector3();
@@ -132,11 +130,6 @@ export class ShootingStars implements AnimatedEntity {
         this.streak.visible = false;
         scene.add(this.streak);
         scene.add(this.flash);
-
-        this.jet = new Mesh(new PlaneGeometry(1, 1, 8, 1), streakMaterial());
-        this.jet.frustumCulled = false;
-        this.jet.visible = false;
-        scene.add(this.jet);
 
         const dropletGeometry = new BufferGeometry();
         dropletGeometry.setAttribute('position', new BufferAttribute(new Float32Array(DROPLETS * 3), 3));
@@ -272,34 +265,23 @@ export class ShootingStars implements AnimatedEntity {
         const p = this.droplets.geometry.getAttribute('position') as BufferAttribute;
         for (let k = 0; k < DROPLETS; k++) {
             p.setXYZ(k, this.impact.x, this.impact.y, this.impact.z);
-            // a cone, mostly upwards, some flung far out
+            // most form a crown thrown outwards at an angle; the rest a column going almost straight up, higher
             const angle = Math.random() * Math.PI * 2;
-            const out = Math.pow(Math.random(), 1.5) * s.splashSpread;
-            const up = s.splashHeight * (0.5 + Math.random() * 0.8);
+            const column = k < DROPLETS * 0.3;
+            const out = column ? Math.random() * 0.15 * s.splashSpread : s.splashSpread * (0.6 + Math.random() * 0.5);
+            const up = s.splashHeight * (column ? 0.8 + Math.random() * 0.5 : 0.25 + Math.random() * 0.3);
             this.dropletVelocity.set([Math.cos(angle) * out, Math.sqrt(2 * GRAVITY * up), Math.sin(angle) * out], k * 3);
         }
         this.lastSplashSince = 0;
         p.needsUpdate = true;
     }
 
-    /** the jet rises and falls back; the droplets fly and fall, vanishing as they go under */
+    /** the droplets fly and fall, vanishing as they go under */
     private updateSplash(since: number): void {
         const s = this.settings;
-        const active = this.flashStart >= 0 && since < JET_SECONDS * 1.6;
-        this.jet.visible = active && since < JET_SECONDS;
+        const active = this.flashStart >= 0 && since < SPLASH_SECONDS * 1.6;
         this.droplets.visible = active;
         if (!active) return;
-
-        if (this.jet.visible) {
-            const t = since / JET_SECONDS;
-            const u = this.jet.material.uniforms;
-            u.tail.value.copy(this.impact);
-            u.head.value.copy(this.impact).setY(this.impact.y + s.splashHeight * Math.sin(Math.PI * Math.min(t * 1.3, 1)));
-            u.width.value = s.width * 3;
-            u.color.value.set(s.color);
-            u.intensity.value = s.brightness * 0.8 * (1 - t) * this.nightAmount;
-            u.sparkle.value = 0.6;
-        }
 
         const p = this.droplets.geometry.getAttribute('position') as BufferAttribute;
         // real elapsed time, so the droplets fly the same at any frame rate (capped against long stalls)
@@ -314,7 +296,7 @@ export class ShootingStars implements AnimatedEntity {
         }
         p.needsUpdate = true;
         this.droplets.material.color.set(s.color);
-        this.droplets.material.opacity = Math.max(0, 1 - since / (JET_SECONDS * 1.6)) * this.nightAmount;
+        this.droplets.material.opacity = Math.max(0, 1 - since / (SPLASH_SECONDS * 1.6)) * this.nightAmount;
         this.droplets.material.size = s.splashDropletSize;
     }
 

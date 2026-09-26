@@ -88,6 +88,14 @@ export class Tweaks {
         return { params, folder };
     }
 
+    /**
+     * Saves a folder's values now, for controllers that live in another folder than their values
+     */
+    public persist(name: string): void {
+        const params = this.folders.get(name);
+        if (this.gui && params) save(name, params);
+    }
+
     private copyValues() {
         const values: Record<string, object> = {};
         this.folders.forEach((params, name) => values[name] = params);
