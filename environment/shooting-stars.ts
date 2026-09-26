@@ -8,6 +8,8 @@ import { Water, WATER_LEVEL_Y } from './water';
 // the far end of the channel, where splashdowns land (x across the channel, z along it)
 const SPLASH_X = [-2, 1];
 const SPLASH_Z = [-14, -6];
+// how long a meteor takes to burn out in the sky once it's done
+const BURNOUT_SECONDS = 0.35;
 
 const streakMaterial = () => new ShaderMaterial({
     uniforms: {
@@ -92,6 +94,9 @@ export class ShootingStars implements AnimatedEntity {
     /** the last meteor's streak, lingering and fading */
     private trainStart = -1e3;
     private trainIntensity = 0;
+    /** whether the last meteor hit the water (lingering, sparking train) or burned out in the sky (clean fade) */
+    private trainSplash = false;
+    private readonly burnoutTail = new Vector3();
     private meteor?: Meteor;
     private nextAt = 0;
     private flashStart = -1;
@@ -162,6 +167,8 @@ export class ShootingStars implements AnimatedEntity {
                 // the streak stays where it ended and lingers as a fading, sparkling train
                 this.trainStart = now;
                 this.trainIntensity = u.intensity.value;
+                this.trainSplash = m.splash;
+                this.burnoutTail.copy(u.tail.value);
                 if (m.splash) {
                     const impact = m.start.clone().addScaledVector(m.direction, m.speed * m.duration);
                     this.flash.position.set(impact.x, WATER_LEVEL_Y + 0.4, impact.z);
@@ -184,13 +191,19 @@ export class ShootingStars implements AnimatedEntity {
         }
 
         if (!this.meteor) {
-            const age = (now - this.trainStart) / Math.max(s.trainSeconds, 1e-3);
-            if (age < 1) {
+            if (this.trainSplash) {
+                // after an impact: the train lingers, spreading and breaking up
+                const age = (now - this.trainStart) / Math.max(s.trainSeconds, 1e-3);
+                this.streak.visible = age < 1;
                 u.sparkle.value = Math.min(1, age * 4);
-                u.intensity.value = this.trainIntensity * 0.6 * Math.pow(1 - age, 1.5);
-                this.streak.visible = true;
+                u.intensity.value = this.trainIntensity * 0.6 * Math.pow(Math.max(1 - age, 0), 1.5);
             } else {
-                this.streak.visible = false;
+                // burning out in the sky: it dims while the tail catches up with the head
+                const age = (now - this.trainStart) / BURNOUT_SECONDS;
+                this.streak.visible = age < 1;
+                u.sparkle.value = 0;
+                u.tail.value.lerpVectors(this.burnoutTail, u.head.value, Math.min(age, 1));
+                u.intensity.value = this.trainIntensity * Math.pow(Math.max(1 - age, 0), 2);
             }
         }
 
@@ -219,7 +232,7 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashChance', 0, 1, 0.01);
         folder.add(s, 'splashLight', 0, 300, 1);
         folder.add(s, 'splashSeconds', 0.1, 5, 0.1);
-        folder.add(s, 'trainSeconds', 0, 5, 0.05);
+        folder.add(s, 'trainSeconds', 0, 5, 0.05).name('trainSeconds (splashdowns)');
         folder.add({ go: () => { this.meteor = undefined; this.launch(now()); } }, 'go').name('Launch one now');
     }
 }

@@ -338,7 +338,7 @@ export interface ShootingStarSettings {
     /** the light where it hits the water, and how long it lasts */
     splashLight: number;
     splashSeconds: number;
-    /** how long the glowing train lingers after the meteor itself is gone, breaking up into sparkles */
+    /** how long the glowing train of a splashdown lingers after the impact, breaking up (sky meteors just burn out) */
     trainSeconds: number;
 }
 
