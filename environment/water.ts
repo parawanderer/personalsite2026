@@ -255,12 +255,13 @@ export class Water implements AnimatedEntity {
             params.uniforms.skyUnderwaterColor = this.underwaterUniforms.underwaterColor;
             params.uniforms.skyDepthAbsorption = this.underwaterUniforms.depthAbsorption;
             params.uniforms.skyWaterLevel = this.underwaterUniforms.waterLevelY;
+            params.uniforms.skyViewDensity = this.underwaterUniforms.underwaterViewDensity;
             params.vertexShader = params.vertexShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;')
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvSkyUnderWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
-                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;\nuniform vec3 skyDepthAbsorption;\nuniform float skyWaterLevel;')
-                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(linearToOutputTexel(vec4(skyUnderwaterColor * exp(-skyDepthAbsorption * max(skyWaterLevel - cameraPosition.y, 0.0)), 1.0)).rgb, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
+                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;\nuniform vec3 skyDepthAbsorption;\nuniform float skyWaterLevel;\nuniform float skyViewDensity;')
+                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(linearToOutputTexel(vec4(skyUnderwaterColor * exp(-skyDepthAbsorption * max(skyWaterLevel - cameraPosition.y - normalize(vSkyUnderWorld - cameraPosition).y / max(skyViewDensity, 0.05), 0.0)), 1.0)).rgb, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
         };
         skyMaterial.needsUpdate = true;
     }

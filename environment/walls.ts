@@ -364,19 +364,22 @@ export class Walls implements AnimatedEntity {
      */
     /**
      * A floor under the seabed's columns, following the same bowl a little below their lowest tops, so the gaps between
-     * them end in dark rock instead of open water
+     * them end in dark rock instead of open water; it carries on well past the pillars (at the height the bowl has at
+     * the walls), so the views past the channel's ends end in rock too
      */
     public buildSeabedFloor(depth: number, below: number): BufferGeometry {
         const f = this.pillarField;
-        const width = f.size.x * f.cellSize;
-        const length = f.size.y * f.cellSize;
+        // reaches well past the pillars on every side, so no view under the water ends in open water
+        const margin = 40;
+        const width = f.size.x * f.cellSize + margin * 2;
+        const length = f.size.y * f.cellSize + margin * 2;
         const spacing = 0.25;
         const geometry = new PlaneGeometry(width, length, Math.ceil(width / spacing), Math.ceil(length / spacing));
         geometry.rotateX(-Math.PI / 2);
         const position = geometry.getAttribute('position');
         for (let k = 0; k < position.count; k++) {
-            const x = position.getX(k) + f.origin.x + width / 2;
-            const z = position.getZ(k) + f.origin.y + length / 2;
+            const x = position.getX(k) + f.origin.x - margin + width / 2;
+            const z = position.getZ(k) + f.origin.y - margin + length / 2;
             position.setXYZ(k, x, this.seabedAt(x, z, depth) - below, z);
         }
         geometry.computeVertexNormals();

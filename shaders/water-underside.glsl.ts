@@ -73,8 +73,10 @@ void main() {
     float transmitted = exp(-underwaterViewDensity * length(toSurface));
     float see = window * undersideClarity;
 
-    // the water between here and the camera, lit like the water halfway down to the camera
-    vec3 waterColor = underwaterColor * exp(-depthAbsorption * max((vWorld.y - cameraPosition.y) * 0.5, 0.0));
+    // the haze between here and the camera, lit like the water about one fog-length along the view (as everything else
+    // under the water: shaders/underwater.glsl.ts)
+    float hazeDepth = vWorld.y - (cameraPosition.y + view.y * min(length(toSurface), 1.0 / max(underwaterViewDensity, 0.05)));
+    vec3 waterColor = underwaterColor * exp(-depthAbsorption * max(hazeDepth, 0.0));
     // outside the window: the depths mirrored, a little lighter than the water itself
     vec3 mirror = waterColor * (1.0 + undersideMirror * (1.0 - window));
     vec3 color = mix(waterColor, mirror, transmitted) + waterColor * rim * transmitted * 0.8;

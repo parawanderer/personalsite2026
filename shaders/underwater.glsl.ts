@@ -148,9 +148,10 @@ if (viewUnderwater > 0.5) {
     // only as much light reaches a submerged surface as the water above it lets through
     float depth = surfaceY - vUnderwaterWorldPos.y;
     if (depth > 0.0) gl_FragColor.rgb *= linearToOutputTexel(vec4(lightAtDepth(depth), 1.0)).rgb;
-    // and the water in between is lit like the water at its depth: taken halfway along the stretch that's in water
-    float halfwayDepth = waterLevelY - (cameraPosition.y + fromCamera.y * 0.5 * clamp(inWater, 0.0, 1.0));
-    vec3 waterColor = underwaterColor * lightAtDepth(halfwayDepth);
+    // and the haze in between is lit like the water where most of it builds up: about one fog-length along the view
+    // (the same rule as the ceiling and the sky, so they all meet without seams)
+    float hazeDepth = waterLevelY - (cameraPosition.y + normalize(fromCamera).y * min(length(fromCamera), 1.0 / max(underwaterViewDensity, 0.05)));
+    vec3 waterColor = underwaterColor * lightAtDepth(hazeDepth);
     float transmitted = exp(-underwaterViewDensity * length(fromCamera) * clamp(inWater, 0.0, 1.0));
     // what's above the surface can only be seen through Snell's window, looking up steeply enough (like the ceiling,
     // shaders/water-underside.glsl.ts); lower, the surface mirrors the depths, which also covers past the ceiling's edge
