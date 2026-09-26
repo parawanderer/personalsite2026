@@ -765,6 +765,8 @@ export interface ParticleSettings {
     floatSeconds: number;
     sinkSpeed: number;
     sinkDepth: number;
+    /** how quickly a sinking particle disappears into the water's colour, per metre it's gone under */
+    sinkMurk: number;
     /** the dip in the water under floating flakes: size (times the flake's), darkness, rim brightness and colour */
     dimpleSize: number;
     dimpleDarkness: number;
@@ -792,6 +794,7 @@ export const PARTICLES: ParticleSettings = {
     floatSeconds: 12,
     sinkSpeed: 0.01,
     sinkDepth: 0.25,
+    sinkMurk: 20,
     pillarMargin: 0.02,
     dimpleSize: 2.1,
     dimpleDarkness: 0.12,

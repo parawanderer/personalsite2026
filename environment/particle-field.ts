@@ -145,6 +145,8 @@ export class ParticleField implements AnimatedEntity {
             particleTouchRadius: { value: 1 },
             particleTouchPush: { value: 0 },
             particleFlash: { value: 0 },
+            particleMurkColor: { value: new Color() },
+            particleSinkMurk: { value: 0 },
         };
         this.build();
     }
@@ -288,6 +290,7 @@ export class ParticleField implements AnimatedEntity {
         u.flakeSpin.value = s.flakeSpin;
         u.dotSize.value = s.dotSize;
         u.particleFloatTime.value = s.floatSeconds;
+        u.particleSinkMurk.value = s.sinkMurk;
         u.particleSinkSpeed.value = s.sinkSpeed;
         u.particleSinkDepth.value = Math.max(s.sinkDepth, 1e-3);
         u.particlePillarMargin.value = s.pillarMargin;
@@ -331,6 +334,11 @@ export class ParticleField implements AnimatedEntity {
         this.uniforms.particleFlash.value = Math.min(Math.max(amount, 0), 1) * this.settings.flashTint;
     }
 
+    /** the water's underwater colour, shared (not copied), so sinking particles follow it through the day */
+    public setMurkColor(color: Color): void {
+        this.uniforms.particleMurkColor.value = color;
+    }
+
     public setGlow(glow: number): void {
         for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
     }
@@ -358,6 +366,7 @@ export class ParticleField implements AnimatedEntity {
         folder.addColor(this.settings, 'flakeColor1').onChange(apply);
         folder.addColor(this.settings, 'flakeColor2').onChange(apply);
         folder.add(this.settings, 'flashTint', 0, 1, 0.01);
+        folder.add(this.settings, 'sinkMurk', 0, 100, 0.5).onChange(apply);
     }
 
     public update(clock: Clock): void {
