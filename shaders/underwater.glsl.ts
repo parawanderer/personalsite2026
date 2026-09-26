@@ -24,8 +24,12 @@ const parsFrag = /* glsl */ `
 // (edits) ${fileName}
 varying vec3 vUnderwaterWorldPos;
 uniform float waterLevelY;
+// 1 while the camera is under the water (set from the camera, since the water's mirror camera is under it too)
+uniform float viewUnderwater;
 uniform vec3 underwaterColor;
 uniform float underwaterDensity;
+// how thick the water is from inside it: clearer than seen from above, where it has to hide the depths quickly
+uniform float underwaterViewDensity;
 uniform float wetBandHeight;
 uniform float wetBandDarkness;
 uniform vec3 causticColor;
@@ -91,8 +95,15 @@ if (aboveWater > 0.0) {
  */
 const frag = /* glsl */ `
 // (edits) ${fileName}
-// skip for cameras under the water, which includes the water's own mirror camera
-if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
+if (viewUnderwater > 0.5) {
+    // the camera is under the water: submerged surfaces fade with their whole distance from it. What's above the water
+    // is only seen through the surface, which fades it (shaders/water-underside.glsl.ts)
+    if (vUnderwaterWorldPos.y < waterLevelY) {
+        float transmitted = exp(-underwaterViewDensity * length(cameraPosition - vUnderwaterWorldPos));
+        gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
+    }
+} else if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
+    // (cameras under the water here are the water's own mirror camera, which skips this)
     vec3 toCamera = cameraPosition - vUnderwaterWorldPos;
     float submergedFraction = (waterLevelY - vUnderwaterWorldPos.y) / toCamera.y;
     float pathInWater = length(toCamera) * submergedFraction;

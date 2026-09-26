@@ -293,6 +293,8 @@ scheduler.add(dayNight);
 
 // stars on the night sky, behind the aurora
 const starFieldTweaks = tweaks.addFolder('Stars', STARS);
+// the sky below the horizon turns into the water while the camera is under it
+water.addUnderwaterToSky(sky.material);
 const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTweaks.params.hour);
 if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
 dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
@@ -403,6 +405,8 @@ const animate = () => {
     clock.getDelta(); // advances the scene clock unless paused
 
     interactionMgr.update(flightClock.getDelta());
+    // free flight can go under the water, down to just above the seabed
+    camera.position.y = Math.max(camera.position.y, water.seabedY + 0.25);
 
     debugInfoUI.update();
     scheduler.doUpdates(clock);
@@ -416,6 +420,10 @@ shootingStars.warmUp(() => {
     sensor.enabled = true;
     composer.render();
     sensor.enabled = false;
+    // and the view from under the water
+    water.warmUpUnderwater(true);
+    composer.render();
+    water.warmUpUnderwater(false);
 });
 renderer.setAnimationLoop(animate);
 

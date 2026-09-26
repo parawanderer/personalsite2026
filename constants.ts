@@ -523,6 +523,15 @@ export interface WaterLook {
     splashSwellFade: number;
     /** vertex spacing of the mesh the splash waves displace between the impact and the camera (finer: smoother, costlier) */
     splashMeshSpacing: number;
+    /**
+     * the surface seen from below: how clearly the world above shows through its window, how bright the mirror of the
+     * depths around it is, and how strongly its ripples bend the window's edge
+     */
+    undersideClarity: number;
+    undersideMirror: number;
+    /** how thick the water looks from inside it (clearer than from above, where it hides the depths quickly) */
+    underwaterViewDensity: number;
+    undersideRipple: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
     /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
@@ -581,6 +590,10 @@ export const WATER_LOOK: WaterLook = {
     splashSwellWidth: 0.45,
     splashSwellFade: 11.25,
     splashMeshSpacing: 0.1,
+    undersideClarity: 0.85,
+    underwaterViewDensity: 0.4,
+    undersideMirror: 0.6,
+    undersideRipple: 1.5,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
     splashHighlight: 4,
@@ -778,7 +791,7 @@ export const PARTICLES: ParticleSettings = {
     dimpleDarkness: 0.12,
     dimpleRim: 0,
     dimpleRimColor: '#a1c4bf',
-    flakeColor1: '#9bc7c5',
+    flakeColor1: '#7eb9b6',
     flakeColor2: '#e1602d',
 };
 
@@ -891,12 +904,12 @@ export interface SensorSettings {
 
 export const SENSOR: SensorSettings = {
     enabled: true,
-    overexposure: 3,
+    overexposure: 10,
     clip: 0.6,
     smear: 0.8,
     smearWidth: 0.004,
     chroma: 0.004,
     adaptSeconds: 0.35,
-    undershoot: 0.55,
-    grainBoost: 0.5,
+    undershoot: 0.82,
+    grainBoost: 1.0,
 };

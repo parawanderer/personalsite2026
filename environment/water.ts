@@ -1,4 +1,4 @@
-import { Camera, Clock, Color, DataTexture, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, UniformsLib, UniformsUtils, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
+import { BufferGeometry, Camera, Clock, Color, DataTexture, DoubleSide, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, UniformsLib, UniformsUtils, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
@@ -24,6 +24,7 @@ import { customFogExtension, ShaderExtension } from "./animated-fog";
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fogedits.glsl";
 import { applyUnderwater } from "../shaders/underwater.glsl";
 import { displacedVertex, interactionMain, interactionPars, TOUCH_POINTS } from "../shaders/water-interaction.glsl";
+import { undersideFragment, undersideVertex } from "../shaders/water-underside.glsl";
 import type { PillarField } from "./walls";
 
 /** the entries of `uniforms` named in `names` (the ones it has) */
@@ -200,8 +201,62 @@ export class Water implements AnimatedEntity {
         private seabed: Mesh,
         private look: WaterLook,
         private surfaceUniforms: { [name: string]: IUniform },
-        private underwaterUniforms: { [name: string]: IUniform }) {
+        private underwaterUniforms: { [name: string]: IUniform },
+        private underside: Mesh<BufferGeometry, ShaderMaterial>) {
         this.hidePatchFromReflection();
+    }
+
+    /** whether the camera is under the water right now */
+    public get cameraUnderwater(): boolean {
+        return this.camera.position.y < WATER_LEVEL_Y;
+    }
+
+    /**
+     * Swaps between the view from above (the surface with its reflection, patch and splash mesh) and from below (the
+     * underside, and the underwater fog over everything submerged). Nothing recompiles: the fog is a uniform
+     */
+    private setUnderwaterView(under: boolean): void {
+        this.underwaterUniforms.viewUnderwater.value = under ? 1 : 0;
+        this.underside.visible = under;
+        // the surface and everything drawn with it (patch, splash mesh) are children of the same parent, hidden with it
+        this.water.visible = !under;
+        if (this.patch) this.patch.visible = !under;
+        if (this.splashMesh) this.splashMesh.visible = !under && this.splashMeshShown;
+    }
+
+    private splashMeshShown = false;
+    private viewingUnderwater = false;
+
+    /** the seabed's height, which the camera stays above */
+    public get seabedY(): number {
+        return WATER_LEVEL_Y - this.look.seabedDepth;
+    }
+
+    /**
+     * While the camera is under the water, the sky only shows straight overhead, through the surface's window; anywhere
+     * else it's the water (it would show past the ends of the channel and the surface)
+     */
+    public addUnderwaterToSky(skyMaterial: Material): void {
+        const previous = skyMaterial.onBeforeCompile;
+        skyMaterial.onBeforeCompile = (params, renderer) => {
+            previous.call(skyMaterial, params, renderer);
+            params.uniforms.viewUnderwater = this.underwaterUniforms.viewUnderwater;
+            params.uniforms.skyUnderwaterColor = this.underwaterUniforms.underwaterColor;
+            params.vertexShader = params.vertexShader
+                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;')
+                .replace('#include <fog_vertex>', '#include <fog_vertex>\nvSkyUnderWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+            params.fragmentShader = params.fragmentShader
+                .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;')
+                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5 && normalize(vSkyUnderWorld - cameraPosition).y < 0.6) gl_FragColor.rgb = skyUnderwaterColor;');
+        };
+        skyMaterial.needsUpdate = true;
+    }
+
+    /**
+     * Shows the view from below (or goes back), so its shader can be compiled behind the loading screen
+     */
+    public warmUpUnderwater(show: boolean): void {
+        this.setUnderwaterView(show);
     }
 
     /** fogNearColor, fogFarColor, ... of the water's coloured fog */
@@ -334,7 +389,8 @@ export class Water implements AnimatedEntity {
         const centreX = (impactX + cam.x) / 2;
         const centreZ = (impactZ + cam.z) / 2;
         this.splashMesh.position.set(centreX, WATER_LEVEL_Y, centreZ);
-        this.splashMesh.visible = true;
+        this.splashMeshShown = true;
+        this.splashMesh.visible = !this.viewingUnderwater;
         (this.surfaceUniforms.splashAreaCentre.value as Vector2).set(centreX, centreZ);
         (this.surfaceUniforms.splashAreaHalf.value as Vector2).set(width / 2, depth / 2);
     }
@@ -347,6 +403,7 @@ export class Water implements AnimatedEntity {
     }
 
     private hideSplashMesh(): void {
+        this.splashMeshShown = false;
         if (this.splashMesh) this.splashMesh.visible = false;
         (this.surfaceUniforms.splashAreaHalf.value as Vector2).set(0, 0);
     }
@@ -503,6 +560,11 @@ export class Water implements AnimatedEntity {
         uw.causticScale.value = l.causticScale;
         uw.causticSharpness.value = l.causticSharpness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
+        this.underwaterUniforms.underwaterViewDensity.value = l.underwaterViewDensity;
+        const under = this.underside.material.uniforms;
+        under.undersideClarity.value = l.undersideClarity;
+        under.undersideMirror.value = l.undersideMirror;
+        under.undersideRipple.value = l.undersideRipple;
         this.underwaterUniforms.underwaterDensity.value = l.underwaterDensity;
         this.seabed.position.y = WATER_LEVEL_Y - l.seabedDepth;
     }
@@ -513,6 +575,10 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'fresnelPower', 0.5, 10, 0.1).onChange(apply);
         folder.addColor(this.look, 'underwaterColor').onChange(apply);
         folder.add(this.look, 'underwaterDensity', 0, 10, 0.05).onChange(apply);
+        folder.add(this.look, 'underwaterViewDensity', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'undersideClarity', 0, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'undersideMirror', 0, 3, 0.05).onChange(apply);
+        folder.add(this.look, 'undersideRipple', 0, 4, 0.05).onChange(apply);
         folder.add(this.look, 'seabedDepth', 0.1, 5, 0.05).onChange(apply).onFinishChange(() => this.onSeabedChange?.(this.look.seabedDepth));
         folder.add(this.look, 'viscosity', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'flowAngleDeg', 0, 360, 1).onChange(apply);
@@ -568,7 +634,11 @@ export class Water implements AnimatedEntity {
         this.followCamera();
         this.lastElapsed = clock.elapsedTime;
         this.surfaceUniforms.splashAge.value = clock.elapsedTime - this.splashStart;
-        if (this.splashMesh?.visible && clock.elapsedTime - this.splashStart > this.splashSeconds) this.hideSplashMesh();
+        if (this.splashMeshShown && clock.elapsedTime - this.splashStart > this.splashSeconds) this.hideSplashMesh();
+        if (this.cameraUnderwater !== this.viewingUnderwater) {
+            this.viewingUnderwater = this.cameraUnderwater;
+            this.setUnderwaterView(this.viewingUnderwater);
+        }
         if (clock.oldTime - this.lastWaterUpdate >= UPDATE_WATER_EVERY_MS) {
             this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale;
             this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * UPDATE_WATER_EVERY_MS / 1000;
@@ -690,6 +760,8 @@ export class WaterFactory {
         };
         const underwaterUniforms: { [name: string]: IUniform } = {
             waterLevelY: { value: WATER_LEVEL_Y },
+            viewUnderwater: { value: 0 },
+            underwaterViewDensity: { value: 0.4 },
             underwaterColor: { value: new Color() },
             underwaterDensity: { value: 0 },
             wetBandHeight: { value: 1 },
@@ -731,7 +803,33 @@ export class WaterFactory {
         seabed.position.set(water.position.x, WATER_LEVEL_Y, water.position.z);
         this.scene.add(seabed);
 
-        const result = new Water(camera, water, fogShader, seabed, look, surfaceUniforms, underwaterUniforms);
+        // the surface seen from below, while the camera is under it
+        const underside = new Mesh(geometry.clone(), new ShaderMaterial({
+            vertexShader: undersideVertex,
+            fragmentShader: undersideFragment,
+            uniforms: {
+                normalSampler: waterUniforms['normalSampler'],
+                time: waterUniforms['time'],
+                size: waterUniforms['size'],
+                flowOffset: surfaceUniforms.flowOffset,
+                rippleScale: surfaceUniforms.rippleScale,
+                rippleAmp: surfaceUniforms.rippleAmp,
+                underwaterColor: underwaterUniforms.underwaterColor,
+                underwaterViewDensity: underwaterUniforms.underwaterViewDensity,
+                undersideClarity: { value: 1 },
+                undersideMirror: { value: 0 },
+                undersideRipple: { value: 1 },
+            },
+            transparent: true,
+            depthWrite: false,
+            side: DoubleSide,
+        }));
+        underside.rotation.copy(water.rotation);
+        underside.position.copy(water.position);
+        underside.visible = false;
+        this.scene.add(underside);
+
+        const result = new Water(camera, water, fogShader, seabed, look, surfaceUniforms, underwaterUniforms, underside);
         result.addUnderwaterTo(seabed.material);
         result.applyLook();
         return result;
