@@ -133,6 +133,8 @@ export class ShootingStars implements AnimatedEntity {
     private flashStart = -1;
     private nightAmount = 0;
     private hasCasters = false;
+    /** told the flash's colour and brightness (0 to 1) every frame, for things that fake its light */
+    public onFlash?: (color: Color, amount: number) => void;
     private readonly mist: SplashMist;
     private readonly casters: Mesh<BufferGeometry, MeshBasicMaterial>;
 
@@ -309,6 +311,7 @@ export class ShootingStars implements AnimatedEntity {
         this.flash.color.copy(this.flashColor);
         this.flash.visible = flash > 0;
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash, flash);
+        this.onFlash?.(this.flashColor, flash);
 
         this.updateSplash(sinceFlash);
         this.mist.update(now, this.nightAmount, this.pixelScale(), this.flash.position);

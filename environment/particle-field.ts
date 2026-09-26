@@ -32,6 +32,8 @@ import {
     dotBeginVertex,
     dotFrag,
     dotFragPars,
+    flashTintFrag,
+    flashTintPars,
     dotPars,
     flakeBeginNormal,
     flakeBeginVertex,
@@ -134,6 +136,8 @@ export class ParticleField implements AnimatedEntity {
             dimpleRimColor: { value: new Color() },
             flakeSpin: { value: 0 },
             dotSize: { value: 0 },
+            particleFlashColor: { value: new Color() },
+            particleFlash: { value: 0 },
         };
         this.build();
     }
@@ -226,13 +230,16 @@ export class ParticleField implements AnimatedEntity {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${flakeRotationPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <beginnormal_vertex>', flakeBeginNormal);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', flakeBeginVertex);
+        params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${flashTintPars}`);
+        params.fragmentShader = replace(params.fragmentShader, '#include <opaque_fragment>', flashTintFrag);
         Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
 
     private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${dotPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', dotBeginVertex);
-        params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${dotFragPars}`);
+        params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${dotFragPars}\n${flashTintPars}`);
+        params.fragmentShader = replace(params.fragmentShader, '#include <opaque_fragment>', flashTintFrag);
         params.fragmentShader = replace(params.fragmentShader, '#include <dithering_fragment>', `#include <dithering_fragment>\n${dotFrag}`);
         Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
@@ -284,6 +291,15 @@ export class ParticleField implements AnimatedEntity {
         if (shown) shown.value = share;
     }
 
+    /**
+     * A meteor's flash: while it's on, the particles take on its colour
+     * @param amount how bright the flash is right now, 0 to 1
+     */
+    public setFlash(color: Color, amount: number): void {
+        this.uniforms.particleFlashColor.value.copy(color);
+        this.uniforms.particleFlash.value = Math.min(Math.max(amount, 0), 1) * this.settings.flashTint;
+    }
+
     public setGlow(glow: number): void {
         for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
     }
@@ -310,6 +326,7 @@ export class ParticleField implements AnimatedEntity {
         folder.addColor(this.settings, 'dimpleRimColor').onChange(apply);
         folder.addColor(this.settings, 'flakeColor1').onChange(apply);
         folder.addColor(this.settings, 'flakeColor2').onChange(apply);
+        folder.add(this.settings, 'flashTint', 0, 1, 0.01);
     }
 
     public update(clock: Clock): void {

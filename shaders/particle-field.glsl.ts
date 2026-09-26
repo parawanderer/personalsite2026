@@ -232,6 +232,21 @@ export const dotFragPars = /* glsl */ `
 varying float dotOpacity;
 `;
 
+export const flashTintPars = /* glsl */ `
+// (edits) ${fileName}
+uniform vec3 particleFlashColor;
+uniform float particleFlash;
+`;
+
+/**
+ * After the colour is worked out, before the fog: particles turn the colour of a meteor's flash while it's on
+ */
+export const flashTintFrag = /* glsl */ `
+#include <opaque_fragment>
+// (edits) ${fileName}
+gl_FragColor.rgb = mix(gl_FragColor.rgb, particleFlashColor, particleFlash);
+`;
+
 export const dotFrag = /* glsl */ `
 // (edits) ${fileName}
 gl_FragColor.a *= dotOpacity;

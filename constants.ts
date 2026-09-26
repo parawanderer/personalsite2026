@@ -703,6 +703,8 @@ export interface ParticleSettings {
     flakeSpin: number;
     /** how much the flakes glow in their own colour; meant to come up as the day turns into night */
     flakeGlow: number;
+    /** how far the particles turn the colour of a meteor's flash while it's on (faked, not lit by it) */
+    flashTint: number;
     /** once on the water: how long particles float, then how fast they sink and over what depth they fade */
     floatSeconds: number;
     sinkSpeed: number;
@@ -730,6 +732,7 @@ export const PARTICLES: ParticleSettings = {
     flakeBand: 2.1,
     flakeSpin: 0.8,
     flakeGlow: 0,
+    flashTint: 0.85,
     floatSeconds: 12,
     sinkSpeed: 0.01,
     sinkDepth: 0.25,
