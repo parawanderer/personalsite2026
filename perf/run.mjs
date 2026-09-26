@@ -33,6 +33,8 @@ const { values: args } = parseArgs({
         scenarios: { type: 'string', default: 'home,about,flight' },
         headless: { type: 'boolean', default: false },
         cooldown: { type: 'string', default: '8' },
+        // tweak values to run with, by folder, e.g. '{"Day / night":{"hour":23}}' (loads the site with ?tweaks)
+        tweaks: { type: 'string' },
         out: { type: 'string' },   // results file, defaults to perf/results.jsonl; use another for throwaway comparisons   // seconds idle between scenarios and runs, lets the GPU cool down
     },
 });
@@ -267,7 +269,8 @@ const main = async () => {
     console.log(`Benchmarking '${label}' (${source.sha.slice(0, 7)}${source.dirty ? ', dirty' : ''})`);
 
     const server = await serve(build(source));
-    const url = `http://127.0.0.1:${server.address().port}/`;
+    const tweaks = args.tweaks ? JSON.parse(args.tweaks) : null;
+    const url = `http://127.0.0.1:${server.address().port}/${tweaks ? '?tweaks' : ''}`;
 
     const browser = await puppeteer.launch({
         executablePath: CHROME,
@@ -301,8 +304,16 @@ const main = async () => {
                 // fresh page per scenario, so each starts from the home view whatever ran before it
                 const page = await browser.newPage();
                 await page.evaluateOnNewDocument(injectRecorder, RANDOM_SEED);
+                if (tweaks) {
+                    await page.evaluateOnNewDocument((tweaks) => {
+                        localStorage.clear();
+                        for (const [folder, values] of Object.entries(tweaks)) localStorage.setItem(`tweaks:${folder}`, JSON.stringify(values));
+                    }, tweaks);
+                }
                 await page.goto(url, { waitUntil: 'load' });
                 await page.waitForSelector('#loadingOverlay.hidden', { timeout: 60000 });
+                // the tweak panel itself isn't part of the site
+                if (tweaks) await page.addStyleTag({ content: '.lil-gui.root { display: none !important; }' });
                 await sleep(SETTLE_MS);
 
                 const scenario = SCENARIOS[name];
@@ -320,6 +331,7 @@ const main = async () => {
                     sha: source.sha,
                     dirty: source.dirty,
                     scenario: name,
+                    tweaks,
                     run,
                     seconds,
                     viewport: `${VIEWPORT.width}x${VIEWPORT.height}@${VIEWPORT.deviceScaleFactor}`,

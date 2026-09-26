@@ -13,7 +13,7 @@ npm run perf -- --label "water rework"
 npm run perf -- --ref f54d197 --label "baseline (2025 site)"
 ```
 
-Options: `--runs 3`, `--duration 15` (seconds per scenario), `--scenarios home,about,flight`, `--cooldown 8` (idle seconds
+Options: `--tweaks '{"Day / night":{"hour":23}}'` (run with tweak values, by folder; recorded in each row), `--runs 3`, `--duration 15` (seconds per scenario), `--scenarios home,about,flight`, `--cooldown 8` (idle seconds
 before each scenario), `--headless`, `--out file.jsonl` (write somewhere else, for throwaway comparisons). The scenario order rotates each run, so a slowdown partway through a benchmark
 spreads over all scenarios instead of always hitting the same one.
 
