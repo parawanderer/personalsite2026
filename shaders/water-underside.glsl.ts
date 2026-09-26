@@ -1,4 +1,5 @@
 import { toFileName } from "./util";
+import { surfaceWavePars } from "./underwater.glsl";
 
 const fileName = toFileName(import.meta.url);
 
@@ -10,9 +11,12 @@ const fileName = toFileName(import.meta.url);
  */
 export const undersideVertex = /* glsl */ `
 // (edits) ${fileName}
+${surfaceWavePars}
 varying vec3 vWorld;
 void main() {
     vec4 world = modelMatrix * vec4(position, 1.0);
+    // the rolling waves, seen from below
+    world.y += surfaceWave(world.xz);
     vWorld = world.xyz;
     gl_Position = projectionMatrix * viewMatrix * world;
 }
@@ -20,6 +24,7 @@ void main() {
 
 export const undersideFragment = /* glsl */ `
 // (edits) ${fileName}
+${surfaceWavePars}
 uniform sampler2D normalSampler;
 uniform float time;
 uniform float size;
@@ -50,6 +55,11 @@ void main() {
 
     vec4 noise = getNoise((vWorld.xz - flowOffset) * size * rippleScale);
     vec3 up = normalize(noise.xzy * vec3(1.5 * rippleAmp * undersideRipple, 1.0, 1.5 * rippleAmp * undersideRipple));
+    // tilted by the rolling waves too, so the window's edge and the mirror follow them
+    float e = 0.05;
+    vec2 slope = vec2(surfaceWave(vWorld.xz + vec2(e, 0.0)) - surfaceWave(vWorld.xz - vec2(e, 0.0)),
+                      surfaceWave(vWorld.xz + vec2(0.0, e)) - surfaceWave(vWorld.xz - vec2(0.0, e))) / (2.0 * e);
+    up = normalize(up - vec3(slope.x, 0.0, slope.y));
 
     // Snell's window: within the critical angle (cos 0.66 for water) the world above shows through, rippled at its edge
     float cosine = dot(view, up);

@@ -35,6 +35,10 @@ const pick = (uniforms: { [name: string]: IUniform }, names: string[]): { [name:
 };
 
 export const WATER_LEVEL_Y = -1;
+// the ceiling seen from under the water: its size around the camera, and how finely it's divided (its waves are about
+// a metre long)
+const UNDERSIDE_SIZE = 40;
+const UNDERSIDE_SEGMENTS = 200;
 // how far past the impact (and the camera) the splash mesh reaches, so its edges sit where the waves have faded
 const SPLASH_AREA_MARGIN = 4;
 
@@ -563,6 +567,7 @@ export class Water implements AnimatedEntity {
         uw.causticSharpness.value = l.causticSharpness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
         this.underwaterUniforms.underwaterViewDensity.value = l.underwaterViewDensity;
+        this.underwaterUniforms.surfaceWaveHeight.value = l.surfaceWaveHeight;
         const under = this.underside.material.uniforms;
         under.undersideClarity.value = l.undersideClarity;
         under.undersideMirror.value = l.undersideMirror;
@@ -578,6 +583,8 @@ export class Water implements AnimatedEntity {
         folder.addColor(this.look, 'underwaterColor').onChange(apply);
         folder.add(this.look, 'underwaterDensity', 0, 10, 0.05).onChange(apply);
         folder.add(this.look, 'underwaterViewDensity', 0, 2, 0.01).onChange(apply);
+        folder.add(this.look, 'surfaceWaveHeight', 0, 0.4, 0.005).onChange(apply);
+        folder.add(this.look, 'surfaceWaveSpeed', 0, 5, 0.05);
         folder.add(this.look, 'undersideClarity', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'undersideMirror', 0, 3, 0.05).onChange(apply);
         folder.add(this.look, 'undersideRipple', 0, 4, 0.05).onChange(apply);
@@ -649,6 +656,13 @@ export class Water implements AnimatedEntity {
         this.lastWaterElapsed = clock.elapsedTime;
         this.water.material.uniforms['time'].value += UPDATE_BY * this.timeScale * dt * 1000 / UPDATE_WATER_EVERY_MS;
         this.underwaterUniforms.causticTime.value += this.look.causticSpeed * this.timeScale * dt;
+        this.underwaterUniforms.surfaceWaveTime.value += this.look.surfaceWaveSpeed * this.timeScale * dt;
+        if (this.viewingUnderwater) {
+            // snapped to its vertex spacing so the displaced surface doesn't swim as the camera moves
+            const step = UNDERSIDE_SIZE / UNDERSIDE_SEGMENTS;
+            this.underside.position.x = Math.round(this.camera.position.x / step) * step;
+            this.underside.position.z = Math.round(this.camera.position.z / step) * step;
+        }
         const flow = this.surfaceUniforms.flowDir.value as Vector2;
         (this.surfaceUniforms.flowOffset.value as Vector2).addScaledVector(flow, this.look.flowSpeed * this.timeScale * dt);
 
@@ -766,6 +780,10 @@ export class WaterFactory {
         const underwaterUniforms: { [name: string]: IUniform } = {
             waterLevelY: { value: WATER_LEVEL_Y },
             viewUnderwater: { value: 0 },
+            // the surface's rolling waves from below (shaders/underwater.glsl.ts)
+            surfaceWaveHeight: { value: 0 },
+            surfaceWaveTime: { value: 0 },
+            surfaceWaveFlow: surfaceUniforms.flowOffset,
             underwaterViewDensity: { value: 0.4 },
             underwaterColor: { value: new Color() },
             underwaterDensity: { value: 0 },
@@ -809,7 +827,9 @@ export class WaterFactory {
         this.scene.add(seabed);
 
         // the surface seen from below, while the camera is under it
-        const underside = new Mesh(geometry.clone(), new ShaderMaterial({
+        // a finely divided square that follows the camera (the murk hides anything further), so its waves can move it
+        const undersideGeometry = new PlaneGeometry(UNDERSIDE_SIZE, UNDERSIDE_SIZE, UNDERSIDE_SEGMENTS, UNDERSIDE_SEGMENTS);
+        const underside = new Mesh(undersideGeometry, new ShaderMaterial({
             vertexShader: undersideVertex,
             fragmentShader: undersideFragment,
             uniforms: {
@@ -824,6 +844,9 @@ export class WaterFactory {
                 undersideClarity: { value: 1 },
                 undersideMirror: { value: 0 },
                 undersideRipple: { value: 1 },
+                surfaceWaveHeight: underwaterUniforms.surfaceWaveHeight,
+                surfaceWaveTime: underwaterUniforms.surfaceWaveTime,
+                surfaceWaveFlow: underwaterUniforms.surfaceWaveFlow,
             },
             transparent: true,
             // writes depth, and is drawn before the other see-through things: what's above the surface (the particles
@@ -833,7 +856,8 @@ export class WaterFactory {
         }));
         underside.renderOrder = -1;
         underside.rotation.copy(water.rotation);
-        underside.position.copy(water.position);
+        underside.position.y = WATER_LEVEL_Y;
+        underside.frustumCulled = false;
         underside.visible = false;
         this.scene.add(underside);
 

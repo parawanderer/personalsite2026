@@ -5,6 +5,28 @@ import { toFileName } from "./util";
 const fileName = toFileName(import.meta.url);
 
 /**
+ * The surface's gentle rolling waves as seen from under the water: the height of the surface above the water level at
+ * a point. Shared by the ceiling (shaders/water-underside.glsl.ts), which is displaced by it, and the underwater shading
+ * below, which uses it for where the water ends, so the two always agree
+ */
+export const surfaceWavePars = /* glsl */ `
+// (edits) ${fileName}
+uniform float surfaceWaveHeight;
+uniform float surfaceWaveTime;
+uniform vec2 surfaceWaveFlow;
+
+float surfaceWave(vec2 p) {
+    p -= surfaceWaveFlow;
+    float t = surfaceWaveTime;
+    return surfaceWaveHeight * (
+        0.5 * sin(dot(p, vec2(0.83, 0.56)) * 4.3 + t * 1.1)
+        + 0.3 * sin(dot(p, vec2(-0.47, 0.88)) * 6.9 + t * 1.6)
+        + 0.2 * sin(dot(p, vec2(0.99, -0.14)) * 10.7 - t * 2.1)
+    );
+}
+`;
+
+/**
  * Exponential fog for anything below the water surface: the further the view ray travels under water, the more it
  * fades into the underwater colour. The seabed sits deep enough to fade into it completely, so fog and floor match.
  * Needs no extra render pass since the submerged geometry is drawn anyway; the (partly transparent) water surface is
@@ -21,6 +43,7 @@ vUnderwaterWorldPos = (modelMatrix * vec4(transformed, 1.0)).xyz;
 `;
 
 const parsFrag = /* glsl */ `
+${surfaceWavePars}
 // (edits) ${fileName}
 varying vec3 vUnderwaterWorldPos;
 uniform float waterLevelY;
@@ -99,9 +122,11 @@ if (viewUnderwater > 0.5) {
     // the camera is under the water: things fade by the water their light crosses to reach it. Below the surface
     // that's their whole distance; above it, only the stretch up to the surface (the rest is air, which the pillars'
     // own fog covers: shaders/fogedits.glsl.ts), so the walls above keep their colour, as from above
+    // the surface there, with its waves, so the waterline on the pillars rises and falls with the ceiling
+    float surfaceY = waterLevelY + surfaceWave(vUnderwaterWorldPos.xz);
     vec3 fromCamera = vUnderwaterWorldPos - cameraPosition;
-    float inWater = vUnderwaterWorldPos.y > waterLevelY
-        ? (waterLevelY - cameraPosition.y) / max(fromCamera.y, 1e-4)
+    float inWater = vUnderwaterWorldPos.y > surfaceY
+        ? (surfaceY - cameraPosition.y) / max(fromCamera.y, 1e-4)
         : 1.0;
     float transmitted = exp(-underwaterViewDensity * length(fromCamera) * clamp(inWater, 0.0, 1.0));
     gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);

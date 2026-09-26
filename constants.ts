@@ -531,6 +531,9 @@ export interface WaterLook {
     undersideMirror: number;
     /** how thick the water looks from inside it (clearer than from above, where it hides the depths quickly) */
     underwaterViewDensity: number;
+    /** the rolling waves of the surface seen from under the water: their height and speed */
+    surfaceWaveHeight: number;
+    surfaceWaveSpeed: number;
     undersideRipple: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
@@ -592,6 +595,8 @@ export const WATER_LOOK: WaterLook = {
     splashMeshSpacing: 0.1,
     undersideClarity: 0.85,
     underwaterViewDensity: 0.4,
+    surfaceWaveHeight: 0.06,
+    surfaceWaveSpeed: 1,
     undersideMirror: 0.6,
     undersideRipple: 1.5,
     splashGlowRadius: 3.5,
