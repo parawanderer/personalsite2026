@@ -147,10 +147,10 @@ function injectRecorder(seed) {
         const gl = bench.gl, ext = bench.timer;
         if (!gl || !ext) return;
         const disjoint = gl.getParameter(ext.GPU_DISJOINT_EXT);
-        bench.pendingQueries = bench.pendingQueries.filter((q) => {
-            if (!gl.getQueryParameter(q, gl.QUERY_RESULT_AVAILABLE)) return true;
-            if (!disjoint) bench.gpu.push(gl.getQueryParameter(q, gl.QUERY_RESULT) / 1e6);
-            gl.deleteQuery(q);
+        bench.pendingQueries = bench.pendingQueries.filter(({ query, drew }) => {
+            if (!gl.getQueryParameter(query, gl.QUERY_RESULT_AVAILABLE)) return true;
+            if (!disjoint && drew) bench.gpu.push(gl.getQueryParameter(query, gl.QUERY_RESULT) / 1e6);
+            gl.deleteQuery(query);
             return false;
         });
     };
@@ -167,6 +167,7 @@ function injectRecorder(seed) {
         const gl = bench.gl, ext = bench.timer;
         const query = bench.recording && gl && ext ? gl.createQuery() : null;
         if (query) gl.beginQuery(ext.TIME_ELAPSED_EXT, query);
+        const drawsBefore = bench.current?.draws ?? 0;
         const t0 = performance.now();
         try {
             cb(ts);
@@ -174,7 +175,9 @@ function injectRecorder(seed) {
             if (bench.current) bench.current.cpu += performance.now() - t0;
             if (query) {
                 gl.endQuery(ext.TIME_ELAPSED_EXT);
-                bench.pendingQueries.push(query);
+                // only callbacks that drew count: others (like the tweak panel's live values) would record ~0 and
+                // drag the median down
+                bench.pendingQueries.push({ query, drew: (bench.current?.draws ?? 0) > drawsBefore });
             }
         }
     });

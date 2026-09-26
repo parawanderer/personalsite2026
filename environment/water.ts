@@ -56,13 +56,18 @@ const WATER_EDITS: [string, string][] = [
         `vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5 * rippleAmp, 1.0, 1.5 * rippleAmp ) );\n${interactionMain}`
     ],
     [
+        // the shadow is looked up once and reused below: each lookup is several texture reads, on every water pixel
+        "vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), reflectionSample + specularLight, reflectance );",
+        "float waterShadow = getShadowMask();\nvec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * waterShadow, reflectionSample + specularLight, reflectance );"
+    ],
+    [
         "gl_FragColor = vec4( outgoingLight, alpha );",
         `gl_FragColor = vec4(
             // while a meteor's flash is on, the rest of the water looks darker next to it, and the pillars' shadows
             // darken its reflections too (they wouldn't really, but on the shiny far water they'd vanish otherwise)
-            (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken) * mix(1.0, getShadowMask(), splashShadowReflection)
+            (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken) * mix(1.0, waterShadow, splashShadowReflection)
                 + (splashLight(length(worldPosition.xz - splashCenter)) * splashReliefLight(worldPosition.xyz, surfaceNormal)
-                    + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * getShadowMask(),
+                    + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * waterShadow,
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
     ],
@@ -164,9 +169,21 @@ export class Water implements AnimatedEntity {
         this.water.onBeforeRender = (...args) => {
             const patch = this.patch;
             if (patch) patch.visible = false;
+            for (const hook of this.reflectionHooks) hook.before();
             renderReflection.apply(this.water, args);
+            for (const hook of this.reflectionHooks) hook.after();
             if (patch) patch.visible = true;
         };
+    }
+
+    private readonly reflectionHooks: { before: () => void, after: () => void }[] = [];
+
+    /**
+     * Runs `before` and `after` around the render of the water's reflection (the whole scene, a second time), to leave
+     * out what the blurred, rippled reflection doesn't need
+     */
+    public aroundReflection(before: () => void, after: () => void): void {
+        this.reflectionHooks.push({ before, after });
     }
 
     constructor(

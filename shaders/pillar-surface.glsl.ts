@@ -95,7 +95,7 @@ uniform float pillarFlashShadow;
 const flashShadowFrag = /* glsl */ `
 // (edits) ${fileName}
 #if defined( USE_SHADOWMAP ) && NUM_POINT_LIGHT_SHADOWS > 0
-    if (pillarFlashShadow > 0.0) {
+    if (pillarFlashShadow > 0.0 && !isReflectionPass()) {
         vec3 toFlash = pointLights[0].position - geometryPosition;
         float reach = 1.0 - smoothstep(0.0, pointLights[0].distance, length(toFlash));
         float facing = smoothstep(-0.05, 0.25, dot(geometryNormal, normalize(toFlash)));

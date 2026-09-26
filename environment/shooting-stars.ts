@@ -154,8 +154,10 @@ export class ShootingStars implements AnimatedEntity {
         this.streak.frustumCulled = false;
         this.streak.visible = false;
         scene.add(this.streak);
-        // the pillars throw long shadows away from the impact; renders them six ways, but only while the flash is on
+        // the pillars throw long shadows away from the impact. Rendering them takes six passes, but neither the light nor
+        // the pillars casting them move during a flash, so they're rendered once per splashdown, not every frame
         this.flash.shadow.camera.near = 0.1;
+        this.flash.shadow.autoUpdate = false;
         scene.add(this.flash);
         // the pillars chosen to cast the flash's shadows: only drawn into its shadow map, nothing on screen
         this.casters = new Mesh(new BufferGeometry(), new MeshBasicMaterial({
@@ -266,6 +268,7 @@ export class ShootingStars implements AnimatedEntity {
                     this.casters.geometry.dispose();
                     this.casters.geometry = casters ?? new BufferGeometry();
                     this.hasCasters = casters !== null;
+                    this.flash.shadow.needsUpdate = true;
                     this.mist.splash(this.impact, now);
                     this.water.splash(impact.x, impact.z, this.flash.position);
                 }
@@ -324,6 +327,7 @@ export class ShootingStars implements AnimatedEntity {
             this.flash.shadow.mapSize.set(s.splashShadowSize, s.splashShadowSize);
             this.flash.shadow.map?.dispose();
             this.flash.shadow.map = null;
+            this.flash.shadow.needsUpdate = true;
         }
         this.flash.color.copy(this.flashColor);
         this.flash.visible = flash > 0;

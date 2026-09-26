@@ -225,6 +225,11 @@ export class Walls implements AnimatedEntity {
         return false;
     }
 
+    /** whether the pillars show shadows (off for the water's reflection, where they'd barely show but cost the most) */
+    public set receivesShadows(receive: boolean) {
+        this.walls.receiveShadow = receive;
+    }
+
     /** how much darker pillar faces a meteor's flash doesn't reach look right now, 0 to 1 */
     public setFlashShadow(amount: number): void {
         this.surfaceUniforms.pillarFlashShadow.value = amount;
