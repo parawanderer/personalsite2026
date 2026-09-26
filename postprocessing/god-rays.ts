@@ -1,4 +1,4 @@
-import { Color, PerspectiveCamera, Vector2, ShaderMaterial, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+import { Color, HalfFloatType, PerspectiveCamera, Vector2, ShaderMaterial, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js';
 
@@ -7,9 +7,35 @@ import { shaftPars, shaftUniforms } from '../shaders/sun-shafts.glsl';
 
 const WHITE = new Color(1, 1, 1);
 
+// the rays are marched at this share of the screen's resolution (they're soft), then scaled up and added
+const RESOLUTION = 0.5;
+
+const compositeShader = /* glsl */ `
+uniform sampler2D tDiffuse;
+uniform sampler2D tRays;
+uniform vec2 raysTexel;
+varying vec2 vUv;
+void main() {
+    // a small blur while scaling up, which also smooths the march's jitter
+    vec3 rays = 0.25 * (
+        texture2D(tRays, vUv + raysTexel * vec2(-0.75, -0.75)).rgb + texture2D(tRays, vUv + raysTexel * vec2(0.75, -0.75)).rgb +
+        texture2D(tRays, vUv + raysTexel * vec2(-0.75, 0.75)).rgb + texture2D(tRays, vUv + raysTexel * vec2(0.75, 0.75)).rgb
+    );
+    vec4 scene = texture2D(tDiffuse, vUv);
+    gl_FragColor = vec4(scene.rgb + rays, scene.a);
+}
+`;
+
+const VERTEX = /* glsl */ `
+varying vec2 vUv;
+void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+}
+`;
+
 const fragmentShader = /* glsl */ `
 #include <packing>
-uniform sampler2D tDiffuse;
 uniform sampler2D tDepth;
 uniform float cameraNear;
 uniform float cameraFar;
@@ -24,7 +50,6 @@ ${shaftPars}
 varying vec2 vUv;
 
 void main() {
-    vec4 scene = texture2D(tDiffuse, vUv);
     float viewZ = perspectiveDepthToViewZ(texture2D(tDepth, vUv).x, cameraNear, cameraFar);
     vec4 view = projectionInverse * vec4(vUv * 2.0 - 1.0, 1.0, 1.0);
     vec3 viewDir = normalize(view.xyz / view.w);
@@ -32,7 +57,7 @@ void main() {
     // along the view ray to the scene, or as far as rays are worth marching
     float end = min(viewZ / viewDir.z, maxDistance);
 
-    const int STEPS = 24;
+    const int STEPS = 16;
     float stepLength = end / float(STEPS);
     // interleaved gradient noise, so the steps don't band
     float jitter = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
@@ -44,24 +69,27 @@ void main() {
         if (below <= 0.0) continue;
         light += shaftLight(p, below) * exp(-t * viewDensity);
     }
-    gl_FragColor = vec4(scene.rgb + light * stepLength * strength, scene.a);
+    gl_FragColor = vec4(light * stepLength * strength, 1.0);
 }
 `;
 
 /**
  * Shafts of light in the water while the camera is under it: marched along each view ray, lit where the light of the
  * sun that's up comes down through the bright patches the surface's waves let through, fading with depth and distance.
- * Needs the scene's depth, so it runs straight after the scene is rendered. Off (skipped) above the water and at night.
+ * Marched at half resolution (they're soft light), then scaled up and added. Needs the scene's depth, so it runs
+ * straight after the scene is rendered. Off (skipped) above the water and at night.
  */
 export class GodRaysPass extends Pass {
     private readonly material: ShaderMaterial;
     private readonly quad: FullScreenQuad;
+    private readonly composite: ShaderMaterial;
+    private readonly compositeQuad: FullScreenQuad;
+    private readonly rays = new WebGLRenderTarget(1, 1, { type: HalfFloatType });
 
     constructor(private readonly camera: PerspectiveCamera, private readonly settings: GodRaySettings) {
         super();
         this.material = new ShaderMaterial({
             uniforms: {
-                tDiffuse: { value: null },
                 tDepth: { value: null },
                 cameraNear: { value: 0.1 },
                 cameraFar: { value: 1000 },
@@ -74,18 +102,20 @@ export class GodRaysPass extends Pass {
                 strength: { value: 1 },
                 ...shaftUniforms,
             },
-            vertexShader: /* glsl */ `
-                varying vec2 vUv;
-                void main() {
-                    vUv = uv;
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
+            vertexShader: VERTEX,
             fragmentShader,
             depthTest: false,
             depthWrite: false,
         });
         this.quad = new FullScreenQuad(this.material);
+        this.composite = new ShaderMaterial({
+            uniforms: { tDiffuse: { value: null }, tRays: { value: this.rays.texture }, raysTexel: { value: new Vector2() } },
+            vertexShader: VERTEX,
+            fragmentShader: compositeShader,
+            depthTest: false,
+            depthWrite: false,
+        });
+        this.compositeQuad = new FullScreenQuad(this.composite);
         this.enabled = false;
     }
 
@@ -152,18 +182,30 @@ export class GodRaysPass extends Pass {
         folder.add(s, 'onSurfaces', 0, 3, 0.05);
     }
 
+    public setSize(width: number, height: number): void {
+        this.rays.setSize(Math.max(1, Math.round(width * RESOLUTION)), Math.max(1, Math.round(height * RESOLUTION)));
+        this.composite.uniforms.raysTexel.value.set(1 / this.rays.width, 1 / this.rays.height);
+    }
+
     public render(renderer: WebGLRenderer, writeBuffer: WebGLRenderTarget, readBuffer: WebGLRenderTarget): void {
         const u = this.material.uniforms;
-        u.tDiffuse.value = readBuffer.texture;
         u.tDepth.value = readBuffer.depthTexture;
         u.cameraNear.value = this.camera.near;
         u.cameraFar.value = this.camera.far;
-        renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+        // the rays, at the lower resolution
+        renderer.setRenderTarget(this.rays);
         this.quad.render(renderer);
+        // then added to the frame
+        this.composite.uniforms.tDiffuse.value = readBuffer.texture;
+        renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+        this.compositeQuad.render(renderer);
     }
 
     public dispose(): void {
         this.material.dispose();
         this.quad.dispose();
+        this.composite.dispose();
+        this.compositeQuad.dispose();
+        this.rays.dispose();
     }
 }

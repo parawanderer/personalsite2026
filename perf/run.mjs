@@ -218,6 +218,18 @@ const SCENARIOS = {
         },
         async after() {},
     },
+    // free flight, sunk under the water, looking along the channel (only in versions with the underwater view)
+    underwater: {
+        async before(page) {
+            await page.click('#freeFlightButton');
+            await sleep(SETTLE_MS);
+            await page.keyboard.down('ShiftLeft');
+            await sleep(1500);
+            await page.keyboard.up('ShiftLeft');
+            await sleep(1500);
+        },
+        async after() {},
+    },
     flight: {
         async before(page) {
             await page.click('#freeFlightButton');

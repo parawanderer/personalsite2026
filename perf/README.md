@@ -36,6 +36,7 @@ The scenarios:
 - `about`: the first panel open (About in older versions, Links since). The name stays so results compare across the
   change.
 - `flight`: free flight, holding W down the channel.
+- `underwater`: free flight, sunk under the surface. Not a default scenario; pass `--scenarios underwater`.
 
 They only click element ids that exist in every version of the site.
 
