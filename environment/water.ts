@@ -233,8 +233,9 @@ export class Water implements AnimatedEntity {
     }
 
     /**
-     * While the camera is under the water, the sky only shows straight overhead, through the surface's window; anywhere
-     * else it's the water (it would show past the ends of the channel and the surface)
+     * While the camera is under the water, the sky only shows straight overhead, through the surface's window, fading
+     * into the water towards its edge (softly: the ripples move the window's edge about); anywhere else it's the water
+     * (it would show past the ends of the channel and the surface)
      */
     public addUnderwaterToSky(skyMaterial: Material): void {
         const previous = skyMaterial.onBeforeCompile;
@@ -247,7 +248,7 @@ export class Water implements AnimatedEntity {
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvSkyUnderWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;')
-                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5 && normalize(vSkyUnderWorld - cameraPosition).y < 0.6) gl_FragColor.rgb = skyUnderwaterColor;');
+                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(skyUnderwaterColor, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
         };
         skyMaterial.needsUpdate = true;
     }
