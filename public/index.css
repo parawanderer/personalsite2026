@@ -2,6 +2,18 @@
     font-family: 'Montserrat', sans-serif;
 }
 
+/* nothing but the text on the pages can be selected: clicking around the scene, the nav or the hints shouldn't
+   highlight anything */
+body {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.text-panel, .text-panel * {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 html, body {
     overflow: hidden;
     height: 100%;
