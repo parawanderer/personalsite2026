@@ -824,9 +824,12 @@ export class WaterFactory {
                 undersideRipple: { value: 1 },
             },
             transparent: true,
-            depthWrite: false,
+            // writes depth, and is drawn before the other see-through things: what's above the surface (the particles
+            // in the air, the splash's spray) is then hidden behind it, while what's below it still shows in front
+            depthWrite: true,
             side: DoubleSide,
         }));
+        underside.renderOrder = -1;
         underside.rotation.copy(water.rotation);
         underside.position.copy(water.position);
         underside.visible = false;

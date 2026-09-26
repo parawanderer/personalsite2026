@@ -127,7 +127,9 @@ const insertBefore = (source: string, anchor: string, content: string) => {
 
 export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
     params.vertexShader = insertAfter(params.vertexShader, '#include <common>', parsVert);
-    params.vertexShader = insertAfter(params.vertexShader, '#include <begin_vertex>', vert);
+    // just before projecting, where every material has its final position (some, like the particles, replace
+    // <begin_vertex> with their own)
+    params.vertexShader = insertBefore(params.vertexShader, '#include <project_vertex>', vert);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <common>', parsFrag);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <color_fragment>', wetBand);
     params.fragmentShader = insertAfter(params.fragmentShader, '#include <opaque_fragment>', caustics);

@@ -179,6 +179,8 @@ const particles = new ParticleField(scene, camera, particleTweaks.params, [
     { texture: textures.getTexture(TEXTURE_PARTICLE_RED), colorKey: 'flakeColor2', share: 4 / 7, seed: 23 },
 ], water.flowVelocity, water.lip);
 if (particleTweaks.folder) particles.bindTweaks(particleTweaks.folder);
+// seen from under the water, they fade with the water between them and the camera like everything else
+particles.extendMaterials((material) => water.addUnderwaterTo(material));
 scheduler.add(particles);
 
 // the swirl of particles in the middle of the scene belonged to the glass pane, off until the pane has a new place

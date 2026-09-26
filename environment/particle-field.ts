@@ -9,6 +9,7 @@ import {
     InstancedBufferAttribute,
     InstancedBufferGeometry,
     IUniform,
+    Material,
     Mesh,
     MeshBasicMaterial,
     MeshStandardMaterial,
@@ -148,6 +149,16 @@ export class ParticleField implements AnimatedEntity {
         this.build();
     }
 
+    private materialHook?: (material: Material) => void;
+
+    /**
+     * Runs `hook` on the flakes' and dots' materials, now and whenever they're rebuilt (e.g. to add the underwater fade)
+     */
+    public extendMaterials(hook: (material: Material) => void): void {
+        this.materialHook = hook;
+        this.build();
+    }
+
     private build(): void {
         for (const mesh of this.meshes) {
             mesh.removeFromParent();
@@ -177,6 +188,7 @@ export class ParticleField implements AnimatedEntity {
                 side: DoubleSide,
             });
             flakeMaterial.onBeforeCompile = (params) => this.editFlake(params, shown);
+            this.materialHook?.(flakeMaterial);
             this.flakeMaterials.push(flakeMaterial);
             this.add(new Mesh(flakes, flakeMaterial));
 
@@ -188,6 +200,7 @@ export class ParticleField implements AnimatedEntity {
             const dots = this.instanced(dotShape, seedAttribute, count);
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
             dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown);
+            this.materialHook?.(dotMaterial);
             this.add(new Mesh(dots, dotMaterial));
         }
         this.apply();
