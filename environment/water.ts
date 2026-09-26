@@ -58,8 +58,9 @@ const WATER_EDITS: [string, string][] = [
     [
         "gl_FragColor = vec4( outgoingLight, alpha );",
         `gl_FragColor = vec4(
-            // while a meteor's flash is on, the rest of the water looks darker next to it
-            (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken)
+            // while a meteor's flash is on, the rest of the water looks darker next to it, and the pillars' shadows
+            // darken its reflections too (they wouldn't really, but on the shiny far water they'd vanish otherwise)
+            (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken) * mix(1.0, getShadowMask(), splashShadowReflection)
                 + splashLight(length(worldPosition.xz - splashCenter)) * getShadowMask(),
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
@@ -301,9 +302,11 @@ export class Water implements AnimatedEntity {
     public setSplashGlow(color: Color, intensity: number, flash: number): void {
         (this.surfaceUniforms.splashGlow.value as Color).copy(color).multiplyScalar(intensity);
         this.surfaceUniforms.splashDarken.value = this.splashDarkenScale * flash;
+        this.surfaceUniforms.splashShadowReflection.value = this.splashShadowReflectionScale * Math.min(flash * 3, 1);
     }
 
     private splashDarkenScale = 0;
+    private splashShadowReflectionScale = 0;
 
     /**
      * Adds a shader edit to the water surface (plane and displaced patch), applied after the water's own edits
@@ -349,6 +352,7 @@ export class Water implements AnimatedEntity {
         u.splashGlowRadius.value = Math.max(l.splashGlowRadius, 1e-3);
         u.splashWaterReach.value = l.splashWaterReach;
         this.splashDarkenScale = l.splashWaterDarken;
+        this.splashShadowReflectionScale = l.splashShadowOnReflection;
         u.splashCraterDepth.value = l.splashCraterDepth;
         u.splashCraterRadius.value = Math.max(l.splashCraterRadius, 1e-3);
         u.splashCraterSeconds.value = Math.max(l.splashCraterSeconds, 1e-3);
@@ -426,6 +430,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashGlowRadius', 0.1, 6, 0.05).onChange(apply);
         folder.add(this.look, 'splashWaterReach', 0, 3, 0.01).onChange(apply);
         folder.add(this.look, 'splashWaterDarken', 0, 1, 0.01).onChange(apply);
+        folder.add(this.look, 'splashShadowOnReflection', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.look, 'wetBandDarkness', 0, 1, 0.01).onChange(apply);
     }
@@ -512,6 +517,8 @@ export class WaterFactory {
             splashWaterReach: { value: 0 },
             // how much darker the water is right now, next to a meteor's flash
             splashDarken: { value: 0 },
+            // how much the flash's shadows darken the water's reflections right now
+            splashShadowReflection: { value: 0 },
             splashCraterDepth: { value: 0 },
             splashCraterRadius: { value: 1 },
             splashCraterSeconds: { value: 1 },

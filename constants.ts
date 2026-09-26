@@ -344,14 +344,16 @@ export interface ShootingStarSettings {
     splashShadows: boolean;
     splashShadowSize: number;
     /**
-     * which pillars cast those shadows: only ones within these distances of the camera or the impact, standing out in the channel (at
-     * least this share of the ground around them is water), and only while the camera is down in the channel (between
-     * its walls, lower than this above the water)
+     * which pillars cast those shadows: the ones in the channel (between its walls, give or take this many cells) from
+     * the camera to this far past the impact, in a wedge widening from the camera at this half-angle; and only while the
+     * camera is down in the channel (between its walls, lower than this above the water)
      */
-    shadowCasterRadius: number;
-    shadowCasterFlashRadius: number;
-    shadowCasterWaterShare: number;
+    shadowCasterWallMargin: number;
+    shadowCasterPastImpact: number;
+    shadowCasterWedgeDeg: number;
     shadowCanyonHeight: number;
+    /** debugging: draws the pillars casting the flash's shadows in magenta while it's on */
+    showShadowCasters: boolean;
     /** how high the splash's column of droplets goes, how far out its crown flies, and the droplets' size */
     splashHeight: number;
     splashSpread: number;
@@ -396,10 +398,11 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashWaterGlow: 6.5,
     splashShadows: true,
     splashShadowSize: 1024,
-    shadowCasterRadius: 12,
-    shadowCasterFlashRadius: 5,
-    shadowCasterWaterShare: 0.5,
+    shadowCasterWallMargin: 0,
+    shadowCasterPastImpact: 2,
+    shadowCasterWedgeDeg: 45,
     shadowCanyonHeight: 3,
+    showShadowCasters: false,
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
@@ -508,6 +511,8 @@ export interface WaterLook {
     splashWaterReach: number;
     /** how much darker the rest of the water gets at the flash's peak, next to its brightness */
     splashWaterDarken: number;
+    /** how much the flash's shadows darken the water's reflections as well (fake, but they'd vanish on the shiny far water otherwise) */
+    splashShadowOnReflection: number;
     /** darker, wet band on the pillars just above the surface */
     wetBandHeight: number;
     wetBandDarkness: number;
@@ -551,6 +556,7 @@ export const WATER_LOOK: WaterLook = {
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
     splashWaterDarken: 0.5,
+    splashShadowOnReflection: 0.8,
     wetBandHeight: 0.09,
     wetBandDarkness: 0,
 };

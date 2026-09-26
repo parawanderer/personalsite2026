@@ -293,7 +293,7 @@ const shootingStars = new ShootingStars(scene, starTweaks.params, water,
     { fogNearColor: walls.fogUniforms.fogNearColor, fogFarColor: walls.fogUniforms.fogFarColor },
     (light) => {
         const s = starTweaks.params;
-        return walls.shadowCasters(camera.position, light, s.shadowCasterRadius, s.shadowCasterFlashRadius, s.shadowCasterWaterShare, s.shadowCanyonHeight);
+        return walls.shadowCasters(camera.position, light, s.shadowCasterWedgeDeg, s.shadowCasterPastImpact, s.shadowCasterWallMargin, s.shadowCanyonHeight);
     });
 if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');

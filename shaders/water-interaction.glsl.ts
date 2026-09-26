@@ -121,6 +121,7 @@ uniform vec3 splashGlow;
 uniform float splashGlowRadius;
 uniform float splashWaterReach;
 uniform float splashDarken;
+uniform float splashShadowReflection;
 
 // the impact's light on the water, by distance from it: a bright glow around it, and a fainter light reaching far
 // across the water, falling off like a light does, for the pillars' long shadows to show in

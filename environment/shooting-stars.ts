@@ -160,7 +160,17 @@ export class ShootingStars implements AnimatedEntity {
         this.flash.shadow.camera.near = 0.1;
         scene.add(this.flash);
         // the pillars chosen to cast the flash's shadows: only drawn into its shadow map, nothing on screen
-        this.casters = new Mesh(new BufferGeometry(), new MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+        this.casters = new Mesh(new BufferGeometry(), new MeshBasicMaterial({
+            colorWrite: false,
+            depthWrite: false,
+            // for showShadowCasters: over the pillars themselves, without fighting them for depth
+            color: 0xff00ff,
+            opacity: 0.6,
+            polygonOffset: true,
+            polygonOffsetFactor: -1,
+            polygonOffsetUnits: -4,
+            fog: false,
+        }));
         this.casters.castShadow = true;
         this.casters.frustumCulled = false;
         this.casters.visible = false;
@@ -302,6 +312,13 @@ export class ShootingStars implements AnimatedEntity {
         this.flash.distance = s.splashLightRange;
         this.flash.castShadow = s.splashShadows && this.hasCasters;
         this.casters.visible = this.flash.visible && this.flash.castShadow;
+        // debugging: which pillars those are, drawn over them in magenta
+        const debug = this.casters.material;
+        if (debug.colorWrite !== s.showShadowCasters) {
+            debug.colorWrite = s.showShadowCasters;
+            debug.transparent = s.showShadowCasters;
+            debug.needsUpdate = true;
+        }
         this.flash.shadow.camera.far = s.splashLightRange;
         if (this.flash.shadow.mapSize.x !== s.splashShadowSize) {
             this.flash.shadow.mapSize.set(s.splashShadowSize, s.splashShadowSize);
@@ -373,10 +390,11 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
         folder.add(s, 'splashShadows');
         folder.add(s, 'splashShadowSize', [128, 256, 512, 1024, 2048]);
-        folder.add(s, 'shadowCasterRadius', 1, 40, 0.5);
-        folder.add(s, 'shadowCasterFlashRadius', 0, 20, 0.25);
-        folder.add(s, 'shadowCasterWaterShare', 0, 1, 0.01);
+        folder.add(s, 'shadowCasterWedgeDeg', 0, 89, 1);
+        folder.add(s, 'shadowCasterPastImpact', 0, 20, 0.25);
+        folder.add(s, 'shadowCasterWallMargin', -4, 10, 1);
         folder.add(s, 'shadowCanyonHeight', 0, 10, 0.1);
+        folder.add(s, 'showShadowCasters').name('show shadow casters (debug)');
         folder.add(s, 'splashHeight', 0, 5, 0.05);
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);
