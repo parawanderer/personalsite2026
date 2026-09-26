@@ -574,6 +574,9 @@ export class WallsFactory {
 
         // the geometry is built by Walls, which also owns the pillar field
         const mesh = new Mesh(new BufferGeometry(), material);
+        // only the meteor's impact flash casts shadows, so this costs nothing the rest of the time
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
         this.scene.add(mesh);
 
         return new Walls(

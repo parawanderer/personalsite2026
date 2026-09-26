@@ -148,6 +148,10 @@ export class ShootingStars implements AnimatedEntity {
         this.streak.frustumCulled = false;
         this.streak.visible = false;
         scene.add(this.streak);
+        // the pillars throw long shadows away from the impact; renders them six ways, but only while the flash is on
+        this.flash.shadow.bias = -0.002;
+        this.flash.shadow.normalBias = 0.02;
+        this.flash.shadow.camera.near = 0.1;
         scene.add(this.flash);
 
         const dropletGeometry = new BufferGeometry();
@@ -280,6 +284,13 @@ export class ShootingStars implements AnimatedEntity {
         this.flashColor.set(s.color);
         this.flash.intensity = s.splashLight * flash;
         this.flash.distance = s.splashLightRange;
+        this.flash.castShadow = s.splashShadows;
+        this.flash.shadow.camera.far = s.splashLightRange;
+        if (this.flash.shadow.mapSize.x !== s.splashShadowSize) {
+            this.flash.shadow.mapSize.set(s.splashShadowSize, s.splashShadowSize);
+            this.flash.shadow.map?.dispose();
+            this.flash.shadow.map = null;
+        }
         this.flash.color.copy(this.flashColor);
         this.flash.visible = flash > 0;
         this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
@@ -342,6 +353,8 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashLight', 0, 5000, 5);
         folder.add(s, 'splashLightRange', 1, 80, 1);
         folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
+        folder.add(s, 'splashShadows');
+        folder.add(s, 'splashShadowSize', [128, 256, 512, 1024, 2048]);
         folder.add(s, 'splashHeight', 0, 5, 0.05);
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);

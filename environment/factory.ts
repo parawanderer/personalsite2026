@@ -77,7 +77,7 @@ export class GenericObjectFactory {
         const light = new SpotLight(color, intensity);
         light.position.set(0, 7, -9.2);
         light.target.position.set(0, 0, CAMERA_INITIAL_Z);
-        light.castShadow = true;
+        // no shadows: the pillars cast them now (for the meteor flash), and this light was tuned without them
 
         this.scene.add(light);
         this.scene.add(light.target);

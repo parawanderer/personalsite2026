@@ -340,6 +340,9 @@ export interface ShootingStarSettings {
     splashLightRange: number;
     /** brightness of the glow on the water itself around the impact */
     splashWaterGlow: number;
+    /** whether the flash throws the pillars' shadows, and how sharp they are (shadow map size per side) */
+    splashShadows: boolean;
+    splashShadowSize: number;
     /** how high the splash's column of droplets goes, how far out its crown flies, and the droplets' size */
     splashHeight: number;
     splashSpread: number;
@@ -382,6 +385,8 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashLight: 2000,
     splashLightRange: 30,
     splashWaterGlow: 6.5,
+    splashShadows: true,
+    splashShadowSize: 512,
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,

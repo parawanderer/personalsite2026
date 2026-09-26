@@ -51,7 +51,7 @@ const WATER_EDITS: [string, string][] = [
     [
         "gl_FragColor = vec4( outgoingLight, alpha );",
         `gl_FragColor = vec4(
-            outgoingLight + rimColor * rimStrength * pillarRim + splashGlow * exp(-length(worldPosition.xz - splashCenter) / splashGlowRadius),
+            outgoingLight + rimColor * rimStrength * pillarRim + splashGlow * exp(-length(worldPosition.xz - splashCenter) / splashGlowRadius) * getShadowMask(),
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
     ],
@@ -257,6 +257,8 @@ export class Water implements AnimatedEntity {
         this.patch.position.y = WATER_LEVEL_Y;
         // it moves with the camera, keep three from culling it by its (stale) bounds
         this.patch.frustumCulled = false;
+        // the pillars' shadows from a meteor's flash, cut out of its glow on the water
+        this.patch.receiveShadow = true;
         this.water.parent?.add(this.patch);
         this.surfaceUniforms.patchHalfSize.value = l.displacementRadius;
     }
@@ -540,6 +542,8 @@ export class WaterFactory {
         water.position.y = WATER_LEVEL_Y;
         water.rotation.x = - Math.PI / 2;
 
+
+        water.receiveShadow = true;
 
         const waterUniforms = water.material.uniforms;
         waterUniforms['size'].value = 10;
