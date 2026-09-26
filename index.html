@@ -130,9 +130,8 @@
         </section>
 
         <header id="logo" class="logo-container">
-            <img id="logo-img" class="logo-primary animate-appear" src="wanderdev2_white.svg" alt="Wander.Dev Logo"/>
-            <!-- ?title=...: trying title fonts as text in place of the logo (public/index.css, "Title candidates") -->
-            <div class="wordmark-text animate-appear" aria-hidden="true">wander.dev</div>
+            <!-- the title, set like a book's: Computer Modern capitals, spaced wide -->
+            <h1 id="logo-img" class="logo-primary animate-appear">wander.dev</h1>
             <div class="name-title animate-appear">
                 Shane B. <span class="text-sep"></span> Computer Scientist
             </div>
@@ -172,24 +171,6 @@
             </div>
         </div>
     </div>
-    <script>
-        // ?title=cm|bodoni|cormorant|italiana: try a title font (public/index.css, "Title candidates")
-        const titleFonts = {
-            bodoni: 'Bodoni+Moda:opsz,wght@6..96,400',
-            cormorant: 'Cormorant+Garamond:wght@300',
-            italiana: 'Italiana',
-        };
-        const titleFont = new URLSearchParams(location.search).get('title');
-        if (titleFont === 'cm' || titleFont in titleFonts) {
-            document.documentElement.classList.add('title-candidate', `title-${titleFont}`);
-            if (titleFonts[titleFont]) {
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = `https://fonts.googleapis.com/css2?family=${titleFonts[titleFont]}&display=swap`;
-                document.head.appendChild(link);
-            }
-        }
-    </script>
     <script type="module" src="/main.ts"></script>
   </body>
 </html>

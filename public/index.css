@@ -319,7 +319,7 @@ svg .anim * {
 }
 
 .link-name {
-    font-size: 14pt;
+    font-size: 15pt;
     font-weight: 400;
     position: relative;
 }
@@ -341,7 +341,7 @@ a.link-item:hover .link-name:after {
 }
 
 .link-note {
-    font-size: 11pt;
+    font-size: 12.5pt;
     font-weight: 300;
     line-height: 1.5;
     color: #ffffffa0;
@@ -385,7 +385,7 @@ h1 {
 
 p, li {
     color: white;
-    font-size: 13pt;
+    font-size: 14.5pt;
     font-weight: 300;
 }
 
@@ -413,7 +413,7 @@ p, li {
 .contact-text {
     color: white;
     font-weight: 400;
-    font-size: 14pt;
+    font-size: 15pt;
     position: relative;
 }
 
@@ -507,8 +507,17 @@ a.contact-item:hover .contact-text:after {
 
 .logo-primary {
     display: block;
+    margin: 0;
+    color: white;
+    font-size: clamp(1.7rem, 3.4vw, 2.9rem);
+    line-height: 1;
+    letter-spacing: 0.22em;
+    /* letter-spacing trails the last letter, pull it back so the title ends flush with the lines below */
+    margin-right: -0.22em;
+    text-align: right;
+    white-space: nowrap;
+    text-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
     cursor: pointer;
-    width: 100%;
 }
 
 .logo-primary.animate-appear, .name-title.animate-appear, .nav .animate-appear {
@@ -803,48 +812,14 @@ a.contact-item:hover .contact-text:after {
     font-display: swap;
 }
 
-/* Title candidates (?title=...): the title as spaced serif capitals, also used for the pages' headings */
+/* The title and the pages' headings: Computer Modern capitals, spaced wide */
 
-.wordmark-text {
-    display: none;
-}
-
-.title-candidate .logo-primary {
-    display: none;
-}
-
-.title-candidate .wordmark-text {
-    display: block;
-    color: white;
-    font-size: 2.9rem;
-    line-height: 1;
-    text-align: right;
-    text-transform: uppercase;
-    letter-spacing: 0.22em;
-    margin-right: -0.22em;
-    white-space: nowrap;
-    text-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
-}
-
-.title-candidate .text-panel h1 {
+.logo-primary, .text-panel h1 {
+    font-family: 'Computer Modern Serif', serif;
     font-weight: normal;
     text-transform: uppercase;
+}
+
+.text-panel h1 {
     letter-spacing: 0.2em;
-}
-
-.title-cm .wordmark-text, .title-cm .text-panel h1 {
-    font-family: 'Computer Modern Serif', serif;
-}
-
-.title-bodoni .wordmark-text, .title-bodoni .text-panel h1 {
-    font-family: 'Bodoni Moda', serif;
-}
-
-.title-cormorant .wordmark-text, .title-cormorant .text-panel h1 {
-    font-family: 'Cormorant Garamond', serif;
-    font-weight: 300;
-}
-
-.title-italiana .wordmark-text, .title-italiana .text-panel h1 {
-    font-family: 'Italiana', serif;
 }
