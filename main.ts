@@ -425,6 +425,13 @@ const touchTweaks = tweaks.addFolder('Water touch', WATER_TOUCH);
 const waterTouch = new WaterTouch(camera, renderer.domElement, water, walls, touchTweaks.params, () => !freeFlight);
 if (touchTweaks.folder) waterTouch.bindTweaks(touchTweaks.folder);
 scheduler.add(waterTouch);
+// floating particles are pushed aside by the same dents
+scheduler.add({
+    update: () => {
+        const s = touchTweaks.params;
+        particles.setTouch(water.touchUniforms.points, s.particlePushRadius, s.enabled ? s.particlePush : 0);
+    },
+});
 
 const cameraTweaks = tweaks.addFolder('Camera', {});
 if (cameraTweaks.folder) new CameraTweaks(camera, goHome).bind(cameraTweaks.folder);

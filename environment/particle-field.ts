@@ -17,6 +17,7 @@ import {
     Scene,
     Texture,
     Vector2,
+    Vector3,
     WebGLProgramParametersWithUniforms,
 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
@@ -24,6 +25,7 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { AnimatedEntity } from '../entity/animated-entity';
 import { ParticleSettings } from '../constants';
 import { makeRng } from '../utils/random';
+import { TOUCH_POINTS } from '../shaders/water-interaction.glsl';
 import {
     dimpleBeginVertex,
     dimpleFrag,
@@ -137,6 +139,10 @@ export class ParticleField implements AnimatedEntity {
             flakeSpin: { value: 0 },
             dotSize: { value: 0 },
             particleFlashColor: { value: new Color() },
+            // the cursor's dents in the water, shared with the water (see setTouch)
+            particleTouchPoints: { value: Array.from({ length: TOUCH_POINTS }, () => new Vector3()) },
+            particleTouchRadius: { value: 1 },
+            particleTouchPush: { value: 0 },
             particleFlash: { value: 0 },
         };
         this.build();
@@ -289,6 +295,18 @@ export class ParticleField implements AnimatedEntity {
     public setShown(colorKey: string, share: number): void {
         const shown = this.shown.get(colorKey);
         if (shown) shown.value = share;
+    }
+
+    /**
+     * The cursor's dents in the water, which push floating particles aside
+     * @param points the water's own touch points (x, z, strength), shared so both always agree
+     * @param radius how far around each dent particles are pushed
+     * @param push how strongly, as a share of that radius (up to about 1, beyond it particles pass each other)
+     */
+    public setTouch(points: Vector3[], radius: number, push: number): void {
+        this.uniforms.particleTouchPoints.value = points;
+        this.uniforms.particleTouchRadius.value = Math.max(radius, 1e-3);
+        this.uniforms.particleTouchPush.value = push;
     }
 
     /**

@@ -161,5 +161,7 @@ export class WaterTouch implements AnimatedEntity {
         folder.add(s, 'refillSeconds', 0.1, 15, 0.1);
         folder.add(s, 'trailSpacing', 0.01, 1, 0.005);
         folder.add(s, 'ringHeight', 0, 0.1, 0.001);
+        folder.add(s, 'particlePushRadius', 0.02, 2, 0.01);
+        folder.add(s, 'particlePush', 0, 1.1, 0.01);
     }
 }

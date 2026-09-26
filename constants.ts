@@ -744,7 +744,7 @@ export interface ParticleSettings {
 }
 
 export const PARTICLES: ParticleSettings = {
-    count: 1600,
+    count: 800,
     boxSize: 9,
     fallSpeed: 0.04,
     sway: 0.0,
@@ -796,6 +796,9 @@ export interface WaterTouchSettings {
     trailSpacing: number;
     /** the small ring sent out when pressing down */
     ringHeight: number;
+    /** floating particles pushed aside by the dents: how far around them, and how strongly (share of that distance, up to about 1) */
+    particlePushRadius: number;
+    particlePush: number;
 }
 
 export const WATER_TOUCH: WaterTouchSettings = {
@@ -807,4 +810,6 @@ export const WATER_TOUCH: WaterTouchSettings = {
     refillSeconds: 3,
     trailSpacing: 0.08,
     ringHeight: 0.012,
+    particlePushRadius: 0.3,
+    particlePush: 0.9,
 };

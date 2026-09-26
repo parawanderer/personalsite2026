@@ -1,4 +1,5 @@
 import { toFileName } from "./util";
+import { TOUCH_POINTS } from "./water-interaction.glsl";
 
 const fileName = toFileName(import.meta.url);
 
@@ -38,6 +39,26 @@ uniform float particlePillarMargin;
 uniform float particleLiftHeight;
 uniform float particleLiftWidth;
 uniform float particlePatchRadius;
+// the cursor's dents in the water (environment/water-touch.ts), the same points the water uses: (x, z, strength)
+uniform vec3 particleTouchPoints[${TOUCH_POINTS}];
+uniform float particleTouchRadius;
+uniform float particleTouchPush;
+
+// floating particles pushed aside by the cursor's dents, drifting back as they refill. The push fades out with distance
+// gently enough (for push strengths up to about 1) that particles never pass each other, they only squeeze aside
+vec2 pushedByTouch(vec2 p) {
+    vec2 offset = vec2(0.0);
+    float r2Push = particleTouchRadius * particleTouchRadius;
+    for (int i = 0; i < ${TOUCH_POINTS}; i++) {
+        float w = particleTouchPoints[i].z;
+        if (w <= 0.0) continue;
+        vec2 d = p - particleTouchPoints[i].xy;
+        float r2 = dot(d, d);
+        if (r2 > 9.0 * r2Push || r2 < 1e-8) continue;
+        offset += d * inversesqrt(r2) * particleTouchPush * w * particleTouchRadius * exp(-r2 / r2Push);
+    }
+    return p + offset;
+}
 
 // radius around a pillar's waterline centre that floating particles stay out of (the stretched cross-section's
 // longest radius, plus a margin), or 0 if there's no pillar in this cell
@@ -137,6 +158,7 @@ vec3 particleWorld(out float visible, out float landed) {
         // carried by the flow, around the pillars
         float lift;
         world.xz = flowAroundPillars(world.xz + particleFlow * sinceLanding, particleFlow, lift);
+        world.xz = pushedByTouch(world.xz);
         float sinking = max(sinceLanding - particleFloatTime, 0.0) * particleSinkSpeed;
         world.y = particleWaterY + lift - sinking;
         particleSurfaceY = particleWaterY + lift;
