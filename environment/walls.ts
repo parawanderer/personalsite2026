@@ -249,8 +249,51 @@ export class Walls implements AnimatedEntity {
 
     public rebuild(): void {
         const old = this.walls.geometry;
-        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.pillarField, this.titleZone);
+        this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.pillarField, this.shadowCandidates, this.titleZone);
         old.dispose();
+    }
+
+    private readonly shadowCandidates: ShadowCandidate[] = [];
+
+    /**
+     * Whether cell (i, j) lies across the channel, between its walls: within the sideways spread of the water in the
+     * rows around it (the camera can stand among the stubs at the ends, where there's no water right underneath)
+     */
+    private betweenWalls(i: number, j: number): boolean {
+        const reach = 12;
+        const margin = 2;
+        let min = Infinity;
+        let max = -Infinity;
+        for (let jj = j - reach; jj <= j + reach; jj++) {
+            for (let ii = 0; ii < this.mask.length; ii++) {
+                if (this.mask[ii][jj] !== WATER) continue;
+                min = Math.min(min, ii);
+                max = Math.max(max, ii);
+            }
+        }
+        return i >= min - margin && i <= max + margin;
+    }
+
+    /**
+     * The pillars worth casting shadows from a light, as seen from `viewer`: three.js would take every pillar, and the
+     * walls' shadows mostly just fall across the channel in big, confusing wedges. So only the pillars standing out in
+     * the channel (mostly surrounded by water) near the viewer or near the light, and none at all when the viewer isn't
+     * down in the channel (above the walls or off to a side, where the shadows would hardly be seen anyway).
+     * @returns their geometry, or null when there are none
+     */
+    public shadowCasters(viewer: Vector3, light: Vector3, radius: number, lightRadius: number, minWaterShare: number, canyonHeight: number): BufferGeometry | null {
+        const f = this.pillarField;
+        const i = Math.round((viewer.x - f.origin.x) / f.cellSize);
+        const j = Math.round((viewer.z - f.origin.y) / f.cellSize);
+        if (viewer.y > WATER_LEVEL_Y + canyonHeight || !this.betweenWalls(i, j)) return null;
+
+        const pieces: PillarInstance[] = [];
+        for (const c of this.shadowCandidates) {
+            if (c.waterShare < minWaterShare) continue;
+            const at = c.pieces[0].centre;
+            if (at.distanceTo(viewer) < radius || Math.hypot(at.x - light.x, at.z - light.z) < lightRadius) pieces.push(...c.pieces);
+        }
+        return pieces.length > 0 ? buildPillarMesh(pieces, this.shape) : null;
     }
 
     public setTitleZone(zone: ScreenZone | undefined): void {
@@ -421,7 +464,29 @@ const createPillarField = (mask: number[][], extraOffsetZ: number): PillarField 
     size: new Vector2(mask.length, mask[0].length),
 });
 
-const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: PillarShape, extraOffsetZ: number, field: PillarField, titleZone?: ScreenZone): BufferGeometry => {
+/** share of the cells around (i, j), within `reach` cells, that are water: high for pillars standing out in the channel */
+const waterShareAround = (mask: number[][], i: number, j: number, reach: number): number => {
+    let water = 0;
+    let total = 0;
+    for (let di = -reach; di <= reach; di++) {
+        for (let dj = -reach; dj <= reach; dj++) {
+            const row = mask[i + di];
+            if (!row || row[j + dj] === undefined) continue;
+            total++;
+            if (row[j + dj] === WATER) water++;
+        }
+    }
+    return total > 0 ? water / total : 0;
+};
+
+/** a pillar (all its pieces, if broken), and how much water is around it */
+interface ShadowCandidate {
+    pieces: PillarInstance[];
+    waterShare: number;
+}
+
+const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: PillarShape, extraOffsetZ: number, field: PillarField, candidates: ShadowCandidate[], titleZone?: ScreenZone): BufferGeometry => {
+    candidates.length = 0;
     (field.dataA.image.data as Float32Array).fill(0);
     (field.dataB.image.data as Float32Array).fill(0);
 
@@ -504,10 +569,12 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: Pil
                 pieces[0] = extendBelowWater(pieces[0], axis, layout.depthBelowWater);
                 recordWaterline(field, i, j, pieces[0], axis);
                 instances.push(...pieces);
+                candidates.push({ pieces, waterShare: waterShareAround(mask, i, j, 3) });
             } else {
                 const extended = extendBelowWater(pillar, axis, layout.depthBelowWater);
                 recordWaterline(field, i, j, extended, axis);
                 instances.push(extended);
+                candidates.push({ pieces: [extended], waterShare: waterShareAround(mask, i, j, 3) });
             }
         }
     }
@@ -576,8 +643,7 @@ export class WallsFactory {
 
         // the geometry is built by Walls, which also owns the pillar field
         const mesh = new Mesh(new BufferGeometry(), material);
-        // only the meteor's impact flash casts shadows, so this costs nothing the rest of the time
-        mesh.castShadow = true;
+        // receives the meteor flash's shadows; a few chosen pillars cast them (Walls.shadowCasters)
         mesh.receiveShadow = true;
         this.scene.add(mesh);
 

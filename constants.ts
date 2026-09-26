@@ -343,6 +343,15 @@ export interface ShootingStarSettings {
     /** whether the flash throws the pillars' shadows, and how sharp they are (shadow map size per side) */
     splashShadows: boolean;
     splashShadowSize: number;
+    /**
+     * which pillars cast those shadows: only ones within these distances of the camera or the impact, standing out in the channel (at
+     * least this share of the ground around them is water), and only while the camera is down in the channel (between
+     * its walls, lower than this above the water)
+     */
+    shadowCasterRadius: number;
+    shadowCasterFlashRadius: number;
+    shadowCasterWaterShare: number;
+    shadowCanyonHeight: number;
     /** how high the splash's column of droplets goes, how far out its crown flies, and the droplets' size */
     splashHeight: number;
     splashSpread: number;
@@ -387,6 +396,10 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashWaterGlow: 6.5,
     splashShadows: true,
     splashShadowSize: 1024,
+    shadowCasterRadius: 12,
+    shadowCasterFlashRadius: 5,
+    shadowCasterWaterShare: 0.5,
+    shadowCanyonHeight: 3,
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
@@ -491,6 +504,10 @@ export interface WaterLook {
     splashCraterSeconds: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
+    /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
+    splashWaterReach: number;
+    /** how much darker the rest of the water gets at the flash's peak, next to its brightness */
+    splashWaterDarken: number;
     /** darker, wet band on the pillars just above the surface */
     wetBandHeight: number;
     wetBandDarkness: number;
@@ -532,6 +549,8 @@ export const WATER_LOOK: WaterLook = {
     splashCraterRadius: 0.8,
     splashCraterSeconds: 1.4,
     splashGlowRadius: 3.5,
+    splashWaterReach: 0.5,
+    splashWaterDarken: 0.5,
     wetBandHeight: 0.09,
     wetBandDarkness: 0,
 };

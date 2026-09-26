@@ -290,7 +290,11 @@ const starTweaks = tweaks.addFolder('Shooting stars', SHOOTING_STARS);
 const drawingBufferSize = new Vector2();
 const shootingStars = new ShootingStars(scene, starTweaks.params, water,
     () => renderer.getDrawingBufferSize(drawingBufferSize).y * camera.projectionMatrix.elements[5] / 2,
-    { fogNearColor: walls.fogUniforms.fogNearColor, fogFarColor: walls.fogUniforms.fogFarColor });
+    { fogNearColor: walls.fogUniforms.fogNearColor, fogFarColor: walls.fogUniforms.fogFarColor },
+    (light) => {
+        const s = starTweaks.params;
+        return walls.shadowCasters(camera.position, light, s.shadowCasterRadius, s.shadowCasterFlashRadius, s.shadowCasterWaterShare, s.shadowCanyonHeight);
+    });
 if (starTweaks.folder) shootingStars.bindTweaks(starTweaks.folder, () => clock.elapsedTime);
 dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(shootingStars);

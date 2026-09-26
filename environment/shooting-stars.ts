@@ -1,4 +1,4 @@
-import { AdditiveBlending, IUniform, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
+import { AdditiveBlending, IUniform, MeshBasicMaterial, BufferAttribute, BufferGeometry, CanvasTexture, Clock, Color, DoubleSide, Mesh, PlaneGeometry, PointLight, Points, PointsMaterial, Scene, ShaderMaterial, Vector3 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
@@ -132,7 +132,9 @@ export class ShootingStars implements AnimatedEntity {
     private nextAt = 0;
     private flashStart = -1;
     private nightAmount = 0;
+    private hasCasters = false;
     private readonly mist: SplashMist;
+    private readonly casters: Mesh<BufferGeometry, MeshBasicMaterial>;
 
     /**
      * @param pixelScale pixels per world unit at distance 1, for sizing the plume's puffs
@@ -143,6 +145,8 @@ export class ShootingStars implements AnimatedEntity {
         private readonly water: Water,
         private readonly pixelScale: () => number,
         fog: { fogNearColor: IUniform; fogFarColor: IUniform },
+        /** the pillars that should cast the flash's shadows right now (null: none) */
+        private readonly shadowCasters: (light: Vector3) => BufferGeometry | null,
     ) {
         this.streak = new Mesh(new PlaneGeometry(1, 1, 16, 1), streakMaterial());
         this.streak.frustumCulled = false;
@@ -153,6 +157,12 @@ export class ShootingStars implements AnimatedEntity {
         this.flash.shadow.normalBias = 0.02;
         this.flash.shadow.camera.near = 0.1;
         scene.add(this.flash);
+        // the pillars chosen to cast the flash's shadows: only drawn into its shadow map, nothing on screen
+        this.casters = new Mesh(new BufferGeometry(), new MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+        this.casters.castShadow = true;
+        this.casters.frustumCulled = false;
+        this.casters.visible = false;
+        scene.add(this.casters);
 
         const dropletGeometry = new BufferGeometry();
         dropletGeometry.setAttribute('position', new BufferAttribute(new Float32Array(DROPLETS * 3), 3));
@@ -242,6 +252,10 @@ export class ShootingStars implements AnimatedEntity {
                     this.flashStart = now;
                     this.impact.set(impact.x, WATER_LEVEL_Y, impact.z);
                     this.throwDroplets();
+                    const casters = this.shadowCasters(this.flash.position);
+                    this.casters.geometry.dispose();
+                    this.casters.geometry = casters ?? new BufferGeometry();
+                    this.hasCasters = casters !== null;
                     this.mist.splash(this.impact, now);
                     this.water.splash(impact.x, impact.z);
                 }
@@ -284,7 +298,8 @@ export class ShootingStars implements AnimatedEntity {
         this.flashColor.set(s.color);
         this.flash.intensity = s.splashLight * flash;
         this.flash.distance = s.splashLightRange;
-        this.flash.castShadow = s.splashShadows;
+        this.flash.castShadow = s.splashShadows && this.hasCasters;
+        this.casters.visible = this.flash.visible && this.flash.castShadow;
         this.flash.shadow.camera.far = s.splashLightRange;
         if (this.flash.shadow.mapSize.x !== s.splashShadowSize) {
             this.flash.shadow.mapSize.set(s.splashShadowSize, s.splashShadowSize);
@@ -293,7 +308,7 @@ export class ShootingStars implements AnimatedEntity {
         }
         this.flash.color.copy(this.flashColor);
         this.flash.visible = flash > 0;
-        this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash);
+        this.water.setSplashGlow(this.flashColor, s.splashWaterGlow * flash, flash);
 
         this.updateSplash(sinceFlash);
         this.mist.update(now, this.nightAmount, this.pixelScale(), this.flash.position);
@@ -355,6 +370,10 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashWaterGlow', 0, 60, 0.5);
         folder.add(s, 'splashShadows');
         folder.add(s, 'splashShadowSize', [128, 256, 512, 1024, 2048]);
+        folder.add(s, 'shadowCasterRadius', 1, 40, 0.5);
+        folder.add(s, 'shadowCasterFlashRadius', 0, 20, 0.25);
+        folder.add(s, 'shadowCasterWaterShare', 0, 1, 0.01);
+        folder.add(s, 'shadowCanyonHeight', 0, 10, 0.1);
         folder.add(s, 'splashHeight', 0, 5, 0.05);
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);

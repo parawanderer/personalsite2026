@@ -119,6 +119,15 @@ uniform float splashCraterRadius;
 uniform float splashCraterSeconds;
 uniform vec3 splashGlow;
 uniform float splashGlowRadius;
+uniform float splashWaterReach;
+uniform float splashDarken;
+
+// the impact's light on the water, by distance from it: a bright glow around it, and a fainter light reaching far
+// across the water, falling off like a light does, for the pillars' long shadows to show in
+vec3 splashLight(float d) {
+    float r2 = splashGlowRadius * splashGlowRadius;
+    return splashGlow * (exp(-d / splashGlowRadius) + splashWaterReach * r2 / (r2 + d * d));
+}
 
 // rings spreading from a meteor impact: a wave packet travelling outwards, fading with time and distance,
 // and the crater where it landed, which sinks, rebounds into a mound and settles over a few swings, only near the impact.
