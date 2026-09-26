@@ -245,6 +245,21 @@ svg .anim * {
 
 /* Generic text panel */
 
+/* reading text in the panels is set in a serif, against the spaced sans labels and the wordmark, like a poster's
+   credits against its copy; titles keep the sans */
+.text-panel {
+    --reading-font: 'EB Garamond', Georgia, serif;
+}
+
+.text-panel p, .text-panel li, .contact-text, .link-name, .link-note {
+    font-family: var(--reading-font);
+}
+
+/* the global Montserrat rule would otherwise catch spans inside the text (like the copyright year) */
+.text-panel p * {
+    font-family: inherit;
+}
+
 .text-panel {
     background: #3434341c;
     /* box-shadow: 0px 20px 20px #59272742; */
