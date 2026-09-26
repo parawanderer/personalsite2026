@@ -575,8 +575,12 @@ export class Water implements AnimatedEntity {
         uw.causticSharpness.value = l.causticSharpness;
         this.underwaterUniforms.underwaterColor.value.set(l.underwaterColor);
         this.underwaterUniforms.underwaterViewDensity.value = l.underwaterViewDensity;
-        // red goes first, then green, blue last
-        (this.underwaterUniforms.depthAbsorption.value as Vector3).set(1 + l.depthRedLoss, 1 + l.depthRedLoss * 0.3, 1).multiplyScalar(l.depthDarkening);
+        // the fluid absorbs each colour the faster, the less of it there is in its deep colour, so the light that's left
+        // tends towards that colour as it goes down (Earth's water has blue there; this fluid needn't)
+        const deep = new Color(l.depthColor);
+        const strongest = Math.max(deep.r, deep.g, deep.b, 1e-3);
+        const rate = (c: number) => l.depthDarkening * (1 - Math.log(Math.max(c / strongest, 0.02)));
+        (this.underwaterUniforms.depthAbsorption.value as Vector3).set(rate(deep.r), rate(deep.g), rate(deep.b));
         this.underwaterUniforms.surfaceWaveHeight.value = l.surfaceWaveHeight;
         const under = this.underside.material.uniforms;
         under.undersideClarity.value = l.undersideClarity;
@@ -594,7 +598,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'underwaterDensity', 0, 10, 0.05).onChange(apply);
         folder.add(this.look, 'underwaterViewDensity', 0, 2, 0.01).onChange(apply);
         folder.add(this.look, 'depthDarkening', 0, 1, 0.01).onChange(apply);
-        folder.add(this.look, 'depthRedLoss', 0, 4, 0.05).onChange(apply);
+        folder.addColor(this.look, 'depthColor').onChange(apply);
         folder.add(this.look, 'surfaceWaveHeight', 0, 0.4, 0.005).onChange(apply);
         folder.add(this.look, 'surfaceWaveSpeed', 0, 5, 0.05);
         folder.add(this.look, 'undersideClarity', 0, 1, 0.01).onChange(apply);
