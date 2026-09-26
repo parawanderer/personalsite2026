@@ -29,21 +29,31 @@ html, body {
     height: 100%;
     overflow: hidden;
     z-index: 10000;
-    /**
-    Few levels of "loading" background here.
-
-    1. most basic: just fill in sky color
-    2. Otherwise fill with a gradient that kind of looks like the loaded scene
-    3. Otherwise load an image that is a blurred image of the main scene (without text)
-    4. Otherwise (on load) show the actual scene (i.e. unblur)
-
+    /*
+    Placeholders while the scene loads, each covering the one before (tools/loading-backgrounds.mjs makes them, per time
+    of day, and puts them in index.html):
+    1. a plain dark fill
+    2. gradients sampled from the scene, which come with the page source itself
+    3. a small blurred capture of the scene, a few KB
+    then the scene itself fades in
     */
-    background-color: #9ebebf;
-    background: url(/loading_bg.png), linear-gradient(90deg, #8b6853, #9ebebf, #8b6853);
-    background-position: center;
-    background-size: cover;
+    background-color: #182024;
     opacity: 1;
     transition: opacity 1s ease;
+}
+
+/* the placeholders, blurred once more and bled past the edges so the blur doesn't fade at them */
+.loading-overlay::before {
+    content: "";
+    position: absolute;
+    inset: -60px;
+    background-position: center;
+    background-size: cover;
+    filter: blur(16px);
+}
+
+.loading-info {
+    position: relative;
 }
 
 .loading-overlay.hiding {
