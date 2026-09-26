@@ -356,7 +356,13 @@ dayNight.number((v) => shootingStars.setNight(v), () => 0, 'nightAurora');
 // the flash's shadows on the pillars are left out of the water's reflection: every pillar pixel would look them up a
 // second time, for shadows the blurred, rippled reflection barely shows
 let flashShadowsShown = false;
-water.aroundReflection(() => walls.receivesShadows = false, () => walls.receivesShadows = flashShadowsShown);
+water.aroundReflection(() => {
+    walls.receivesShadows = false;
+    walls.setReflectionPass(true);
+}, () => {
+    walls.receivesShadows = flashShadowsShown;
+    walls.setReflectionPass(false);
+});
 // the flash's shadows are only looked up while they show
 shootingStars.onShadows = (shown) => {
     flashShadowsShown = shown;

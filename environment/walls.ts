@@ -230,6 +230,11 @@ export class Walls implements AnimatedEntity {
         this.walls.receiveShadow = receive;
     }
 
+    /** whether the water's reflection is being rendered right now (it takes the cheaper, plain texture) */
+    public setReflectionPass(on: boolean): void {
+        this.surfaceUniforms.reflectionPass.value = on ? 1 : 0;
+    }
+
     /** how much darker pillar faces a meteor's flash doesn't reach look right now, 0 to 1 */
     public setFlashShadow(amount: number): void {
         this.surfaceUniforms.pillarFlashShadow.value = amount;
@@ -794,7 +799,7 @@ export class WallsFactory {
             hexContrast: { value: 0 },
             macroStrength: { value: 0 },
             macroScale: { value: 0 },
-            reflectionBelowY: { value: WATER_LEVEL_Y },
+            reflectionPass: { value: 0 },
             // how much darker faces the meteor flash doesn't reach look right now (shaders/pillar-surface.glsl.ts)
             pillarFlashShadow: { value: 0 },
         };

@@ -16,11 +16,12 @@ uniform float hexScale;
 uniform float hexContrast;
 uniform float macroStrength;
 uniform float macroScale;
-// cameras below this are the water's mirror camera, which only needs the plain texture
-uniform float reflectionBelowY;
+// 1 while the water renders its reflection, which only needs the plain texture. Set around that render
+// (Walls.setReflectionPass), not guessed from the camera's height: the camera itself can be under the water
+uniform float reflectionPass;
 
 bool isReflectionPass() {
-    return cameraPosition.y < reflectionBelowY;
+    return reflectionPass > 0.5;
 }
 
 float macroHash(vec3 p) {
