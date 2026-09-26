@@ -763,3 +763,105 @@ a.contact-item:hover .contact-text:after {
 .svg-defs {
     position: absolute;
 }
+
+
+/* Paper variant (?paper): the page typeset like a paper's title page, in Computer Modern (the LaTeX font) */
+
+@font-face {
+    font-family: 'Computer Modern Serif';
+    src: url('/fonts/cmu/cmunrm.woff') format('woff');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Computer Modern Serif';
+    src: url('/fonts/cmu/cmunti.woff') format('woff');
+    font-weight: normal;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Computer Modern Serif';
+    src: url('/fonts/cmu/cmunbx.woff') format('woff');
+    font-weight: bold;
+    font-style: normal;
+    font-display: swap;
+}
+
+.wordmark-text {
+    display: none;
+}
+
+.paper .logo-primary {
+    display: none;
+}
+
+.paper .wordmark-text {
+    display: block;
+    color: white;
+    font-family: 'Computer Modern Serif', serif;
+    font-size: 3.6rem;
+    line-height: 1;
+    text-align: right;
+    text-shadow: 0 0 18px rgba(0, 0, 0, 0.3);
+}
+
+/* the author line under a title */
+.paper .name-title {
+    font-family: 'Computer Modern Serif', serif;
+    font-size: 1.15rem;
+    font-variant-caps: small-caps;
+    text-transform: none;
+    letter-spacing: 0.08em;
+    margin-right: 0;
+    opacity: 0.85;
+}
+
+.paper .name-title .text-sep {
+    width: 0;
+    margin: 0 0.5em;
+}
+
+/* the nav as section headings */
+.paper .nav-link, .paper .controls-explain, .paper .mobile-warn {
+    font-family: 'Computer Modern Serif', serif;
+    text-transform: none;
+    font-variant-caps: small-caps;
+}
+
+.paper .nav-link {
+    font-size: 1.15rem;
+    letter-spacing: 0.1em;
+}
+
+.paper .nav {
+    margin-right: -0.1em;
+}
+
+.paper .nav-link.quiet {
+    font-size: 1rem;
+    font-variant-caps: normal;
+    font-style: italic;
+    letter-spacing: 0.02em;
+}
+
+.paper .controls-explain dt, .paper .controls-explain dd {
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+}
+
+.paper .text-panel {
+    --reading-font: 'Computer Modern Serif', serif;
+}
+
+.paper .text-panel h1 {
+    font-family: 'Computer Modern Serif', serif;
+    font-weight: bold;
+}
+
+.paper .link-note {
+    font-style: italic;
+}

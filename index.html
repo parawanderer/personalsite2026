@@ -132,6 +132,8 @@
 
         <header id="logo" class="logo-container">
             <img id="logo-img" class="logo-primary animate-appear" src="wanderdev2_white.svg" alt="Wander.Dev Logo"/>
+            <!-- the ?paper variant sets the title as text, like a paper's title page -->
+            <div class="wordmark-text animate-appear" aria-hidden="true">wander.dev</div>
             <div class="name-title animate-appear">
                 Shane B. <span class="text-sep"></span> Computer Scientist
             </div>
@@ -142,7 +144,7 @@
             <button class="nav-link animate-appear" id="homeButton" aria-current="page">Home</button>
             <button class="nav-link animate-appear" id="linksButton">Links</button>
             <button class="nav-link animate-appear" id="contactButton">Contact</button>
-            <button class="nav-link quiet animate-appear" id="freeFlightButton">Inspect Scene</button>
+            <button class="nav-link quiet animate-appear" id="freeFlightButton">Explore</button>
         </nav>
     </main>
     <div class="overlay-container-lb no-display" id="freeFlightUi">
@@ -171,6 +173,10 @@
             </div>
         </div>
     </div>
+    <script>
+        // ?paper: try the page typeset like a paper's title page (public/index.css, "Paper variant")
+        if (new URLSearchParams(location.search).has('paper')) document.documentElement.classList.add('paper');
+    </script>
     <script type="module" src="/main.ts"></script>
   </body>
 </html>
