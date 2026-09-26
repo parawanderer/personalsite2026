@@ -398,7 +398,8 @@ const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const)
 
 
 // debug-related UI elements
-const debugInfoUI = new DebugInfoDisplay(DEBUG, camera);
+// the frame rate with ?tweaks; the camera's coordinates too in DEBUG
+const debugInfoUI = new DebugInfoDisplay(TWEAKS_ENABLED, camera, DEBUG);
 
 
 // effects

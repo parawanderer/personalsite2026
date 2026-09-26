@@ -62,7 +62,7 @@ try {
 
     await page.goto(`${o.url ?? 'http://localhost:5199'}/?tweaks`, { waitUntil: 'load' });
     await page.addStyleTag({
-        content: `.lil-gui.root { display: none !important; }${o.hideUi ? ' .hud, .window-outline, #controlsHintsUi, #freeFlightUi { display: none !important; }' : ''}`,
+        content: `.lil-gui.root, #fpsCounter { display: none !important; }${o.hideUi ? ' .hud, .window-outline, #controlsHintsUi, #freeFlightUi { display: none !important; }' : ''}`,
     });
     await page.waitForFunction(() => document.getElementById('loadingOverlay')?.classList.contains('hidden'), { timeout: 120000 });
 
