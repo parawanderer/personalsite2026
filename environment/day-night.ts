@@ -69,6 +69,12 @@ export class DayNight implements AnimatedEntity {
         return folder.add(this.settings, 'hour', 0, 24, 0.05).name('time of day (h)').onChange(onChange);
     }
 
+    /** the visitor's own time of day, in hours */
+    public static localHour(): number {
+        const d = new Date();
+        return d.getHours() + d.getMinutes() / 60 + d.getSeconds() / 3600;
+    }
+
     /** moves the time of day on, wrapping around midnight */
     public advance(hours: number): void {
         this.settings.hour = (((this.settings.hour + hours) % 24) + 24) % 24;

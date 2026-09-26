@@ -121,11 +121,16 @@ const replaceBetween = (name, content) => {
 };
 replaceBetween('loading-backgrounds', `    <style>\n${styles}\n    </style>`);
 replaceBetween('loading-time', `    <script>
-        // the placeholder nearest the scene's time of day (the saved tweak with ?tweaks, otherwise the default)
+        // the placeholder nearest the scene's time of day
         (() => {
-            let hour = ${readDefaultHour()};
+            // the visitor's own time, like the scene (main.ts); with ?tweaks, the saved time unless it follows the clock
+            const now = new Date();
+            let hour = now.getHours() + now.getMinutes() / 60;
             try {
-                if (new URLSearchParams(location.search).has('tweaks')) hour = JSON.parse(localStorage.getItem('tweaks:Day / night') ?? '{}').hour ?? hour;
+                const tweaks = new URLSearchParams(location.search).has('tweaks');
+                if (tweaks && !JSON.parse(localStorage.getItem('tweaks:Time') ?? '{}').localClock) {
+                    hour = JSON.parse(localStorage.getItem('tweaks:Day / night') ?? '{}').hour ?? ${readDefaultHour()};
+                }
             } catch { }
             const times = ${JSON.stringify(results.map((r) => [r.name, r.hour]))};
             const gap = (h) => Math.min(Math.abs(h - hour), 24 - Math.abs(h - hour));

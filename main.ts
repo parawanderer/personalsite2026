@@ -95,7 +95,7 @@ const flightClock = new Clock();
 
 // hand-tweaking panel (?tweaks)
 const tweaks = new Tweaks(TWEAKS_ENABLED);
-const timeTweaks = tweaks.addFolder('Time', { paused: false, cycle: false, hoursPerSecond: 0.5 });
+const timeTweaks = tweaks.addFolder('Time', { paused: false, cycle: false, hoursPerSecond: 0.5, localClock: false });
 // never start paused or cycling after a reload
 timeTweaks.params.paused = false;
 timeTweaks.params.cycle = false;
@@ -218,9 +218,18 @@ scheduler.add(walls);
 const dayNightTweaks = tweaks.addFolder('Day / night', DAY_NIGHT);
 const dayNight = new DayNight(dayNightTweaks.params);
 if (dayNightTweaks.folder) dayNight.bindTweaks(dayNightTweaks.folder);
+// the scene follows the visitor's own clock; with ?tweaks, only when 'follow local clock' is on, so the time of day
+// can be set by hand
+const followsLocalClock = () => !TWEAKS_ENABLED || timeTweaks.params.localClock;
+scheduler.add({
+    update: () => {
+        if (followsLocalClock() && !timeTweaks.params.cycle) dayNightTweaks.params.hour = DayNight.localHour();
+    },
+});
 // time of day sits with the pause toggle; its value still belongs to (and saves with) the day/night settings
 if (timeTweaks.folder) {
     const hour = dayNight.bindHourTweak(timeTweaks.folder, () => tweaks.persist('Day / night'));
+    timeTweaks.folder.add(timeTweaks.params, 'localClock').name('follow local clock');
     // plays the day through on a loop, to watch how it all evolves; runs on real time, so it goes on while paused
     timeTweaks.folder.add(timeTweaks.params, 'cycle').name('play day on a loop').onChange((on: boolean) => {
         // saved once when it stops, not every frame
@@ -234,9 +243,8 @@ if (timeTweaks.folder) {
             // capped, so coming back to a background tab doesn't skip hours ahead
             const dt = Math.min((now - last) / 1000, 0.1);
             last = now;
-            if (!timeTweaks.params.cycle) return;
-            dayNight.advance(dt * timeTweaks.params.hoursPerSecond);
-            hour.updateDisplay();
+            if (timeTweaks.params.cycle) dayNight.advance(dt * timeTweaks.params.hoursPerSecond);
+            if (timeTweaks.params.cycle || followsLocalClock()) hour.updateDisplay();
         },
     });
 }
