@@ -53,7 +53,10 @@ const CHANGED_STYLE = `
 .lil-gui .controller.${CHANGED_CLASS} > .name { color: #ffd84a; }
 .lil-gui .controller .tweak-reset {
     display: none;
-    margin-right: 4px;
+    /* lil-gui makes every button in the panel full width */
+    width: auto;
+    height: auto;
+    margin-left: 4px;
     padding: 0 3px;
     border: none;
     border-radius: 2px;
@@ -126,7 +129,7 @@ export class Tweaks {
         if (changed) this.addResetButton(controller, defaults[controller.property]);
     }
 
-    /** a small button before the name that puts the default back, in place */
+    /** a small button after the name that puts the default back, in place */
     private addResetButton(controller: Controller, value: unknown): void {
         if (controller.domElement.querySelector('.tweak-reset')) return;
         const button = document.createElement('button');
@@ -142,7 +145,7 @@ export class Tweaks {
             // pillars), and lil-gui keeps that call private
             (controller as unknown as { _callOnFinishChange?: () => void })._callOnFinishChange?.();
         });
-        controller.$name.prepend(button);
+        controller.$name.append(button);
     }
 
     /**

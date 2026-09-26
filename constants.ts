@@ -704,7 +704,7 @@ export const PARTICLES: ParticleSettings = {
     count: 1600,
     boxSize: 9,
     fallSpeed: 0.04,
-    sway: 0.05,
+    sway: 0.0,
     dotSize: 0.012,
     flakeSize: 0.03,
     flakeNear: 1.2,
