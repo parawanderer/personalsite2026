@@ -61,7 +61,8 @@ const WATER_EDITS: [string, string][] = [
             // while a meteor's flash is on, the rest of the water looks darker next to it, and the pillars' shadows
             // darken its reflections too (they wouldn't really, but on the shiny far water they'd vanish otherwise)
             (outgoingLight + rimColor * rimStrength * pillarRim) * (1.0 - splashDarken) * mix(1.0, getShadowMask(), splashShadowReflection)
-                + (splashLight(length(worldPosition.xz - splashCenter)) + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * getShadowMask(),
+                + (splashLight(length(worldPosition.xz - splashCenter)) * splashReliefLight(worldPosition.xyz, surfaceNormal)
+                    + splashGlint(worldPosition.xyz, surfaceNormal, eye)) * getShadowMask(),
             clamp( mix( surfaceOpacity, 1.0, pow( 1.0 - theta, fresnelPower ) ) + pillarRim * rimStrength, 0.0, 1.0 )
         );`
     ],
@@ -357,6 +358,7 @@ export class Water implements AnimatedEntity {
         u.splashWaterReach.value = l.splashWaterReach;
         u.splashHighlight.value = l.splashHighlight;
         u.splashShininess.value = Math.max(l.splashShininess, 1);
+        u.splashRelief.value = l.splashRelief;
         this.splashDarkenScale = l.splashWaterDarken;
         this.splashShadowReflectionScale = l.splashShadowOnReflection;
         u.splashCraterDepth.value = l.splashCraterDepth;
@@ -437,6 +439,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'splashWaterReach', 0, 3, 0.01).onChange(apply);
         folder.add(this.look, 'splashHighlight', 0, 20, 0.1).onChange(apply);
         folder.add(this.look, 'splashShininess', 1, 500, 1).onChange(apply);
+        folder.add(this.look, 'splashRelief', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'splashWaterDarken', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'splashShadowOnReflection', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'wetBandHeight', 0, 0.3, 0.005).onChange(apply);
@@ -526,6 +529,7 @@ export class WaterFactory {
             splashLightPosition: { value: new Vector3() },
             splashHighlight: { value: 0 },
             splashShininess: { value: 1 },
+            splashRelief: { value: 0 },
             // how much darker the water is right now, next to a meteor's flash
             splashDarken: { value: 0 },
             // how much the flash's shadows darken the water's reflections right now

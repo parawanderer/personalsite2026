@@ -125,6 +125,16 @@ uniform float splashShadowReflection;
 uniform vec3 splashLightPosition;
 uniform float splashHighlight;
 uniform float splashShininess;
+uniform float splashRelief;
+
+// how much more (or less) of the flash's light a tilted bit of surface gets than flat water: the light comes in low,
+// almost level with the water, so slopes facing it (splash rings, ripples, the lips around the pillars) catch several
+// times as much and slopes facing away get none, like a low sun showing up every ripple
+float splashReliefLight(vec3 position, vec3 normal) {
+    vec3 toLight = normalize(splashLightPosition - position);
+    float relief = clamp(dot(normal, toLight) / max(toLight.y, 0.05), 0.0, 4.0);
+    return mix(1.0, relief, splashRelief);
+}
 
 // the flash's highlight on the surface, by how it's tilted: the flash sits low over the water, so the raised lips
 // facing it and the ripple slopes towards it catch it brightly, while those facing away stay dark

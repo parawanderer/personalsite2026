@@ -520,6 +520,8 @@ export interface WaterLook {
     /** the flash's highlight on the water by its tilt (raised lips around the pillars, ripples): brightness, and sharpness (higher: thinner glints) */
     splashHighlight: number;
     splashShininess: number;
+    /** how much the flash's light on the water follows its tilt: slopes facing it (rings, ripples, lips) brighter, facing away darker */
+    splashRelief: number;
     /** how much darker the rest of the water gets at the flash's peak, next to its brightness */
     splashWaterDarken: number;
     /** how much the flash's shadows darken the water's reflections as well (fake, but they'd vanish on the shiny far water otherwise) */
@@ -568,6 +570,7 @@ export const WATER_LOOK: WaterLook = {
     splashWaterReach: 0.5,
     splashHighlight: 4,
     splashShininess: 80,
+    splashRelief: 0.85,
     splashWaterDarken: 0.5,
     splashShadowOnReflection: 0.8,
     wetBandHeight: 0.09,
