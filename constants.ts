@@ -719,7 +719,7 @@ export const PARTICLES: ParticleSettings = {
     dimpleDarkness: 0.12,
     dimpleRim: 0,
     dimpleRimColor: '#a1c4bf',
-    flakeColor1: '#2ebdb6',
+    flakeColor1: '#9bc7c5',
     flakeColor2: '#e1602d',
 };
 

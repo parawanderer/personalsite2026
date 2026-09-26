@@ -49,7 +49,23 @@ const rememberCollapsed = (gui: GUI, title: string) => {
 };
 
 const CHANGED_CLASS = 'tweak-changed';
-const CHANGED_STYLE = `.lil-gui .controller.${CHANGED_CLASS} > .name { color: #ffd84a; }`;
+const CHANGED_STYLE = `
+.lil-gui .controller.${CHANGED_CLASS} > .name { color: #ffd84a; }
+.lil-gui .controller .tweak-reset {
+    display: none;
+    margin-right: 4px;
+    padding: 0 3px;
+    border: none;
+    border-radius: 2px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+}
+.lil-gui .controller.${CHANGED_CLASS} .tweak-reset { display: inline-block; }
+.lil-gui .controller .tweak-reset:hover { background: rgba(255, 216, 74, 0.2); }
+`;
 
 type Controller = ReturnType<GUI['controllersRecursive']>[number];
 
@@ -107,6 +123,26 @@ export class Tweaks {
         if (!defaults || !(controller.property in defaults) || 'noDefault' in controller.domElement.dataset) return;
         const changed = !sameValue(controller.getValue(), defaults[controller.property]);
         controller.domElement.classList.toggle(CHANGED_CLASS, changed);
+        if (changed) this.addResetButton(controller, defaults[controller.property]);
+    }
+
+    /** a small button before the name that puts the default back, in place */
+    private addResetButton(controller: Controller, value: unknown): void {
+        if (controller.domElement.querySelector('.tweak-reset')) return;
+        const button = document.createElement('button');
+        button.className = 'tweak-reset';
+        button.textContent = '↺';
+        button.title = 'Reset to default';
+        button.addEventListener('click', (e) => {
+            // checkboxes are labels: don't let the click toggle them as well
+            e.preventDefault();
+            e.stopPropagation();
+            controller.setValue(value);
+            // setValue only fires onChange; some controls apply on finishing a change instead (like rebuilding the
+            // pillars), and lil-gui keeps that call private
+            (controller as unknown as { _callOnFinishChange?: () => void })._callOnFinishChange?.();
+        });
+        controller.$name.prepend(button);
     }
 
     /**
