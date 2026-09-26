@@ -235,7 +235,9 @@ export class Walls implements AnimatedEntity {
         this.surfaceUniforms.pillarFlashShadow.value = amount;
     }
 
-    /** switches the pillars' coloured fog on (above the water) or off (under it, where the water's fog takes over) */
+    /**
+     * The pillars' coloured fog as seen from above the water, or from under it (only the part of the view in air)
+     */
     public setAirFog(on: boolean): void {
         this.fog.extensionUniforms.fogAmount.value = on ? 1 : 0;
     }
@@ -785,6 +787,7 @@ export class WallsFactory {
             fogVert
         });
         fogShader.extensionUniforms.fogAmount = { value: 1 };
+        fogShader.extensionUniforms.fogWaterLevel = { value: WATER_LEVEL_Y };
 
         const surfaceUniforms: { [name: string]: IUniform<number> } = {
             hexScale: { value: 0 },

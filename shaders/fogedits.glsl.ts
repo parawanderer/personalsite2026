@@ -57,8 +57,10 @@ export const fogParsFrag = /* glsl */ `
     uniform float fogNoiseImpact;
     uniform float fogNoiseSpeed;
     uniform float fogTime;
-    // 1 above the water, 0 while the camera is under it, where the water's own fog replaces this one
+    // 1 above the water, 0 while the camera is under it: then only the stretch of each view ray above the water surface
+    // (fogWaterLevel) is in air and gets this fog; the water's own fog covers the rest
     uniform float fogAmount;
+    uniform float fogWaterLevel;
     // END new
 
 	#ifdef FOG_EXP2
@@ -99,7 +101,16 @@ export const fogFrag = /* glsl */ `
 
 	#endif
 
-	fogFactor *= fogAmount;
+	if (fogAmount < 0.5) {
+		float rise = vFogWorldPosition.y - cameraPosition.y;
+		float inAir = vFogWorldPosition.y > fogWaterLevel && rise > 1e-4 ? (vFogWorldPosition.y - fogWaterLevel) / rise : 0.0;
+		float airDepth = vEditedFogDepth * inAir;
+		#ifdef FOG_EXP2
+			fogFactor = 1.0 - exp( - fogDensity * fogDensity * airDepth * airDepth );
+		#else
+			fogFactor = smoothstep( fogNear, fogFar, airDepth );
+		#endif
+	}
 	gl_FragColor.rgb = mix( gl_FragColor.rgb, mix(fogNearColor, fogFarColor, fogFactor), fogFactor );
 ${skyGlowFrag}
 
