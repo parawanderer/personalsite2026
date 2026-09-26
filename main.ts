@@ -42,6 +42,7 @@ import {
     FLIGHT_SETTINGS,
     WATER_LOOK,
     WATER_TOUCH,
+    SENSOR,
     STARS,
     DISTANCE_BLUR,
     PARTICLES,
@@ -66,6 +67,7 @@ import { DayNight } from './environment/day-night';
 import { Celestial } from './environment/celestial';
 import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
+import { SensorPass } from './postprocessing/sensor';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
@@ -327,7 +329,8 @@ shootingStars.onShadows = (shown) => {
     water.receivesShadows = shown;
 };
 shootingStars.onShadows(false);
-shootingStars.onFlash = (color, amount) => {
+shootingStars.onFlash = (color, amount, at) => {
+    sensor.setFlash(amount, color, at);
     particles.setFlash(color, amount);
     // comes on at once with the flash, eases off only near its end
     walls.setFlashShadow(starTweaks.params.splashShadowOnPillars * Math.min(amount * 3, 1));
@@ -360,7 +363,14 @@ const blurTweaks = tweaks.addFolder('Distance blur', DISTANCE_BLUR);
 const distanceBlur = new DistanceBlurPass(camera, blurTweaks.params);
 if (blurTweaks.folder) distanceBlur.bindTweaks(blurTweaks.folder);
 composer.addPass(distanceBlur);
-composer.addPass(new FilmPass(clock, 0.4));
+// the camera as a sensor on another planet: overexposed by a meteor's flash, then recovering
+const sensorTweaks = tweaks.addFolder('Sensor', SENSOR);
+const sensor = new SensorPass(camera, sensorTweaks.params, (boost) => (filmPass.uniforms as { intensity: { value: number } }).intensity.value = FILM_GRAIN + boost);
+if (sensorTweaks.folder) sensor.bindTweaks(sensorTweaks.folder);
+composer.addPass(sensor);
+const FILM_GRAIN = 0.4;
+const filmPass = new FilmPass(clock, FILM_GRAIN);
+composer.addPass(filmPass);
 //composer.addPass(new SMAAPass()); // <- (doesn't look good)
 const fxaaPass = new ShaderPass(FXAAShader); // <- surprisingly it looks better
 fxaaPass.uniforms['resolution'].value.set(1 / width, 1 / height);
@@ -396,11 +406,17 @@ const animate = () => {
 
     debugInfoUI.update();
     scheduler.doUpdates(clock);
+    sensor.update(camera.aspect);
 
     composer.render();
 }
 // compile the shaders a meteor's splashdown needs now, behind the loading screen, instead of stalling its impact
-shootingStars.warmUp(() => composer.render());
+shootingStars.warmUp(() => {
+    // the sensor pass only runs during a flash: compile it now too
+    sensor.enabled = true;
+    composer.render();
+    sensor.enabled = false;
+});
 renderer.setAnimationLoop(animate);
 
 

@@ -576,10 +576,10 @@ export const WATER_LOOK: WaterLook = {
     splashCraterDepth: 0.35,
     splashCraterRadius: 0.8,
     splashCraterSeconds: 1.4,
-    splashSwellHeight: 0.18,
+    splashSwellHeight: 0.3,
     splashSwellSpeed: 1.6,
     splashSwellWidth: 0.45,
-    splashSwellFade: 6,
+    splashSwellFade: 11.25,
     splashMeshSpacing: 0.1,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
@@ -871,4 +871,32 @@ export const STARS: StarSettings = {
     poleElevationDeg: 38,
     poleAzimuthDeg: 150,
     turnsPerDay: 1,
+};
+
+// the camera as a sensor, overexposed by a meteor's flash (postprocessing/sensor.ts)
+export interface SensorSettings {
+    enabled: boolean;
+    /** how far the flash overexposes it, and how much of the overloaded brightness goes flat white */
+    overexposure: number;
+    clip: number;
+    /** the vertical smear through the flash (strength, and width as a share of the screen), and the colour offset */
+    smear: number;
+    smearWidth: number;
+    chroma: number;
+    /** how quickly its auto-exposure catches up, how far it overshoots into too dark, and the grain while it recovers */
+    adaptSeconds: number;
+    undershoot: number;
+    grainBoost: number;
+}
+
+export const SENSOR: SensorSettings = {
+    enabled: true,
+    overexposure: 3,
+    clip: 0.6,
+    smear: 0.8,
+    smearWidth: 0.004,
+    chroma: 0.004,
+    adaptSeconds: 0.35,
+    undershoot: 0.55,
+    grainBoost: 0.5,
 };
