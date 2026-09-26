@@ -730,7 +730,7 @@ export const PARTICLES: ParticleSettings = {
     flakeSize: 0.03,
     flakeNear: 1.2,
     flakeBand: 2.1,
-    flakeSpin: 0.8,
+    flakeSpin: 0.35,
     flakeGlow: 0,
     flashTint: 0.85,
     floatSeconds: 12,
