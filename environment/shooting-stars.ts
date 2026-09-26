@@ -345,6 +345,7 @@ export class ShootingStars implements AnimatedEntity {
         folder.add(s, 'splashSpread', 0, 5, 0.05);
         folder.add(s, 'splashDropletSize', 0.01, 0.4, 0.005);
         folder.add(s, 'splashMistCount', 0, 2000, 10);
+        folder.add(s, 'splashMistJets', 1, 60, 1);
         folder.add(s, 'splashMistSize', 0.05, 4, 0.05);
         folder.add(s, 'splashMistHeight', 0, 8, 0.05);
         folder.add(s, 'splashMistSpread', 0, 8, 0.05);

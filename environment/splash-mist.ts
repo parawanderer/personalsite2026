@@ -61,9 +61,11 @@ const mistMaterial = () => new ShaderMaterial({
 
             float x = t / life;
             // puffs swell as the mist thins out
-            float worldSize = size * puff.z * (0.45 + 1.4 * sqrt(x));
+            float worldSize = size * puff.z * (0.5 + 0.9 * sqrt(x));
             vAlpha = smoothstep(0.0, 0.06, x) * pow(1.0 - x, 1.3);
-            vBrightness = puff.w * (0.75 + 0.35 * smoothstep(0.0, height, p.y));
+            // lit from above and outside: the low middle of the plume is in its own shadow
+            float outside = smoothstep(0.0, spread * 0.6, length(p.xz));
+            vBrightness = puff.w * (0.35 + 0.45 * smoothstep(0.0, height * 0.8, p.y) + 0.3 * outside);
             vLocalY = p.y;
             vRadius = worldSize * 0.5;
             vSeed = throwDir.xy * 17.0 + puff.zw * 31.0;
@@ -99,10 +101,12 @@ const mistMaterial = () => new ShaderMaterial({
             float r2 = dot(c, c);
             if (r2 >= 1.0) discard;
             // a soft, lumpy puff, so stacked puffs build up into a billowing mass
-            float lumps = 0.55 * noise(c * 2.5 + vSeed) + 0.45 * noise(c * 5.0 - vSeed);
-            float a = pow(1.0 - r2, 1.5) * (0.45 + 0.9 * lumps) * vAlpha * opacity;
+            float lumps = 0.55 * noise(c * 3.0 + vSeed) + 0.3 * noise(c * 7.0 - vSeed) + 0.15 * noise(c * 15.0 + vSeed.yx);
+            // cauliflower edges: the lumps eat into the soft outline, and the inside stays fairly solid
+            float body = smoothstep(0.0, 0.35, (1.0 - r2) * 0.9 + (lumps - 0.5) * 0.9);
+            float a = body * vAlpha * opacity;
             // lighter on top, where the light catches it
-            float shade = vBrightness * (0.8 + 0.2 * -c.y);
+            float shade = vBrightness * (0.7 + 0.3 * -c.y) * (0.8 + 0.4 * lumps);
             gl_FragColor = vec4(color * light * shade, clamp(a, 0.0, 1.0));
         }
     `,
@@ -113,55 +117,23 @@ const mistMaterial = () => new ShaderMaterial({
 });
 
 /**
- * The bulk of a splashdown: hundreds of soft, overlapping puffs of spray that pile up into a white mass, a tall column
- * in the middle, a crown wall around it and a low cloud rolling out along the water, then hang and thin out.
+ * The bulk of a splashdown: hundreds of lumpy, overlapping puffs of spray that pile up into a white mass, thrown in
+ * jets (a few tall ones in the middle, the rest outwards like a crown) over a low skirt of spray, then hang and thin out.
  * Their paths are worked out on the GPU from when they were thrown, so there's nothing to update per puff.
  */
 export class SplashMist {
     public readonly points: Points<BufferGeometry, ShaderMaterial>;
     private start = -1e3;
 
+    private readonly throwDir = new BufferAttribute(new Float32Array(MAX_PUFFS * 4), 4);
+    private readonly puff = new BufferAttribute(new Float32Array(MAX_PUFFS * 4), 4);
+
     constructor(private readonly settings: ShootingStarSettings) {
-        const throwDir = new Float32Array(MAX_PUFFS * 4);
-        const puff = new Float32Array(MAX_PUFFS * 4);
-        for (let k = 0; k < MAX_PUFFS; k++) {
-            // shuffled, so any count drawn has the same mix of parts
-            const part = Math.random();
-            const angle = Math.random() * Math.PI * 2;
-            let out: number, up: number, kind: number, delay: number, life: number, size: number;
-            if (part < 0.3) {
-                // column: nearly straight up, the highest
-                kind = 0;
-                out = Math.random() * 0.2;
-                up = 0.55 + Math.random() * 0.45;
-                delay = Math.random() * 0.15;
-                life = 0.6 + Math.random() * 0.35;
-                size = 0.7 + Math.random() * 0.5;
-            } else if (part < 0.65) {
-                // crown: a wall thrown outwards and up
-                kind = 1;
-                out = 0.45 + Math.random() * 0.45;
-                up = 0.25 + Math.random() * 0.35;
-                delay = Math.random() * 0.1;
-                life = 0.55 + Math.random() * 0.35;
-                size = 0.6 + Math.random() * 0.5;
-            } else {
-                // base: a low, wide cloud rolling out over the water, the last to go
-                kind = 2;
-                out = 0.5 + Math.random() * 0.9;
-                up = 0.03 + Math.random() * 0.15;
-                delay = 0.05 + Math.random() * 0.35;
-                life = 0.8 + Math.random() * 0.2;
-                size = 1 + Math.random() * 0.7;
-            }
-            throwDir.set([angle, out, up, kind], k * 4);
-            puff.set([delay, life, size, 0.7 + Math.random() * 0.3], k * 4);
-        }
         const geometry = new BufferGeometry();
         // the positions are worked out in the shader; this only gives three.js a vertex count
         geometry.setAttribute('position', new BufferAttribute(new Float32Array(MAX_PUFFS * 3), 3));
-        geometry.setAttribute('throwDir', new BufferAttribute(throwDir, 4));
-        geometry.setAttribute('puff', new BufferAttribute(puff, 4));
+        geometry.setAttribute('throwDir', this.throwDir);
+        geometry.setAttribute('puff', this.puff);
 
         this.points = new Points(geometry, mistMaterial());
         this.points.frustumCulled = false;
@@ -173,6 +145,49 @@ export class SplashMist {
     public splash(at: Vector3, now: number): void {
         this.points.position.copy(at);
         this.start = now;
+        this.throwPuffs();
+    }
+
+    /**
+     * Spray comes out in jets, not evenly: each puff belongs to one of a handful of jets, thrown along roughly the
+     * same path but at different speeds, so the plume breaks up into streaks and clumps with gaps between them.
+     * Picked again for every splash, so no two look alike.
+     */
+    private throwPuffs(): void {
+        const jets = Math.max(1, Math.round(this.settings.splashMistJets));
+        // x: angle, y: out, z: up, w: part
+        const jet: number[][] = [];
+        for (let j = 0; j < jets; j++) {
+            const column = j < Math.max(1, Math.round(jets * 0.3));
+            jet.push(column
+                ? [Math.random() * Math.PI * 2, Math.random() * 0.15, 0.7 + Math.random() * 0.3, 0]
+                : [Math.random() * Math.PI * 2, 0.4 + Math.random() * 0.5, 0.25 + Math.random() * 0.45, 1]);
+        }
+        const throwDir = this.throwDir.array as Float32Array;
+        const puff = this.puff.array as Float32Array;
+        for (let k = 0; k < MAX_PUFFS; k++) {
+            const size = 0.6 + Math.random() * 0.6;
+            const brightness = 0.6 + Math.random() * 0.4;
+            if (Math.random() < 0.12) {
+                // base: a low skirt of spray over the water right around the impact, the last to go
+                throwDir.set([Math.random() * Math.PI * 2, 0.3 + Math.random() * 0.5, 0.02 + Math.random() * 0.1, 2], k * 4);
+                puff.set([0.05 + Math.random() * 0.3, 0.7 + Math.random() * 0.3, size * 1.3, brightness * 0.8], k * 4);
+                continue;
+            }
+            const [angle, out, up, part] = jet[Math.floor(Math.random() * jets)];
+            // spread along the jet: the slower ones trail behind and below the leading edge, making a streak
+            const along = 0.35 + Math.pow(Math.random(), 0.6) * 0.65;
+            throwDir.set([
+                angle + (Math.random() - 0.5) * 0.35,
+                (out + (Math.random() - 0.5) * 0.12) * along,
+                up * along * (0.9 + Math.random() * 0.2),
+                part,
+            ], k * 4);
+            // the leading, fastest puffs are the brightest
+            puff.set([Math.random() * 0.1, 0.5 + Math.random() * 0.45, size, brightness * (0.7 + 0.3 * along)], k * 4);
+        }
+        this.throwDir.needsUpdate = true;
+        this.puff.needsUpdate = true;
     }
 
     /**

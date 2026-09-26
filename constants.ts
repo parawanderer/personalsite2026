@@ -346,6 +346,8 @@ export interface ShootingStarSettings {
     splashDropletSize: number;
     /** the spray plume: how many puffs, their size, how high and wide it goes, how long it hangs */
     splashMistCount: number;
+    /** how many jets of spray the plume breaks up into */
+    splashMistJets: number;
     splashMistSize: number;
     splashMistHeight: number;
     splashMistSpread: number;
@@ -377,12 +379,13 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     splashHeight: 1.4,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
-    splashMistCount: 600,
-    splashMistSize: 0.9,
+    splashMistCount: 900,
+    splashMistJets: 14,
+    splashMistSize: 0.45,
     splashMistHeight: 2.5,
     splashMistSpread: 2,
     splashMistSeconds: 3,
-    splashMistOpacity: 0.35,
+    splashMistOpacity: 0.5,
     splashMistDrag: 2.5,
     splashMistGravity: 0.8,
     splashMistAmbient: 0.12,
