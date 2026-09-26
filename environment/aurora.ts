@@ -34,11 +34,10 @@ float auroraNoise(vec2 p) {
 
 // curtains of light: thin ribbons that wander over a plane high above, stacked at a few heights, fading down to the horizon.
 // sharpness narrows the ribbons; the water uses a low one for a soft, blurred version
-vec3 auroraLight(vec3 dir, float sharpness, const int layers) {
+// jitter offsets the stack of heights (0-1)
+vec3 auroraLight(vec3 dir, float sharpness, const int layers, float jitter) {
     if (dir.y <= 0.0) return vec3(0.0);
     vec3 light = vec3(0.0);
-    // offset the stack per pixel, so the separate heights blend into grain instead of showing as stripes
-    float jitter = auroraHash(gl_FragCoord.xy);
     for (int i = 0; i < layers; i++) {
         float layer = (float(i) + jitter) / float(layers);
         // the same ribbon at rising heights (the planes are closer together than the ribbon moves), so it reads as one curtain
@@ -56,8 +55,14 @@ vec3 auroraLight(vec3 dir, float sharpness, const int layers) {
     return light / float(layers) * 2.5 * horizon * auroraAmount;
 }
 
+// interleaved gradient noise (Jimenez 2014): an even, fine per-pixel pattern, much less grainy than white noise
+float auroraIgn(vec2 p) {
+    return fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715))));
+}
+
 vec3 aurora(vec3 dir) {
-    return auroraLight(dir, auroraSharpness, ${LAYERS});
+    // offset the stack per pixel, so the separate heights blend into a fine pattern instead of showing as stripes
+    return auroraLight(dir, auroraSharpness, ${LAYERS}, auroraIgn(gl_FragCoord.xy));
 }
 `;
 
@@ -74,20 +79,25 @@ uniform float auroraWaterStretch;
 uniform float auroraWaterRipple;
 // radius of the blur around the reflected aurora, radians
 uniform float auroraWaterBlur;
+// 0 = smooth fixed sampling, 1 = fully random per pixel (grainier, but no visible sample copies)
+uniform float auroraWaterNoise;
 
 vec3 auroraWaterGlow(vec3 reflected) {
     if (auroraAmount <= 0.0 || auroraWaterStrength <= 0.0) return vec3(0.0);
     // flatten the reflected direction towards the horizon: the glow reaches further down the water, like a long streak
     vec3 dir = normalize(vec3(reflected.x, max(reflected.y, 0.0) / auroraWaterStretch + 0.02, reflected.z));
     float sharpness = max(auroraSharpness * auroraWaterSoftness, 1.0);
-    if (auroraWaterBlur <= 0.001) return auroraLight(dir, sharpness, 4) * auroraWaterStrength;
+    // per-pixel randomness: hides the separate samples, at the cost of visible grain (auroraWaterNoise sets how much)
+    float noise = auroraHash(gl_FragCoord.yx);
+    float jitter = mix(0.5, noise, auroraWaterNoise);
+    if (auroraWaterBlur <= 0.001) return auroraLight(dir, sharpness, 4, jitter) * auroraWaterStrength;
 
-    // a gaussian blur around the direction: the centre plus two rings of 4 (at half and full radius), each ring turned
-    // randomly per pixel so the samples blend into grain instead of showing as copies
+    // a gaussian blur around the direction: the centre plus two rings of 4 (at half and full radius, the outer one
+    // turned by 45 degrees), rotated per pixel by the noise
     vec3 side = normalize(cross(dir, vec3(0.0, 1.0, 0.0)) + vec3(1e-4, 0.0, 0.0));
     vec3 up = cross(side, dir);
-    float spin = auroraHash(gl_FragCoord.yx) * 6.2831853;
-    vec3 sum = auroraLight(dir, sharpness, 2);
+    float spin = noise * 6.2831853 * auroraWaterNoise;
+    vec3 sum = auroraLight(dir, sharpness, 2, jitter);
     float total = 1.0;
     for (int i = 0; i < 8; i++) {
         bool outer = i >= 4;
@@ -96,7 +106,7 @@ vec3 auroraWaterGlow(vec3 reflected) {
         float w = outer ? 0.135 : 0.607;
         float a = spin + float(i) * 1.5707963 + (outer ? 0.785398 : 0.0);
         vec3 d = normalize(dir + (side * cos(a) + up * sin(a)) * tan(r));
-        sum += auroraLight(d, sharpness, 2) * w;
+        sum += auroraLight(d, sharpness, 2, jitter) * w;
         total += w;
     }
     return sum / total * auroraWaterStrength;
@@ -127,6 +137,7 @@ export class Aurora implements AnimatedEntity {
             auroraWaterStretch: { value: 2 },
             auroraWaterRipple: { value: 0.3 },
             auroraWaterBlur: { value: 0 },
+            auroraWaterNoise: { value: 1 },
         };
 
         const previous = skyMaterial.onBeforeCompile;
@@ -200,6 +211,7 @@ export class Aurora implements AnimatedEntity {
         u.auroraWaterStretch.value = Math.max(s.waterStretch, 0.1);
         u.auroraWaterRipple.value = s.waterRipple;
         u.auroraWaterBlur.value = s.waterBlur * Math.PI / 180;
+        u.auroraWaterNoise.value = s.waterBlurNoise;
 
         this.light.color.set(s.colorLow).lerp(new Color(s.colorHigh), 0.35);
         this.light.intensity = s.lightIntensity * amount;
@@ -222,6 +234,7 @@ export class Aurora implements AnimatedEntity {
         folder.add(s, 'waterStretch', 0.5, 10, 0.1);
         folder.add(s, 'waterRipple', 0, 1, 0.01);
         folder.add(s, 'waterBlur', 0, 45, 0.5).name('waterBlur (deg)');
+        folder.add(s, 'waterBlurNoise', 0, 1, 0.01);
         folder.add(s, 'fadeInStart', 0, 24, 0.1);
         folder.add(s, 'fadeInEnd', 0, 24, 0.1);
         folder.add(s, 'fadeOutStart', 0, 24, 0.1);

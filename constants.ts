@@ -179,8 +179,8 @@ export interface DayNightSettings {
 export const DAY_NIGHT: DayNightSettings = {
     hour: 12,
     nightSky: '#1a2023',
-    nightFogNear: '#2e343d',
-    nightFogFar: '#1c2b30',
+    nightFogNear: '#375967',
+    nightFogFar: '#1e242f',
     nightSceneFog: '#1a2e2e',
     nightAmbientSky: '#1b3446',
     nightAmbientGround: '#2f353c',
@@ -202,7 +202,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFresnelPower: 1.88,
     nightReflectionStrength: 3.28,
     nightReflectionGrey: 0.3,
-    nightMenuFill: '#273035',
+    nightMenuFill: '#1e2e39',
 };
 
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
@@ -287,6 +287,8 @@ export interface AuroraSettings {
     waterRipple: number;
     /** how far the glow spreads out around the reflected aurora (gaussian blur radius), degrees; 0 = off */
     waterBlur: number;
+    /** 0 = smooth, fixed sampling (large blurs may show faint copies), 1 = random per pixel (hides them, but grainy) */
+    waterBlurNoise: number;
     /** it only comes out once the night has settled: fades in between these hours, and out again before dawn */
     fadeInStart: number;
     fadeInEnd: number;
@@ -296,7 +298,7 @@ export interface AuroraSettings {
 
 export const AURORA: AuroraSettings = {
     colorLow: '#38f0ed',
-    colorHigh: '#5a6bbf',
+    colorHigh: '#2f51f9',
     brightness: 0.56,
     height: 1.15,
     scale: 0.6,
@@ -309,6 +311,7 @@ export const AURORA: AuroraSettings = {
     waterStretch: 2.3,
     waterRipple: 0.47,
     waterBlur: 13.5,
+    waterBlurNoise: 0.35,
     fadeInStart: 21,
     fadeInEnd: 22.5,
     fadeOutStart: 3,
@@ -649,7 +652,7 @@ export const PARTICLES: ParticleSettings = {
     flakeSpin: 0.8,
     flakeGlow: 0,
     floatSeconds: 12,
-    sinkSpeed: 0.02,
+    sinkSpeed: 0.01,
     sinkDepth: 0.25,
     pillarMargin: 0.02,
     dimpleSize: 2.1,
