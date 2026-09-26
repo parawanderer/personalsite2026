@@ -5,6 +5,7 @@ import {
     Clock,
     Color,
     FogExp2,
+    Mesh,
     PerspectiveCamera,
     Scene,
     SRGBColorSpace,
@@ -60,7 +61,7 @@ import { ScreenZone, WallsFactory } from './environment/walls';
 import { getByIdOrThrow } from './utils/document';
 import { GenericObjectFactory } from './environment/factory';
 import { InteractionManager } from './interact';
-import { WaterFactory } from './environment/water';
+import { WaterFactory, WATER_LEVEL_Y } from './environment/water';
 import { DustFactory } from './environment/dust-particles';
 import { ParticleField } from './environment/particle-field';
 import { DayNight } from './environment/day-night';
@@ -206,6 +207,14 @@ const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL
 if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
 water.addUnderwaterTo(walls.material);
+
+// the seabed under the channel: the tops of packed basalt columns in a bowl, only drawn while the camera is underwater
+const SEABED_COLUMN_RADIUS = 0.2;
+const seabedDepth = () => WATER_LEVEL_Y - water.seabedY;
+const seabed = new Mesh(walls.buildSeabed(seabedDepth(), SEABED_COLUMN_RADIUS), walls.material);
+seabed.visible = false;
+scene.add(seabed);
+scheduler.add({ update: () => seabed.visible = water.cameraUnderwater });
 water.setPillarField(walls.pillarField);
 particles.setPillarField(walls.pillarField);
 // pillars reach a little past the seabed
@@ -406,7 +415,7 @@ const animate = () => {
 
     interactionMgr.update(flightClock.getDelta());
     // free flight can go under the water, down to just above the seabed
-    camera.position.y = Math.max(camera.position.y, water.seabedY + 0.25);
+    camera.position.y = Math.max(camera.position.y, walls.seabedAt(camera.position.x, camera.position.z, seabedDepth()) + 0.25);
 
     debugInfoUI.update();
     scheduler.doUpdates(clock);
@@ -422,7 +431,9 @@ shootingStars.warmUp(() => {
     sensor.enabled = false;
     // and the view from under the water
     water.warmUpUnderwater(true);
+    seabed.visible = true;
     composer.render();
+    seabed.visible = false;
     water.warmUpUnderwater(false);
 });
 renderer.setAnimationLoop(animate);

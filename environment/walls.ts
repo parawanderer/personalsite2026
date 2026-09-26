@@ -288,6 +288,12 @@ export class Walls implements AnimatedEntity {
      * of the water in the rows around it (so the stubs at the channel's ends, with no water right there, count too)
      */
     private betweenWalls(i: number, j: number, margin: number): boolean {
+        const span = this.spans[j];
+        return span !== undefined && i >= span.min - margin && i <= span.max + margin;
+    }
+
+    /** per row of cells, the sideways spread of the channel's water in the rows around it */
+    private get spans(): { min: number, max: number }[] {
         if (!this.channelSpan) {
             const reach = 12;
             const rows = this.mask[0].length;
@@ -306,8 +312,66 @@ export class Walls implements AnimatedEntity {
                 return { min: Math.min(...near.map((r) => r.min)), max: Math.max(...near.map((r) => r.max)) };
             });
         }
-        const span = this.channelSpan[j];
-        return span !== undefined && i >= span.min - margin && i <= span.max + margin;
+        return this.channelSpan;
+    }
+
+    /**
+     * The seabed's height at (x, z): a bowl across the channel, `depth` below the water in the middle and curving up
+     * towards the walls, meeting them a quarter of that below the water. Outside the channel, the edge height
+     */
+    public seabedAt(x: number, z: number, depth: number): number {
+        const f = this.pillarField;
+        const span = this.spans[Math.round((z - f.origin.y) / f.cellSize)];
+        const edge = WATER_LEVEL_Y - depth * 0.25;
+        if (!span || !isFinite(span.min)) return edge;
+        const left = f.origin.x + (span.min - 0.5) * f.cellSize;
+        const right = f.origin.x + (span.max + 0.5) * f.cellSize;
+        const t = Math.min(Math.abs((x - (left + right) / 2) / ((right - left) / 2)), 1);
+        return WATER_LEVEL_Y - depth * (0.25 + 0.75 * Math.sqrt(1 - t * t));
+    }
+
+    /**
+     * The seabed as the tops of tightly packed basalt columns (like the Giant's Causeway): a hexagonal grid over the
+     * channel and a little under its walls, each column's top on the bowl (seabedAt), nudged up or down, the odd one
+     * sunken deeper. Built from the same hexagonal prisms as the pillars
+     */
+    public buildSeabed(depth: number, radius: number): BufferGeometry {
+        const f = this.pillarField;
+        const rng = makeRng(this.layout.seed + 7);
+        const rows = this.spans.map((s, j) => ({ s, j })).filter(({ s }) => isFinite(s.min));
+        if (rows.length === 0) return new BufferGeometry();
+        const underWalls = 1.2;
+        const minX = f.origin.x + Math.min(...rows.map(({ s }) => s.min)) * f.cellSize - underWalls;
+        const maxX = f.origin.x + Math.max(...rows.map(({ s }) => s.max)) * f.cellSize + underWalls;
+        const minZ = f.origin.y + rows[0].j * f.cellSize;
+        const maxZ = f.origin.y + rows[rows.length - 1].j * f.cellSize;
+
+        // the pillars' hexagons have corners along x: columns 1.5 radii apart, rows sqrt(3) radii apart, every other
+        // column shifted half a row
+        const columnStep = radius * 1.5;
+        const rowStep = radius * Math.sqrt(3);
+        const height = 1.5;
+        const instances: PillarInstance[] = [];
+        for (let c = 0, x = minX; x <= maxX; c++, x += columnStep) {
+            for (let z = minZ + (c % 2) * rowStep / 2; z <= maxZ; z += rowStep) {
+                const [nudge, sinkRoll, sinkDepth, uvU, uvV] = Array.from({ length: 5 }, rng);
+                let top = this.seabedAt(x, z, depth) + (nudge - 0.6) * 0.12;
+                if (sinkRoll < 0.05) top -= 0.15 + sinkDepth * 0.25;
+                instances.push({
+                    centre: new Vector3(x, top - height / 2, z),
+                    height,
+                    // a hair smaller than the grid, so neighbouring sides don't fight over the same place
+                    radius: radius * 0.985,
+                    spinRad: 0,
+                    leanRad: 0,
+                    rollRad: 0,
+                    uvOffsetU: uvU * 100,
+                    uvOffsetV: uvV * 100,
+                    bevel: 0,
+                });
+            }
+        }
+        return buildPillarMesh(instances, this.shape);
     }
 
     /**

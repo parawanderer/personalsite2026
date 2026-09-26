@@ -218,6 +218,8 @@ export class Water implements AnimatedEntity {
     private setUnderwaterView(under: boolean): void {
         this.underwaterUniforms.viewUnderwater.value = under ? 1 : 0;
         this.underside.visible = under;
+        // the flat seabed is only for the view from above; from below, the columns' seabed (environment/walls.ts) is it
+        this.seabed.visible = !under;
         // the surface and everything drawn with it (patch, splash mesh) are children of the same parent, hidden with it
         this.water.visible = !under;
         if (this.patch) this.patch.visible = !under;
