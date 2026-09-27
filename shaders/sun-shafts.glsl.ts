@@ -42,6 +42,12 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftShadowMap1: { value: null },
     shaftShadowMatrix: { value: Array.from({ length: SHAFT_LIGHTS }, () => new Matrix4()) },
     shaftShadowOn: { value: 0 },
+    // the walls' blocking, worked out once per frame over the channel's surface (per sun in r and g) by
+    // environment/shaft-shadows.ts from shaftPastWallsTraced, and looked up from there: x, z of its corner and its size
+    shaftWallMask: { value: null },
+    shaftWallMaskCorner: { value: new Vector2() },
+    shaftWallMaskSize: { value: new Vector2(1, 1) },
+    shaftWallMaskOn: { value: 0 },
 };
 
 export const shaftPars = /* glsl */ `
@@ -64,6 +70,10 @@ uniform sampler2D shaftShadowMap0;
 uniform sampler2D shaftShadowMap1;
 uniform mat4 shaftShadowMatrix[${SHAFT_LIGHTS}];
 uniform float shaftShadowOn;
+uniform sampler2D shaftWallMask;
+uniform vec2 shaftWallMaskCorner;
+uniform vec2 shaftWallMaskSize;
+uniform float shaftWallMaskOn;
 
 // whether a channel pillar stands between p and sun k (on its light's path through the water)
 float shaftPastPillars(vec3 p, int k) {
@@ -86,7 +96,7 @@ vec4 shaftWallRow(float z) {
 // wall on that side, cell by cell, it has to stay above the tallest pillar top there (in the row it's crossing, since
 // the path runs along the channel too). Soft, since the tops are ragged. Light coming in beyond the wall's inner face
 // (under its pillars) never gets through
-float shaftPastWalls(vec2 q, vec3 toSun) {
+float shaftPastWallsTraced(vec2 q, vec3 toSun) {
     if (shaftWallBlocking <= 0.0 || shaftWallRows <= 0.0 || abs(toSun.x) < 1e-4) return 1.0;
     vec4 edges = shaftWallRow(q.y);
     bool right = toSun.x > 0.0;
@@ -126,6 +136,15 @@ float shaftSurfaceLight(vec2 q, int k) {
 
 // all the suns' light reaching point p, which is 'below' under the surface; each weighted by 'facing' (1 for the
 // light in the water itself, how directly a surface faces that sun for the light on it)
+// the walls' blocking at q, from the map worked out this frame
+float shaftPastWalls(vec2 q, int k) {
+    if (shaftWallMaskOn < 0.5) return 1.0;
+    vec2 uv = (q - shaftWallMaskCorner) / shaftWallMaskSize;
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
+    vec4 m = texture2D(shaftWallMask, uv);
+    return k == 0 ? m.r : m.g;
+}
+
 vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface) {
     vec3 light = vec3(0.0);
     for (int k = 0; k < ${SHAFT_LIGHTS}; k++) {
@@ -134,7 +153,7 @@ vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface) {
         if (facing <= 0.0) continue;
         // up along the light to where it came through the surface
         vec2 q = p.xz + shaftLightDir[k].xz / max(shaftLightDir[k].y, 0.2) * below;
-        light += shaftLightColor[k] * shaftSurfaceLight(q, k) * facing * shaftPastWalls(q, shaftSunDir[k]) * shaftPastPillars(p, k);
+        light += shaftLightColor[k] * shaftSurfaceLight(q, k) * facing * shaftPastWalls(q, k) * shaftPastPillars(p, k);
     }
     return light * exp(-below * shaftDepthFade);
 }
