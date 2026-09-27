@@ -48,6 +48,7 @@ import {
     SENSOR,
     GOD_RAYS,
     SUN_SHAFTS,
+    SURFACE_CROSSING,
     STARS,
     VOLCANIC_GLOW,
     DISTANCE_BLUR,
@@ -76,6 +77,7 @@ import { ShootingStars } from './environment/shooting-stars';
 import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
+import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
@@ -441,6 +443,11 @@ const sensorTweaks = tweaks.addFolder('Sensor', SENSOR);
 const sensor = new SensorPass(camera, sensorTweaks.params, (boost) => (filmPass.uniforms as { intensity: { value: number } }).intensity.value = FILM_GRAIN + boost);
 if (sensorTweaks.folder) sensor.bindTweaks(sensorTweaks.folder);
 composer.addPass(sensor);
+// passing through the water's surface
+const crossingTweaks = tweaks.addFolder('Surface crossing', SURFACE_CROSSING);
+const surfaceCrossing = new SurfaceCrossingPass(crossingTweaks.params);
+if (crossingTweaks.folder) surfaceCrossing.bindTweaks(crossingTweaks.folder);
+composer.addPass(surfaceCrossing);
 const FILM_GRAIN = 0.4;
 const filmPass = new FilmPass(clock, FILM_GRAIN);
 composer.addPass(filmPass);
@@ -482,6 +489,7 @@ const animate = () => {
     debugInfoUI.update();
     scheduler.doUpdates(clock);
     sensor.update(camera.aspect);
+    surfaceCrossing.update(camera.position.y - WATER_LEVEL_Y, performance.now() / 1000, water.underwater.underwaterColor.value, (scene.fog as FogExp2).color);
     // the suns light the water, brightest first
     [...suns].sort((a, b) => b.sun.up * b.body.brightness - a.sun.up * a.body.brightness).forEach(({ sun, body }, k) => {
         godRaySuns[k].direction.copy(sun.direction);
@@ -504,9 +512,11 @@ shootingStars.warmUp(() => {
     seabed.visible = true;
     godRays.enabled = true;
     sunShafts.enabled = true;
+    surfaceCrossing.enabled = true;
     composer.render();
     godRays.enabled = false;
     sunShafts.enabled = false;
+    surfaceCrossing.enabled = false;
     seabed.visible = false;
     water.warmUpUnderwater(false);
 });

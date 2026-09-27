@@ -819,7 +819,7 @@ export interface ParticleSettings {
 }
 
 export const PARTICLES: ParticleSettings = {
-    count: 800,
+    count: 1600,
     boxSize: 9,
     fallSpeed: 0.04,
     sway: 0.0,
@@ -841,10 +841,10 @@ export const PARTICLES: ParticleSettings = {
     blastSpeed: 15,
     blastSettleSeconds: 0.4,
     blastSpin: 6,
-    gustStrength: 0.45,
-    gustReach: 10,
-    gustSpeed: 60,
-    gustSettleSeconds: 0.25,
+    gustStrength: 2.0,
+    gustReach: 34.5,
+    gustSpeed: 229,
+    gustSettleSeconds: 0.5,
     gustSpin: 5,
     pillarMargin: 0.02,
     dimpleSize: 2.1,
@@ -1055,4 +1055,23 @@ export const SUN_SHAFTS: SunShaftSettings = {
     glowRadius: 0.12,
     reach: 0.85,
     decay: 0.975,
+};
+
+// passing through the water's surface (postprocessing/surface-crossing.ts)
+export interface SurfaceCrossingSettings {
+    enabled: boolean;
+    /** how close to the surface the camera has to be for it to show, and how long it lasts after crossing */
+    band: number;
+    seconds: number;
+    /** how much the frame smears and ripples at its strongest */
+    blur: number;
+    wobble: number;
+}
+
+export const SURFACE_CROSSING: SurfaceCrossingSettings = {
+    enabled: true,
+    band: 0.12,
+    seconds: 0.5,
+    blur: 0.012,
+    wobble: 0.005,
 };
