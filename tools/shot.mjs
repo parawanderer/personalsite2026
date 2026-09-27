@@ -2,8 +2,8 @@
 //
 //   node tools/shot.mjs <out.png> ['<options as JSON>']
 //
-// Needs the dev server (npx vite --port 5199). Launches its own Chrome, which renders at full speed even when another
-// browser is hogging the GPU (the chrome-devtools MCP browser can drop to ~1 fps then). Options, all optional:
+// Needs the dev server (npx vite --port 5199). Launches its own headless Chrome, which renders on the GPU at full speed
+// even when another browser is hogging it (the chrome-devtools MCP browser can drop to ~1 fps then). Options, all optional:
 //
 //   url        the site, default http://localhost:5199
 //   tweaks     tweak values to start with, by folder: { "Day / night": { "hour": 23 }, "Particles": { "count": 0 } }
@@ -14,6 +14,7 @@
 //   click      selectors to click in turn after loading, e.g. ["#contactButton"], each followed by 3 s to settle
 //   hover      a selector to hover before the screenshot
 //   wait       seconds to wait after the page has loaded (and after any clicks), default 5
+//   windowed   show the browser window (by default it runs headless, which renders on the GPU all the same)
 //   clip       { "x", "y", "width", "height" }, a part of the page only
 //
 // Prints the frame rate it ran at and any warnings or errors from the page.
@@ -31,7 +32,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_PATH ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-    headless: false,
+    headless: !o.windowed,
     defaultViewport: { width: viewport.width, height: viewport.height, deviceScaleFactor: viewport.scale },
     args: [
         `--window-size=${viewport.width},${viewport.height + 120}`,

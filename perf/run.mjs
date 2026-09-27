@@ -31,7 +31,9 @@ const { values: args } = parseArgs({
         runs: { type: 'string', default: '3' },
         duration: { type: 'string', default: '15' }, // seconds recorded per scenario
         scenarios: { type: 'string', default: 'home,about,flight' },
-        headless: { type: 'boolean', default: false },
+        // show the browser window; by default it runs headless, which still renders on the GPU (checked: same renderer
+        // and frame times on macOS) and stays out of the way
+        windowed: { type: 'boolean', default: false },
         cooldown: { type: 'string', default: '8' },
         // tweak values to run with, by folder, e.g. '{"Day / night":{"hour":23}}' (loads the site with ?tweaks)
         tweaks: { type: 'string' },
@@ -289,7 +291,7 @@ const main = async () => {
 
     const browser = await puppeteer.launch({
         executablePath: CHROME,
-        headless: args.headless,
+        headless: !args.windowed,
         defaultViewport: VIEWPORT,
         args: [
             `--window-size=${VIEWPORT.width},${VIEWPORT.height + 120}`,

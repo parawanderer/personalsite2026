@@ -14,7 +14,7 @@ npm run perf -- --ref f54d197 --label "baseline (2025 site)"
 ```
 
 Options: `--tweaks '{"Day / night":{"hour":23}}'` (run with tweak values, by folder; recorded in each row), `--runs 3`, `--duration 15` (seconds per scenario), `--scenarios home,about,flight`, `--cooldown 8` (idle seconds
-before each scenario), `--headless`, `--out file.jsonl` (write somewhere else, for throwaway comparisons). The scenario order rotates each run, so a slowdown partway through a benchmark
+before each scenario), `--windowed` (show the browser; it runs headless by default, on the GPU all the same), `--out file.jsonl` (write somewhere else, for throwaway comparisons). The scenario order rotates each run, so a slowdown partway through a benchmark
 spreads over all scenarios instead of always hitting the same one.
 
 Leave the Chrome window alone while it runs. It opens at 1920x1080 with vsync and background throttling off.
