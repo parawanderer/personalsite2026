@@ -49,11 +49,13 @@ uniform float shaftWallHeight;
 
 // whether sunlight coming in at q (on the surface) got past the walls: followed back towards the sun, it crosses the
 // wall on that side at some height above the water, and gets through only above the wall's top (soft, since the real
-// walls' tops are ragged)
+// walls' tops are ragged). The walls are solid from their inner face outwards, so light coming in beyond that face
+// (under the wall's pillars) never gets through
 float shaftPastWalls(vec2 q, vec3 toSun) {
     if (shaftWallHeight <= 0.0 || abs(toSun.x) < 1e-4) return 1.0;
     float across = toSun.x > 0.0 ? shaftWallRight - q.x : q.x - shaftWallLeft;
-    if (across <= 0.0) return 1.0;
+    // at or past the wall on the sun's side: the light would come in under its rock, which blocks it all the way up
+    if (across <= 0.0) return 0.0;
     float heightAtWall = across / abs(toSun.x) * toSun.y;
     return smoothstep(shaftWallHeight - 0.5, shaftWallHeight + 0.5, heightAtWall);
 }
