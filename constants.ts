@@ -796,6 +796,15 @@ export interface ParticleSettings {
     blastSpeed: number;
     blastSettleSeconds: number;
     blastSpin: number;
+    /**
+     * the air blast's gust, reaching the whole area around the camera well before the fluid's swell: how far it shoves
+     * particles, the distance over which it halves, how fast it travels, how quickly they recover, and the spin it gives
+     */
+    gustStrength: number;
+    gustReach: number;
+    gustSpeed: number;
+    gustSettleSeconds: number;
+    gustSpin: number;
     /** the dip in the water under floating flakes: size (times the flake's), darkness, rim brightness and colour */
     dimpleSize: number;
     dimpleDarkness: number;
@@ -831,6 +840,11 @@ export const PARTICLES: ParticleSettings = {
     blastSpeed: 15,
     blastSettleSeconds: 2.5,
     blastSpin: 6,
+    gustStrength: 0.45,
+    gustReach: 10,
+    gustSpeed: 60,
+    gustSettleSeconds: 1.2,
+    gustSpin: 5,
     pillarMargin: 0.02,
     dimpleSize: 2.1,
     dimpleDarkness: 0.12,

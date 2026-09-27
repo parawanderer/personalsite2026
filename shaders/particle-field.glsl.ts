@@ -57,18 +57,39 @@ uniform float particleBlastReach;
 uniform float particleBlastSpeed;
 uniform float particleBlastSettle;
 uniform float particleBlastSpinAmount;
+// the air blast's gust, which reaches much further and much sooner than anything in the fluid
+uniform float particleGustStrength;
+uniform float particleGustReach;
+uniform float particleGustSpeed;
+uniform float particleGustSettle;
+uniform float particleGustSpin;
 // the extra spin the blast gave this particle, for flakeTumble
 float particleBlastSpin = 0.0;
 
 vec3 blastOffset(vec3 p) {
-    if (particleBlastStrength <= 0.0 || particleBlastAge > particleBlastSettle * 5.0) return vec3(0.0);
+    if (particleBlastAge > max(particleBlastSettle, particleGustSettle) * 5.0 + 2.0) return vec3(0.0);
     vec3 d = p - particleBlastCentre;
     float r = max(length(d), 1e-3);
+    vec3 away = d / r;
+    vec3 offset = vec3(0.0);
+
+    // close to the impact: a strong shove, mostly outwards, a little lifted
     float reached = smoothstep(r, r + 1.0, particleBlastAge * particleBlastSpeed);
     float amount = particleBlastStrength * exp(-r / particleBlastReach) * reached * exp(-particleBlastAge / particleBlastSettle);
+    offset += (away + vec3(0.0, 0.3, 0.0)) * amount;
     particleBlastSpin = amount * particleBlastSpinAmount;
-    // mostly outwards, a little lifted
-    return (d / r + vec3(0.0, 0.3, 0.0)) * amount;
+
+    // the gust: arrives fast, fades slowly with distance, a turbulent lurch away from the impact; each particle
+    // recovers from when it reached it, so the recovery rolls outwards too
+    float sinceGust = particleBlastAge - r / particleGustSpeed;
+    if (particleGustStrength > 0.0 && sinceGust > 0.0) {
+        float gust = particleGustStrength / (1.0 + r / particleGustReach)
+            * smoothstep(0.0, 0.08, sinceGust) * exp(-sinceGust / particleGustSettle);
+        vec3 jitter = (particleSeed.yzw - 0.5) * 0.8;
+        offset += normalize(vec3(away.x, 0.15, away.z) + jitter) * gust * (0.6 + 0.8 * particleSeed.x);
+        particleBlastSpin += gust * particleGustSpin;
+    }
+    return offset;
 }
 
 vec2 pushedByTouch(vec2 p) {

@@ -153,6 +153,11 @@ export class ParticleField implements AnimatedEntity {
             particleBlastSpeed: { value: 1 },
             particleBlastSettle: { value: 1 },
             particleBlastSpinAmount: { value: 0 },
+            particleGustStrength: { value: 0 },
+            particleGustReach: { value: 1 },
+            particleGustSpeed: { value: 1 },
+            particleGustSettle: { value: 1 },
+            particleGustSpin: { value: 0 },
             particleFlash: { value: 0 },
             particleMurkColor: { value: new Color() },
             particleSinkMurk: { value: 0 },
@@ -307,6 +312,11 @@ export class ParticleField implements AnimatedEntity {
         u.particleBlastSpeed.value = Math.max(s.blastSpeed, 0.1);
         u.particleBlastSettle.value = Math.max(s.blastSettleSeconds, 0.1);
         u.particleBlastSpinAmount.value = s.blastSpin;
+        u.particleGustStrength.value = s.gustStrength;
+        u.particleGustReach.value = Math.max(s.gustReach, 0.1);
+        u.particleGustSpeed.value = Math.max(s.gustSpeed, 1);
+        u.particleGustSettle.value = Math.max(s.gustSettleSeconds, 0.05);
+        u.particleGustSpin.value = s.gustSpin;
         this.dotWhiten.get('flakeColor1')!.value = s.dotWhiten1;
         this.dotWhiten.get('flakeColor2')!.value = s.dotWhiten2;
         u.particleSinkSpeed.value = s.sinkSpeed;
@@ -400,6 +410,11 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'blastSpeed', 1, 60, 0.5).onChange(apply);
         folder.add(this.settings, 'blastSettleSeconds', 0.2, 10, 0.1).onChange(apply);
         folder.add(this.settings, 'blastSpin', 0, 20, 0.1).onChange(apply);
+        folder.add(this.settings, 'gustStrength', 0, 2, 0.01).onChange(apply);
+        folder.add(this.settings, 'gustReach', 1, 60, 0.5).onChange(apply);
+        folder.add(this.settings, 'gustSpeed', 5, 300, 1).onChange(apply);
+        folder.add(this.settings, 'gustSettleSeconds', 0.1, 5, 0.05).onChange(apply);
+        folder.add(this.settings, 'gustSpin', 0, 20, 0.1).onChange(apply);
     }
 
     public update(clock: Clock): void {
