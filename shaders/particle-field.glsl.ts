@@ -441,7 +441,10 @@ steamUv = vec2(position.x * 2.0, position.y + 0.5);
 vec3 camRight = normalize(vec3(viewMatrix[0][0], 0.0, viewMatrix[2][0]) + vec3(1e-4, 0.0, 0.0));
 float steamWidth = steamSize * (0.7 + 0.6 * particleSeed.z) * step(0.0001, steamFade);
 float steamHeight = steamRise * (0.8 + 0.5 * particleSeed.y) * step(0.0001, steamFade);
-vec3 transformed = vec3(steamCentre.x, particleSurfaceY, steamCentre.z)
+// released where the ember landed and left there, rising, while the ember floats off with the fluid underneath it
+// (the flow's travel since landing taken back off; the small detours around pillars don't matter for a second of steam)
+vec2 steamBase = steamCentre.xz - particleFlow * max(vParticleSinceLanding, 0.0);
+vec3 transformed = vec3(steamBase.x, particleSurfaceY, steamBase.y)
     + camRight * position.x * steamWidth + vec3(0.0, 1.0, 0.0) * (position.y + 0.5) * steamHeight;
 `;
 
