@@ -1,4 +1,4 @@
-import { Color, HalfFloatType, PerspectiveCamera, Vector2, ShaderMaterial, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+import { AdditiveBlending, Color, HalfFloatType, PerspectiveCamera, Vector2, ShaderMaterial, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js';
 
@@ -11,7 +11,6 @@ const WHITE = new Color(1, 1, 1);
 const RESOLUTION = 0.5;
 
 const compositeShader = /* glsl */ `
-uniform sampler2D tDiffuse;
 uniform sampler2D tRays;
 uniform vec2 raysTexel;
 varying vec2 vUv;
@@ -21,8 +20,7 @@ void main() {
         texture2D(tRays, vUv + raysTexel * vec2(-0.75, -0.75)).rgb + texture2D(tRays, vUv + raysTexel * vec2(0.75, -0.75)).rgb +
         texture2D(tRays, vUv + raysTexel * vec2(-0.75, 0.75)).rgb + texture2D(tRays, vUv + raysTexel * vec2(0.75, 0.75)).rgb
     );
-    vec4 scene = texture2D(tDiffuse, vUv);
-    gl_FragColor = vec4(scene.rgb + rays, scene.a);
+    gl_FragColor = vec4(rays, 1.0);
 }
 `;
 
@@ -109,12 +107,16 @@ export class GodRaysPass extends Pass {
         });
         this.quad = new FullScreenQuad(this.material);
         this.composite = new ShaderMaterial({
-            uniforms: { tDiffuse: { value: null }, tRays: { value: this.rays.texture }, raysTexel: { value: new Vector2() } },
+            uniforms: { tRays: { value: this.rays.texture }, raysTexel: { value: new Vector2() } },
             vertexShader: VERTEX,
             fragmentShader: compositeShader,
             depthTest: false,
             depthWrite: false,
+            // added on top of the frame where it is (no buffer swap), so later passes still see the scene's depth
+            transparent: true,
+            blending: AdditiveBlending,
         });
+        this.needsSwap = false;
         this.compositeQuad = new FullScreenQuad(this.composite);
         this.enabled = false;
     }
@@ -191,7 +193,7 @@ export class GodRaysPass extends Pass {
         this.composite.uniforms.raysTexel.value.set(1 / this.rays.width, 1 / this.rays.height);
     }
 
-    public render(renderer: WebGLRenderer, writeBuffer: WebGLRenderTarget, readBuffer: WebGLRenderTarget): void {
+    public render(renderer: WebGLRenderer, _writeBuffer: WebGLRenderTarget, readBuffer: WebGLRenderTarget): void {
         const u = this.material.uniforms;
         u.tDepth.value = readBuffer.depthTexture;
         u.cameraNear.value = this.camera.near;
@@ -200,9 +202,12 @@ export class GodRaysPass extends Pass {
         renderer.setRenderTarget(this.rays);
         this.quad.render(renderer);
         // then added to the frame
-        this.composite.uniforms.tDiffuse.value = readBuffer.texture;
-        renderer.setRenderTarget(this.renderToScreen ? null : writeBuffer);
+        renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
+        // without clearing it first
+        const autoClear = renderer.autoClear;
+        renderer.autoClear = false;
         this.compositeQuad.render(renderer);
+        renderer.autoClear = autoClear;
     }
 
     public dispose(): void {

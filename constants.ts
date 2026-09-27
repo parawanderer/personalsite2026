@@ -1008,3 +1008,22 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     flicker: 0.25,
     waterScatter: 0.04,
 };
+
+// streaks of sunlight between the walls' tops, above the water (postprocessing/sun-shafts.ts)
+export interface SunShaftSettings {
+    enabled: boolean;
+    strength: number;
+    /** how far around a sun the open sky feeds the streaks (share of the screen's height) */
+    glowRadius: number;
+    /** how far the streaks reach out from the sun (share of the way to the sun), and how quickly they fade along it */
+    reach: number;
+    decay: number;
+}
+
+export const SUN_SHAFTS: SunShaftSettings = {
+    enabled: true,
+    strength: 0.6,
+    glowRadius: 0.12,
+    reach: 0.85,
+    decay: 0.975,
+};

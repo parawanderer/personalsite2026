@@ -47,6 +47,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    SUN_SHAFTS,
     STARS,
     VOLCANIC_GLOW,
     DISTANCE_BLUR,
@@ -74,6 +75,7 @@ import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
 import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
+import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
@@ -423,6 +425,11 @@ const godRayTweaks = tweaks.addFolder('God rays', GOD_RAYS);
 const godRays = new GodRaysPass(camera, godRayTweaks.params);
 if (godRayTweaks.folder) godRays.bindTweaks(godRayTweaks.folder);
 composer.addPass(godRays);
+// streaks of sunlight between the walls' jagged tops, above the water
+const sunShaftTweaks = tweaks.addFolder('Sun shafts', SUN_SHAFTS);
+const sunShafts = new SunShaftsPass(camera, sunShaftTweaks.params);
+if (sunShaftTweaks.folder) sunShafts.bindTweaks(sunShaftTweaks.folder);
+composer.addPass(sunShafts);
 const godRaySuns = suns.map(() => ({ direction: new Vector3(), color: new Color(), up: 0 }));
 const blurTweaks = tweaks.addFolder('Distance blur', DISTANCE_BLUR);
 const distanceBlur = new DistanceBlurPass(camera, blurTweaks.params);
@@ -480,6 +487,7 @@ const animate = () => {
         godRaySuns[k].color.set(body.color).multiplyScalar(body.brightness);
         godRaySuns[k].up = sun.up;
     });
+    sunShafts.update(water.cameraUnderwater, godRaySuns, 1 - dayNight.nightAmount, camera);
     godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, walls.channelEdges(camera.position.z), 1 - dayNight.nightAmount);
 
     composer.render();
@@ -494,8 +502,10 @@ shootingStars.warmUp(() => {
     water.warmUpUnderwater(true);
     seabed.visible = true;
     godRays.enabled = true;
+    sunShafts.enabled = true;
     composer.render();
     godRays.enabled = false;
+    sunShafts.enabled = false;
     seabed.visible = false;
     water.warmUpUnderwater(false);
 });
