@@ -1,4 +1,4 @@
-import { Color, DataTexture, IUniform, Vector2, Vector3 } from "three";
+import { Color, DataTexture, IUniform, Matrix4, Vector2, Vector3 } from "three";
 
 import { toFileName } from "./util";
 
@@ -36,6 +36,12 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftWallRows: { value: 0 },
     // 1: the walls block the light as they stand, 0: not at all
     shaftWallBlocking: { value: 1 },
+    // per sun, a depth map from its (bent) light over the channel pillars near the camera, and world to that map
+    // (environment/shaft-shadows.ts); shaftShadowOn 0 while there are none
+    shaftShadowMap0: { value: null },
+    shaftShadowMap1: { value: null },
+    shaftShadowMatrix: { value: Array.from({ length: SHAFT_LIGHTS }, () => new Matrix4()) },
+    shaftShadowOn: { value: 0 },
 };
 
 export const shaftPars = /* glsl */ `
@@ -54,6 +60,21 @@ uniform float shaftWallOriginZ;
 uniform float shaftWallCell;
 uniform float shaftWallRows;
 uniform float shaftWallBlocking;
+uniform sampler2D shaftShadowMap0;
+uniform sampler2D shaftShadowMap1;
+uniform mat4 shaftShadowMatrix[${SHAFT_LIGHTS}];
+uniform float shaftShadowOn;
+
+// whether a channel pillar stands between p and sun k (on its light's path through the water)
+float shaftPastPillars(vec3 p, int k) {
+    if (shaftShadowOn < 0.5) return 1.0;
+    vec4 c = shaftShadowMatrix[k] * vec4(p, 1.0);
+    vec2 uv = c.xy * 0.5 + 0.5;
+    if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
+    float here = c.z * 0.5 + 0.5;
+    float occluder = k == 0 ? texture2D(shaftShadowMap0, uv).r : texture2D(shaftShadowMap1, uv).r;
+    return here - 0.0004 > occluder ? 0.0 : 1.0;
+}
 
 vec4 shaftWallRow(float z) {
     float row = floor((z - shaftWallOriginZ) / shaftWallCell + 0.5);
@@ -113,7 +134,7 @@ vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface) {
         if (facing <= 0.0) continue;
         // up along the light to where it came through the surface
         vec2 q = p.xz + shaftLightDir[k].xz / max(shaftLightDir[k].y, 0.2) * below;
-        light += shaftLightColor[k] * shaftSurfaceLight(q, k) * facing * shaftPastWalls(q, shaftSunDir[k]);
+        light += shaftLightColor[k] * shaftSurfaceLight(q, k) * facing * shaftPastWalls(q, shaftSunDir[k]) * shaftPastPillars(p, k);
     }
     return light * exp(-below * shaftDepthFade);
 }

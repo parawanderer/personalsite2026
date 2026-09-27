@@ -484,6 +484,20 @@ export class Walls implements AnimatedEntity {
      * @param wallMargin how many cells into the walls pillars still count
      * @returns their geometry, or null when there are none
      */
+    /**
+     * The free-standing pillars in the channel (between its walls) within `radius` of `centre`, or null when there are
+     * none: what the underwater sun shafts are shadowed by (the walls block them through wallProfile)
+     */
+    public channelPillars(centre: Vector3, radius: number): BufferGeometry | null {
+        const pieces: PillarInstance[] = [];
+        for (const c of this.shadowCandidates) {
+            const at = c.pieces[0].centre;
+            if (Math.hypot(at.x - centre.x, at.z - centre.z) > radius || !this.betweenWalls(c.i, c.j, 0)) continue;
+            pieces.push(...c.pieces);
+        }
+        return pieces.length > 0 ? buildPillarMesh(pieces, this.shape) : null;
+    }
+
     public shadowCasters(viewer: Vector3, light: Vector3, wedgeDeg: number, pastLight: number, wallMargin: number, canyonHeight: number): BufferGeometry | null {
         const f = this.pillarField;
         const i = Math.round((viewer.x - f.origin.x) / f.cellSize);

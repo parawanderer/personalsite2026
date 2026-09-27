@@ -77,6 +77,7 @@ import { ShootingStars } from './environment/shooting-stars';
 import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
 import { shaftUniforms } from './shaders/sun-shafts.glsl';
+import { ShaftShadows } from './environment/shaft-shadows';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
@@ -434,6 +435,8 @@ shaftUniforms.shaftWallProfile.value = walls.wallProfile;
 shaftUniforms.shaftWallOriginZ.value = walls.pillarField.origin.y;
 shaftUniforms.shaftWallCell.value = walls.pillarField.cellSize;
 shaftUniforms.shaftWallRows.value = walls.wallProfile.image.height;
+// the channel's pillars shadow them too
+const shaftShadows = new ShaftShadows(walls);
 // streaks of sunlight between the walls' jagged tops, above the water
 const sunShaftTweaks = tweaks.addFolder('Sun shafts', SUN_SHAFTS);
 const sunShafts = new SunShaftsPass(camera, sunShaftTweaks.params);
@@ -504,6 +507,7 @@ const animate = () => {
     });
     sunShafts.update(water.cameraUnderwater, godRaySuns, 1 - dayNight.nightAmount, camera);
     godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, 1 - dayNight.nightAmount);
+    shaftShadows.update(renderer, water.cameraUnderwater && godRays.enabled, camera.position, WATER_LEVEL_Y);
 
     composer.render();
 }
@@ -518,6 +522,7 @@ shootingStars.warmUp(() => {
     seabed.visible = true;
     godRays.enabled = true;
     sunShafts.enabled = true;
+    shaftShadows.update(renderer, true, camera.position, WATER_LEVEL_Y);
     surfaceCrossing.enabled = true;
     composer.render();
     godRays.enabled = false;
