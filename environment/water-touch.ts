@@ -26,7 +26,8 @@ interface TouchPoint {
 
 /**
  * Pressing on the water with the cursor: holding the button down dents the surface where it points, with a little
- * raised lip around it like the water has against the pillars, and dragging leaves a trough that slowly refills. Pressing
+ * raised lip around it like the water has against the pillars, and dragging leaves a trough that slowly refills and
+ * drifts off with the flow. Pressing
  * down sends out a small ring. Only the water responds: pointing at a pillar (or past one), or at the UI, does nothing.
  */
 export class WaterTouch implements AnimatedEntity {
@@ -38,6 +39,7 @@ export class WaterTouch implements AnimatedEntity {
     private pressing = false;
     private readonly trail: TouchPoint[] = [];
     private ringStart = -1e3;
+    private lastUpdate = performance.now() / 1000;
 
     /**
      * @param enabled whether it responds right now (not in free flight, where clicking looks around)
@@ -116,6 +118,22 @@ export class WaterTouch implements AnimatedEntity {
     public update(): void {
         const s = this.settings;
         const now = this.now();
+        const dt = Math.min(Math.max(now - this.lastUpdate, 0), 0.1);
+        this.lastUpdate = now;
+
+        // the dents are carried off with the fluid's flow, like everything floating on it; the one still being held
+        // stays under the cursor
+        const flow = this.water.flowVelocity;
+        const held = this.pressing ? this.trail[this.trail.length - 1] : undefined;
+        for (const p of this.trail) {
+            if (p === held) continue;
+            p.x += flow.x * dt;
+            p.z += flow.y * dt;
+        }
+        if (now - this.ringStart < 3) {
+            this.water.touchUniforms.ringCenter.x += flow.x * dt;
+            this.water.touchUniforms.ringCenter.y += flow.y * dt;
+        }
 
         if (this.dirty) {
             this.dirty = false;
