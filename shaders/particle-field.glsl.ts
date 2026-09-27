@@ -441,9 +441,11 @@ steamUv = vec2(position.x * 2.0, position.y + 0.5);
 vec3 camRight = normalize(vec3(viewMatrix[0][0], 0.0, viewMatrix[2][0]) + vec3(1e-4, 0.0, 0.0));
 float steamWidth = steamSize * (0.7 + 0.6 * particleSeed.z) * step(0.0001, steamFade);
 float steamHeight = steamRise * (0.8 + 0.5 * particleSeed.y) * step(0.0001, steamFade);
-// released where the ember landed and left there, rising, while the ember floats off with the fluid underneath it
-// (the flow's travel since landing taken back off; the small detours around pillars don't matter for a second of steam)
-vec2 steamBase = steamCentre.xz - particleFlow * max(vParticleSinceLanding, 0.0);
+// a trail, not a puff: steam leaves the surface wherever the ember is at the time and rises straight up, so the wisp's
+// foot stays on the drifting ember and each height sits where the ember was when that bit left, as long ago as it has
+// taken to rise that far (never before the landing). The small detours around pillars don't matter here
+float steamLag = min((position.y + 0.5) * steamSeconds * 0.6, max(vParticleSinceLanding, 0.0));
+vec2 steamBase = steamCentre.xz - particleFlow * steamLag;
 vec3 transformed = vec3(steamBase.x, particleSurfaceY, steamBase.y)
     + camRight * position.x * steamWidth + vec3(0.0, 1.0, 0.0) * (position.y + 0.5) * steamHeight;
 `;

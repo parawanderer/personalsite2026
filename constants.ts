@@ -794,6 +794,7 @@ export interface ParticleSettings {
     steamSize: number;
     steamRise: number;
     steamOpacity: number;
+    steamColor: string;
     /**
      * a meteor impact's blast: how far it shoves particles (metres, at the impact), over what distance that fades, how
      * fast it rolls out, how long they take to come to rest in their new place, and how much it sets flakes spinning
@@ -848,6 +849,7 @@ export const PARTICLES: ParticleSettings = {
     steamSize: 0.16,
     steamRise: 0.2,
     steamOpacity: 0.45,
+    steamColor: '#dfe6e4',
     blastStrength: 0.8,
     blastReach: 4,
     blastSpeed: 15,

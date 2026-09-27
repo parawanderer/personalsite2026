@@ -100,6 +100,7 @@ export class ParticleField implements AnimatedEntity {
     private readonly flakeMaterials: MeshStandardMaterial[] = [];
     /** per particle set, how far its far-away dots are turned towards white */
     private readonly dotWhiten = new Map<string, IUniform<number>>();
+    private readonly steamMaterials: MeshBasicMaterial[] = [];
     /** per particle set, the share of it that's shown */
     private readonly shown = new Map<string, IUniform<number>>();
 
@@ -192,6 +193,7 @@ export class ParticleField implements AnimatedEntity {
         }
         this.meshes.length = 0;
         this.flakeMaterials.length = 0;
+        this.steamMaterials.length = 0;
 
         const flakeShape = makeFlakeGeometry(7);
         const dotShape = new PlaneGeometry(1, 1);
@@ -222,9 +224,11 @@ export class ParticleField implements AnimatedEntity {
 
             if (cools.value > 0) {
                 // steam off the embers as they land, drawn after the water like the dimples
-                const steamMaterial = new MeshBasicMaterial({ color: 0xdfe6e4, transparent: true, depthWrite: false });
+                const steamMaterial = new MeshBasicMaterial({ color: this.settings.steamColor, transparent: true, depthWrite: false });
+                this.steamMaterials.push(steamMaterial);
                 steamMaterial.onBeforeCompile = (params) => this.editSteam(params, shown);
-                const steam = new Mesh(this.instanced(dotShape, seedAttribute, count), steamMaterial);
+                // split into strips up its height, so the wisp can bend back along the ember's path
+                const steam = new Mesh(this.instanced(new PlaneGeometry(1, 1, 1, 12), seedAttribute, count), steamMaterial);
                 steam.renderOrder = 2;
                 this.add(steam);
             }
@@ -341,6 +345,7 @@ export class ParticleField implements AnimatedEntity {
         u.steamSize.value = s.steamSize;
         u.steamRise.value = s.steamRise;
         u.steamOpacity.value = s.steamOpacity;
+        for (const m of this.steamMaterials) m.color.set(s.steamColor);
         u.particleBlastStrength.value = s.blastStrength;
         u.particleBlastReach.value = Math.max(s.blastReach, 0.1);
         u.particleBlastSpeed.value = Math.max(s.blastSpeed, 0.1);
@@ -445,6 +450,7 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'steamSize', 0, 0.3, 0.005).onChange(apply);
         folder.add(this.settings, 'steamRise', 0, 0.5, 0.005).onChange(apply);
         folder.add(this.settings, 'steamOpacity', 0, 1, 0.01).onChange(apply);
+        folder.addColor(this.settings, 'steamColor').onChange(apply);
         folder.add(this.settings, 'blastStrength', 0, 3, 0.05).onChange(apply);
         folder.add(this.settings, 'blastReach', 0.5, 15, 0.1).onChange(apply);
         folder.add(this.settings, 'blastSpeed', 1, 60, 0.5).onChange(apply);
