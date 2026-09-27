@@ -76,6 +76,7 @@ import { Aurora } from './environment/aurora';
 import { ShootingStars } from './environment/shooting-stars';
 import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
+import { shaftUniforms } from './shaders/sun-shafts.glsl';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
@@ -428,6 +429,11 @@ const godRayTweaks = tweaks.addFolder('God rays', GOD_RAYS);
 const godRays = new GodRaysPass(camera, godRayTweaks.params);
 if (godRayTweaks.folder) godRays.bindTweaks(godRayTweaks.folder);
 composer.addPass(godRays);
+// the walls the shafts are blocked by, from the pillars as they stand (rebuilt with them)
+shaftUniforms.shaftWallProfile.value = walls.wallProfile;
+shaftUniforms.shaftWallOriginZ.value = walls.pillarField.origin.y;
+shaftUniforms.shaftWallCell.value = walls.pillarField.cellSize;
+shaftUniforms.shaftWallRows.value = walls.wallProfile.image.height;
 // streaks of sunlight between the walls' jagged tops, above the water
 const sunShaftTweaks = tweaks.addFolder('Sun shafts', SUN_SHAFTS);
 const sunShafts = new SunShaftsPass(camera, sunShaftTweaks.params);
@@ -497,7 +503,7 @@ const animate = () => {
         godRaySuns[k].up = sun.up;
     });
     sunShafts.update(water.cameraUnderwater, godRaySuns, 1 - dayNight.nightAmount, camera);
-    godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, walls.channelEdges(camera.position.z), 1 - dayNight.nightAmount);
+    godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, 1 - dayNight.nightAmount);
 
     composer.render();
 }

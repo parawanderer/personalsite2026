@@ -129,18 +129,13 @@ export class GodRaysPass extends Pass {
      * @param daylight 1 by day, 0 at night: the world is drawn night-dark by the hour, so no shafts then even if a sun
      *                 is up (only possible with tweaked orbits)
      */
-    public update(underwater: boolean, waterLevel: number, suns: { direction: Vector3, color: Color, up: number }[], time: number, flow: Vector2, viewDensity: number, walls: { left: number, right: number } | undefined, daylight: number): void {
+    public update(underwater: boolean, waterLevel: number, suns: { direction: Vector3, color: Color, up: number }[], time: number, flow: Vector2, viewDensity: number, daylight: number): void {
         const s = this.settings;
         const u = this.material.uniforms;
         const dirs = shaftUniforms.shaftLightDir.value as Vector3[];
         const colors = shaftUniforms.shaftLightColor.value as Color[];
         const sunDirs = shaftUniforms.shaftSunDir.value as Vector3[];
-        // the walls beside the camera, standing in for the whole canyon
-        shaftUniforms.shaftWallHeight.value = walls ? s.wallHeight : 0;
-        if (walls) {
-            shaftUniforms.shaftWallLeft.value = walls.left;
-            shaftUniforms.shaftWallRight.value = walls.right;
-        }
+        shaftUniforms.shaftWallBlocking.value = s.wallBlocking;
         let any = false;
         suns.forEach((sun, k) => {
             if (k >= dirs.length) return;
@@ -184,7 +179,7 @@ export class GodRaysPass extends Pass {
         folder.add(s, 'speed', 0, 3, 0.05);
         folder.add(s, 'bothSuns');
         folder.add(s, 'minElevationDeg', 0, 80, 1);
-        folder.add(s, 'wallHeight', 0, 15, 0.1);
+        folder.add(s, 'wallBlocking', 0, 1.5, 0.01);
         folder.add(s, 'onSurfaces', 0, 3, 0.05);
     }
 

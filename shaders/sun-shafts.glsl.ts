@@ -1,8 +1,11 @@
-import { Color, IUniform, Vector2, Vector3 } from "three";
+import { Color, DataTexture, IUniform, Vector2, Vector3 } from "three";
 
 import { toFileName } from "./util";
 
 const fileName = toFileName(import.meta.url);
+
+/** how many cells back from the channel's edge the walls' height profile reaches (environment/walls.ts) */
+export const WALL_PROFILE_CELLS = 16;
 
 /** how many suns can shine down into the water */
 export const SHAFT_LIGHTS = 2;
@@ -25,11 +28,14 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftDepthFade: { value: 0.3 },
     // how brightly they light the surfaces they fall on
     shaftOnSurfaces: { value: 1 },
-    // the canyon's walls as two long upright planes: x of the left and right one, and how high above the water they
-    // block the light (0: not at all)
-    shaftWallLeft: { value: -10 },
-    shaftWallRight: { value: 10 },
-    shaftWallHeight: { value: 0 },
+    // the canyon's walls, from the real pillars: per row along the channel, the x of its left and right edge and the
+    // height of the tallest pillar top at each cell back from them (Walls.wallProfile)
+    shaftWallProfile: { value: new DataTexture(new Float32Array(4), 1, 1) },
+    shaftWallOriginZ: { value: 0 },
+    shaftWallCell: { value: 1 },
+    shaftWallRows: { value: 0 },
+    // 1: the walls block the light as they stand, 0: not at all
+    shaftWallBlocking: { value: 1 },
 };
 
 export const shaftPars = /* glsl */ `
@@ -43,21 +49,40 @@ uniform float shaftScale;
 uniform float shaftSharpness;
 uniform float shaftDepthFade;
 uniform float shaftOnSurfaces;
-uniform float shaftWallLeft;
-uniform float shaftWallRight;
-uniform float shaftWallHeight;
+uniform sampler2D shaftWallProfile;
+uniform float shaftWallOriginZ;
+uniform float shaftWallCell;
+uniform float shaftWallRows;
+uniform float shaftWallBlocking;
 
-// whether sunlight coming in at q (on the surface) got past the walls: followed back towards the sun, it crosses the
-// wall on that side at some height above the water, and gets through only above the wall's top (soft, since the real
-// walls' tops are ragged). The walls are solid from their inner face outwards, so light coming in beyond that face
-// (under the wall's pillars) never gets through
+vec4 shaftWallRow(float z) {
+    float row = floor((z - shaftWallOriginZ) / shaftWallCell + 0.5);
+    if (row < 0.0 || row >= shaftWallRows) return vec4(-1e4, 1e4, 0.0, 0.0);
+    return texelFetch(shaftWallProfile, ivec2(0, int(row)), 0);
+}
+
+// whether sunlight coming in at q (x, z on the surface) got past the walls: followed back towards the sun, across the
+// wall on that side, cell by cell, it has to stay above the tallest pillar top there (in the row it's crossing, since
+// the path runs along the channel too). Soft, since the tops are ragged. Light coming in beyond the wall's inner face
+// (under its pillars) never gets through
 float shaftPastWalls(vec2 q, vec3 toSun) {
-    if (shaftWallHeight <= 0.0 || abs(toSun.x) < 1e-4) return 1.0;
-    float across = toSun.x > 0.0 ? shaftWallRight - q.x : q.x - shaftWallLeft;
-    // at or past the wall on the sun's side: the light would come in under its rock, which blocks it all the way up
+    if (shaftWallBlocking <= 0.0 || shaftWallRows <= 0.0 || abs(toSun.x) < 1e-4) return 1.0;
+    vec4 edges = shaftWallRow(q.y);
+    bool right = toSun.x > 0.0;
+    float across = right ? edges.y - q.x : q.x - edges.x;
     if (across <= 0.0) return 0.0;
-    float heightAtWall = across / abs(toSun.x) * toSun.y;
-    return smoothstep(shaftWallHeight - 0.5, shaftWallHeight + 0.5, heightAtWall);
+    float perX = 1.0 / abs(toSun.x);
+    float lit = 1.0;
+    for (int k = 0; k < ${WALL_PROFILE_CELLS}; k++) {
+        float s = across + (float(k) + 0.5) * shaftWallCell;
+        float row = floor((q.y + toSun.z * perX * s - shaftWallOriginZ) / shaftWallCell + 0.5);
+        if (row < 0.0 || row >= shaftWallRows) continue;
+        vec4 heights = texelFetch(shaftWallProfile, ivec2(k + 1, int(row)), 0);
+        float wall = (right ? heights.g : heights.r) * shaftWallBlocking;
+        lit = min(lit, smoothstep(wall - 0.3, wall + 0.3, s * toSun.y * perX));
+        if (lit <= 0.0) break;
+    }
+    return lit;
 }
 
 float shaftHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }

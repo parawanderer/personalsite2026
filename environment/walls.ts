@@ -12,6 +12,7 @@ import { fbm2D, makeRng } from '../utils/random';
 import { buildPillarMesh, PillarInstance } from './pillar-geometry';
 import { applyPillarSurface } from '../shaders/pillar-surface.glsl';
 import { WATER_LEVEL_Y } from './water';
+import { WALL_PROFILE_CELLS } from '../shaders/sun-shafts.glsl';
 import { skipChangedHighlight } from '../ui/tweaks';
 
 
@@ -291,6 +292,53 @@ export class Walls implements AnimatedEntity {
         const old = this.walls.geometry;
         this.walls.geometry = buildPillarsGeometry(this.mask, this.layout, this.shape, this.extraOffsetZ, this.pillarField, this.shadowCandidates, this.titleZone);
         old.dispose();
+        this.updateWallProfile();
+    }
+
+    /**
+     * Per row of cells along the channel: in texel 0, the x of the channel's left and right edge (r, g); in texel
+     * 1 + k, the height above the water of the tallest pillar top k cells back from the left (r) and right (g) edge.
+     * What the underwater sun shafts are blocked by (shaders/sun-shafts.glsl.ts)
+     */
+    public readonly wallProfile = new DataTexture(
+        new Float32Array((WALL_PROFILE_CELLS + 1) * this.mask[0].length * 4), WALL_PROFILE_CELLS + 1, this.mask[0].length, RGBAFormat, FloatType,
+    );
+
+    private updateWallProfile(): void {
+        const f = this.pillarField;
+        const rows = this.mask[0].length;
+        const width = WALL_PROFILE_CELLS + 1;
+        const tops = new Float32Array(width * rows * 4);
+        for (const c of this.shadowCandidates) {
+            const span = this.spans[c.j];
+            if (!span || !isFinite(span.min)) continue;
+            const left = c.i < span.min;
+            const d = left ? span.min - c.i : c.i - span.max;
+            if (d < 1 || d > WALL_PROFILE_CELLS) continue;
+            let top = 0;
+            for (const piece of c.pieces) {
+                const axis = new Vector3(0, 1, 0).applyAxisAngle(X_AXIS, piece.leanRad).applyAxisAngle(Z_AXIS, piece.rollRad);
+                top = Math.max(top, piece.centre.y + axis.y * piece.height / 2 - WATER_LEVEL_Y);
+            }
+            const k = (c.j * width + d) * 4 + (left ? 0 : 1);
+            tops[k] = Math.max(tops[k], top);
+        }
+        const data = this.wallProfile.image.data as Float32Array;
+        for (let j = 0; j < rows; j++) {
+            const span = this.spans[j];
+            const k = j * width * 4;
+            data[k] = isFinite(span?.min) ? f.origin.x + (span.min - 0.5) * f.cellSize : -1e4;
+            data[k + 1] = isFinite(span?.max) ? f.origin.x + (span.max + 0.5) * f.cellSize : 1e4;
+            // a missing pillar here and there doesn't let light through: the tallest of this row and its neighbours
+            for (let d = 1; d < width; d++) {
+                for (const side of [0, 1]) {
+                    let h = 0;
+                    for (let jj = Math.max(j - 1, 0); jj <= Math.min(j + 1, rows - 1); jj++) h = Math.max(h, tops[(jj * width + d) * 4 + side]);
+                    data[(j * width + d) * 4 + side] = h;
+                }
+            }
+        }
+        this.wallProfile.needsUpdate = true;
     }
 
     private readonly shadowCandidates: ShadowCandidate[] = [];
@@ -327,14 +375,6 @@ export class Walls implements AnimatedEntity {
             });
         }
         return this.channelSpan;
-    }
-
-    /** where the channel's walls stand (x of its left and right edge) at z, or undefined outside the channel's rows */
-    public channelEdges(z: number): { left: number, right: number } | undefined {
-        const f = this.pillarField;
-        const span = this.spans[Math.round((z - f.origin.y) / f.cellSize)];
-        if (!span || !isFinite(span.min)) return undefined;
-        return { left: f.origin.x + (span.min - 0.5) * f.cellSize, right: f.origin.x + (span.max + 0.5) * f.cellSize };
     }
 
     /**

@@ -411,8 +411,9 @@ gl_FragColor = vec4(dimpleRimColor * (rim / max(max(dimple, rim), 1e-4)), alpha)
 `;
 
 /**
- * Steam: a small puff rising off each ember as it lands in the fluid (the hiss), a camera-facing quad per particle,
- * hidden the rest of the time. Replaces <begin_vertex>
+ * Steam: a thin wisp curling up off each ember as it lands in the fluid (the hiss). A tall quad per particle, upright
+ * and turned to the camera, hidden the rest of the time; the wisp itself is drawn in the fragment shader, from noise
+ * drifting up a swaying column, so every one has its own ragged shape. Replaces <begin_vertex>
  */
 export const steamPars = /* glsl */ `
 // (edits) ${fileName}
@@ -421,6 +422,8 @@ uniform float steamSize;
 uniform float steamRise;
 varying vec2 steamUv;
 varying float steamFade;
+varying float steamAgeV;
+varying float steamSeed;
 `;
 
 export const steamBeginVertex = /* glsl */ `
@@ -430,14 +433,16 @@ float steamLanded;
 vec3 steamCentre = particleWorld(steamVisible, steamLanded);
 float steamAge = vParticleSinceLanding / steamSeconds;
 float steamOn = steamLanded * step(0.0, steamAge) * step(steamAge, 1.0) * steamVisible * flakeWeight(steamCentre);
-steamFade = steamOn * smoothstep(0.0, 0.1, steamAge) * (1.0 - steamAge);
-steamUv = position.xy * 2.0;
-vec3 camRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
-vec3 camUp = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
-// rises and swells as it goes, drifting a little sideways
-vec3 steamAt = vec3(steamCentre.x + (particleSeed.x - 0.5) * 0.02 * steamAge, particleSurfaceY + steamRise * steamAge, steamCentre.z);
-float steamScale = steamSize * (0.5 + steamAge) * (0.7 + 0.6 * particleSeed.z) * step(0.0001, steamFade);
-vec3 transformed = steamAt + (camRight * position.x + camUp * position.y) * steamScale;
+steamFade = steamOn * smoothstep(0.0, 0.08, steamAge) * (1.0 - smoothstep(0.5, 1.0, steamAge));
+steamAgeV = steamAge;
+steamSeed = particleSeed.x * 17.0 + particleSeed.z * 5.0;
+// x across (-1..1), y up the wisp (0 at the surface, 1 at the top)
+steamUv = vec2(position.x * 2.0, position.y + 0.5);
+vec3 camRight = normalize(vec3(viewMatrix[0][0], 0.0, viewMatrix[2][0]) + vec3(1e-4, 0.0, 0.0));
+float steamWidth = steamSize * (0.7 + 0.6 * particleSeed.z) * step(0.0001, steamFade);
+float steamHeight = steamRise * (0.8 + 0.5 * particleSeed.y) * step(0.0001, steamFade);
+vec3 transformed = vec3(steamCentre.x, particleSurfaceY, steamCentre.z)
+    + camRight * position.x * steamWidth + vec3(0.0, 1.0, 0.0) * (position.y + 0.5) * steamHeight;
 `;
 
 export const steamFragPars = /* glsl */ `
@@ -445,12 +450,37 @@ export const steamFragPars = /* glsl */ `
 uniform float steamOpacity;
 varying vec2 steamUv;
 varying float steamFade;
+varying float steamAgeV;
+varying float steamSeed;
+
+float steamHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+float steamNoise(vec2 p) {
+    vec2 i = floor(p);
+    vec2 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(steamHash(i), steamHash(i + vec2(1.0, 0.0)), f.x), mix(steamHash(i + vec2(0.0, 1.0)), steamHash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
 `;
 
 export const steamFrag = /* glsl */ `
 // (edits) ${fileName}
-float steamR = length(steamUv);
-float steamA = (1.0 - smoothstep(0.2, 1.0, steamR)) * steamFade * steamOpacity;
-if (steamA < 0.002) discard;
+float sy = steamUv.y;
+float sa = steamAgeV;
+// the column sways and curls more the higher it gets
+float sway = (steamNoise(vec2(sy * 2.5 - sa * 1.5, steamSeed)) - 0.5) * 1.1 * sy
+    + sin(sy * 5.0 + steamSeed + sa * 4.0) * 0.18 * sy;
+float sx = steamUv.x - sway;
+// thin at the surface, spreading as it rises
+float halfWidth = mix(0.3, 0.95, sy);
+float column = 1.0 - smoothstep(halfWidth * 0.2, halfWidth, abs(sx));
+// torn up by noise drifting upwards
+float torn = 0.6 * steamNoise(vec2(sx * 4.0, sy * 7.0 - sa * 5.0) + steamSeed * 3.1)
+    + 0.4 * steamNoise(vec2(sx * 9.0, sy * 15.0 - sa * 8.0) + steamSeed * 7.3);
+float density = column * smoothstep(0.45, 0.85, torn + column * 0.15) * 0.8;
+// only as high as it has risen so far, thinning out towards the top
+float risen = 1.0 - smoothstep(sa * 1.6, sa * 1.6 + 0.15, sy);
+float ends = smoothstep(0.0, 0.08, sy) * (1.0 - smoothstep(0.55, 1.0, sy));
+float steamA = density * risen * ends * steamFade * steamOpacity;
+if (steamA < 0.003) discard;
 gl_FragColor.a = steamA;
 `;

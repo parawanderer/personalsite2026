@@ -845,8 +845,8 @@ export const PARTICLES: ParticleSettings = {
     sinkMurk: 20,
     emberCoolSeconds: 1.5,
     steamSeconds: 1.2,
-    steamSize: 0.05,
-    steamRise: 0.12,
+    steamSize: 0.16,
+    steamRise: 0.2,
     steamOpacity: 0.45,
     blastStrength: 0.8,
     blastReach: 4,
@@ -1002,8 +1002,8 @@ export interface GodRaySettings {
     onSurfaces: number;
     /** how high a sun has to be before its light makes shafts (lower, it glances off the surface and the walls block it) */
     minElevationDeg: number;
-    /** how high above the water the canyon's walls block the light (modelled as two long upright planes; 0: off) */
-    wallHeight: number;
+    /** how much the canyon's walls block the light: 1 as their pillars stand, 0 not at all */
+    wallBlocking: number;
 }
 
 export const GOD_RAYS: GodRaySettings = {
@@ -1017,7 +1017,7 @@ export const GOD_RAYS: GodRaySettings = {
     bothSuns: true,
     onSurfaces: 0.8,
     minElevationDeg: 15,
-    wallHeight: 4,
+    wallBlocking: 1,
 };
 
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars
