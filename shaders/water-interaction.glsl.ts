@@ -43,6 +43,9 @@ uniform float displacementScale;
 // beyond this distance from a pillar none of the effects are visible
 uniform float interactionReach;
 
+uniform float meniscusLag;
+vec2 splashHeightAndRise(vec2 p);
+
 // returns (surface height, its gradient x, z); damp is 0 against a pillar and 1 in open water, rim 1 on the rim.
 // lift is how much the height gets exaggerated where the surface is displaced: the raised lip meets the leaning pillar
 // higher up, where its cross-section has moved along the lean, so distances are measured to the cross-section there
@@ -54,6 +57,10 @@ vec3 pillarSurface(vec2 p, float lift, out float damp, out float rim) {
 
     damp = 1.0;
     vec2 cell = floor((p - pillarGridOrigin) / pillarCellSize + 0.5);
+    // the fluid's edge sticks to the rock (contact angle hysteresis): while a wave raises the surface, the edge lags
+    // and the lip flattens into a dip at the wall; while it lowers, the edge clings on and the lip grows
+    vec2 waveHere = splashHeightAndRise(p);
+    float lipShape = clamp(1.0 - waveHere.y * meniscusLag, -1.0, 3.0);
     // open water: skip the search when no pillar in reach
     if (cell.x >= 0.0 && cell.y >= 0.0 && cell.x < pillarGridSize.x && cell.y < pillarGridSize.y
             && texelFetch(pillarDataB, ivec2(cell), 0).w > interactionReach) {
@@ -67,6 +74,9 @@ vec3 pillarSurface(vec2 p, float lift, out float damp, out float rim) {
             if (c.x < 0.0 || c.y < 0.0 || c.x >= pillarGridSize.x || c.y >= pillarGridSize.y) continue;
             vec4 a = texelFetch(pillarDataA, ivec2(c), 0);
             if (a.w < 0.5) continue;
+            // a splash wave risen over the pillar's top covers it: no lip, rim or calm water around it then
+            float exposed = 1.0 - smoothstep(a.w - 1.0 - 0.02, a.w - 1.0 + 0.04, waveHere.x);
+            if (exposed <= 0.0) continue;
             vec4 b = texelFetch(pillarDataB, ivec2(c), 0);
 
             // distance to the (stretched) cross-section, as an ellipse
@@ -80,20 +90,20 @@ vec3 pillarSurface(vec2 p, float lift, out float damp, out float rim) {
 
             // follow the pillar up to where the raised lip meets it: the cross-section there has moved along the lean
             // by tan(tilt) per unit of height (b.z = 1 / cos(tilt))
-            float lipHeight = lift * meniscusHeight * exp(-d / meniscusWidth);
+            float lipHeight = lift * meniscusHeight * lipShape * exposed * exp(-d / meniscusWidth);
             rel -= u * sqrt(max(b.z * b.z - 1.0, 0.0)) * lipHeight;
             along = dot(rel, u) / b.z;
             across = dot(rel, v);
             len = max(length(vec2(along, across)), 1e-4);
             d = max(len - a.z, 0.0);
             vec2 n = normalize(u * (along / b.z) + v * across);
-            dMin = min(dMin, d);
+            dMin = min(dMin, mix(1e3, d, exposed));
 
             // meniscus, h = A exp(-d / w): rises towards the rock
             float em = exp(-d / meniscusWidth);
-            h += meniscusHeight * em;
-            grad -= meniscusHeight / meniscusWidth * em * n;
-            rim = max(rim, em);
+            h += meniscusHeight * lipShape * exposed * em;
+            grad -= meniscusHeight * lipShape * exposed / meniscusWidth * em * n;
+            rim = max(rim, em * clamp(lipShape, 0.0, 1.0) * exposed);
 
             // cushion in front, dip behind: h = -B (n . flow) exp(-d / sigma), with the dip stretched downstream.
             // n flips across the pillar's centre, so fade it out inside the footprint (hidden in the rock, except where a
@@ -102,8 +112,8 @@ vec3 pillarSurface(vec2 p, float lift, out float damp, out float rim) {
             float sigma = cushionWidth * mix(1.0, wakeStretch, max(nv, 0.0));
             float ec = exp(-d / sigma) * smoothstep(0.3 * a.z, a.z, len);
             vec2 dnv = (flowDir - nv * n) / len;
-            h -= cushionStrength * nv * ec;
-            grad -= cushionStrength * (dnv * ec - nv * ec / sigma * n);
+            h -= cushionStrength * nv * ec * exposed;
+            grad -= cushionStrength * exposed * (dnv * ec - nv * ec / sigma * n);
         }
     }
 
@@ -173,7 +183,7 @@ vec3 splashLight(float d) {
 // rings spreading from a meteor impact: a wave packet travelling outwards, fading with time and distance,
 // and the crater where it landed, which sinks, rebounds into a mound and settles over a few swings, only near the impact.
 // Returns (height, gradient x, z)
-vec3 splashRipple(vec2 p) {
+vec3 splashRippleAt(vec2 p, float splashAge) {
     vec2 d = p - splashCenter;
     float r = length(d);
     float h = 0.0;
@@ -214,6 +224,17 @@ vec3 splashRipple(vec2 p) {
 
     vec2 g = r > 1e-4 ? d / r * dhdr : vec2(0.0);
     return vec3(h, g);
+}
+
+vec3 splashRipple(vec2 p) {
+    return splashRippleAt(p, splashAge);
+}
+
+// how high the splash waves have raised the surface at p, and how fast they're raising (+) or lowering (-) it (m/s)
+vec2 splashHeightAndRise(vec2 p) {
+    if (splashAge > 30.0) return vec2(0.0);
+    float now = splashRippleAt(p, splashAge).x;
+    return vec2(now, (now - splashRippleAt(p, splashAge - 0.05).x) / 0.05);
 }
 
 // pressing on the water with the cursor: a dent with a little raised lip around it where it's held, and the trail it

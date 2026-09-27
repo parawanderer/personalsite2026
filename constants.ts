@@ -476,6 +476,8 @@ export interface WaterLook {
     /** how high the surface climbs the rock (as a slope scale) and over what width, world units */
     meniscusHeight: number;
     meniscusWidth: number;
+    /** how much the lip lags the waves (per m/s the surface rises or falls): flattens into a dip as a wave raises the surface, clings on as it drops */
+    meniscusLag: number;
     /** how much the flow piles up in front of a pillar and dips behind it, and over what width */
     cushionStrength: number;
     cushionWidth: number;
@@ -569,8 +571,9 @@ export const WATER_LOOK: WaterLook = {
     viscosity: 0.64,
     flowAngleDeg: 280,
     flowSpeed: 0.215,
-    meniscusHeight: 0.007,
+    meniscusHeight: 0.005,
     meniscusWidth: 0.025,
+    meniscusLag: 12,
     cushionStrength: 0.0045,
     cushionWidth: 0.085,
     wakeStretch: 2.4,
@@ -898,7 +901,7 @@ export interface StarSettings {
 
 export const STARS: StarSettings = {
     brightness: 0.5,
-    density: 145,
+    density: 76,
     share: 0.03,
     size: 1.1,
     twinkle: 0.9,
@@ -1003,5 +1006,5 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     lightStrength: 4.5,
     lightElevationDeg: 14,
     flicker: 0.25,
-    waterScatter: 0.035,
+    waterScatter: 0.04,
 };

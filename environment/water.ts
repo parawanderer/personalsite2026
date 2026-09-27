@@ -562,6 +562,7 @@ export class Water implements AnimatedEntity {
         this.lip.patchRadius = l.displacementRadius;
         u.meniscusHeight.value = l.meniscusHeight;
         u.meniscusWidth.value = Math.max(l.meniscusWidth, 1e-4);
+        u.meniscusLag.value = l.meniscusLag;
         u.cushionStrength.value = l.cushionStrength;
         u.cushionWidth.value = Math.max(l.cushionWidth, 1e-4);
         u.wakeStretch.value = l.wakeStretch;
@@ -617,6 +618,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'flowSpeed', 0, 0.5, 0.005).onChange(apply);
         folder.add(this.look, 'meniscusHeight', 0, 0.03, 0.0005).onChange(apply);
         folder.add(this.look, 'meniscusWidth', 0.005, 0.2, 0.005).onChange(apply);
+        folder.add(this.look, 'meniscusLag', 0, 40, 0.5).onChange(apply);
         folder.add(this.look, 'cushionStrength', 0, 0.05, 0.0005).onChange(apply);
         folder.add(this.look, 'cushionWidth', 0.01, 0.5, 0.005).onChange(apply);
         folder.add(this.look, 'wakeStretch', 1, 10, 0.1).onChange(apply);
@@ -788,6 +790,7 @@ export class WaterFactory {
             rippleAmp: { value: 1 },
             meniscusHeight: { value: 0 },
             meniscusWidth: { value: 1 },
+            meniscusLag: { value: 0 },
             cushionStrength: { value: 0 },
             cushionWidth: { value: 1 },
             wakeStretch: { value: 1 },

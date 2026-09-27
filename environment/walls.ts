@@ -152,7 +152,9 @@ const recordWaterline = (field: PillarField, i: number, j: number, pillar: Pilla
     const k = (j * field.size.x + i) * 4;
     const a = field.dataA.image.data as Float32Array;
     const b = field.dataB.image.data as Float32Array;
-    a.set([x, z, pillar.radius, 1], k);
+    // w: present (>= 0.5), as 1 + how far its top stands above the water, so the water can tell when a wave covers it
+    const topAboveWater = pillar.centre.y + axis.y * pillar.height / 2 - WATER_LEVEL_Y;
+    a.set([x, z, pillar.radius, 1 + Math.max(topAboveWater, 0)], k);
     b.set(horizontal > 1e-4 ? [axis.x / horizontal, axis.z / horizontal] : [1, 0], k);
     b[k + 2] = 1 / axis.y;
 };
