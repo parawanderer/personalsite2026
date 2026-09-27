@@ -96,7 +96,9 @@ export class Celestial implements AnimatedEntity {
         const onArc = p >= -margin && p <= 1 + margin;
         const t = Math.min(Math.max(p, -margin), 1 + margin);
 
-        const az = degToRad(b.azimuthRise + (b.azimuthSet - b.azimuthRise) * Math.min(Math.max(t, 0), 1));
+        // across the sky at the same rate past the ends too, so it keeps its slant through the horizon instead of
+        // stopping sideways and dropping straight down
+        const az = degToRad(b.azimuthRise + (b.azimuthSet - b.azimuthRise) * t);
         const el = onArc ? degToRad(b.peakElevation) * Math.sin(Math.PI * t) : -Math.PI / 2;
         this.direction.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el));
         this.up = smoothstep(Math.sin(el), -0.02, 0.12);
