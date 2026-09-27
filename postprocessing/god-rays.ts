@@ -65,7 +65,7 @@ void main() {
         vec3 p = eye + dir * t;
         float below = waterLevel - p.y;
         if (below <= 0.0) continue;
-        light += shaftLight(p, below) * exp(-t * viewDensity);
+        light += shaftLight(p, below, dir) * exp(-t * viewDensity);
     }
     gl_FragColor = vec4(light * stepLength * strength, 1.0);
 }
@@ -166,6 +166,9 @@ export class GodRaysPass extends Pass {
         shaftUniforms.shaftGlitterSpread.value = Math.max(1 - Math.cos(s.glitterSpreadDeg * Math.PI / 180), 1e-4);
         shaftUniforms.shaftGlitterRipple.value = s.glitterRipple;
         shaftUniforms.shaftGlitterScale.value = s.glitterScale;
+        shaftUniforms.shaftForwardShafts.value = s.forwardShafts;
+        shaftUniforms.shaftForwardHaze.value = s.forwardHaze;
+        shaftUniforms.shaftForwardSpread.value = Math.max(1 - Math.cos(s.forwardSpreadDeg * Math.PI / 180), 1e-4);
         u.strength.value = s.strength;
         u.waterLevel.value = waterLevel;
         u.maxDistance.value = s.maxDistance;
@@ -189,6 +192,9 @@ export class GodRaysPass extends Pass {
         folder.add(s, 'glitterSpreadDeg', 1, 40, 0.5);
         folder.add(s, 'glitterRipple', 0, 12, 0.1);
         folder.add(s, 'glitterScale', 1, 20, 0.5);
+        folder.add(s, 'forwardShafts', 0, 10, 0.1);
+        folder.add(s, 'forwardHaze', 0, 2, 0.01);
+        folder.add(s, 'forwardSpreadDeg', 2, 60, 0.5);
     }
 
     public setSize(width: number, height: number): void {

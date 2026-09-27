@@ -1016,6 +1016,13 @@ export interface GodRaySettings {
     glitterRipple: number;
     /** how much finer the ripples that glint are than the ones that bend the view through the window */
     glitterScale: number;
+    /**
+     * looking towards a sun under the water, along its shafts: the water scatters light mostly onward, so the shafts get
+     * brighter (times 1 + forwardShafts) and a haze glows around the sun (forwardHaze), within about forwardSpreadDeg
+     */
+    forwardShafts: number;
+    forwardHaze: number;
+    forwardSpreadDeg: number;
 }
 
 export const GOD_RAYS: GodRaySettings = {
@@ -1034,6 +1041,9 @@ export const GOD_RAYS: GodRaySettings = {
     glitterSpreadDeg: 3,
     glitterRipple: 3,
     glitterScale: 16,
+    forwardShafts: 5,
+    forwardHaze: 0.8,
+    forwardSpreadDeg: 20,
 };
 
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars

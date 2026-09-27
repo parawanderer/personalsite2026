@@ -56,6 +56,11 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftGlitterRipple: { value: 1 },
     // how much finer the ripples that make the glints are than those that bend the view (shaders/water-underside.glsl.ts)
     shaftGlitterScale: { value: 1 },
+    // looking towards a sun in the water: how much brighter its shafts get, the haze around it, and how far from its
+    // direction that reaches (1 - cosine of the angle)
+    shaftForwardShafts: { value: 0 },
+    shaftForwardHaze: { value: 0 },
+    shaftForwardSpread: { value: 0.1 },
 };
 
 export const shaftPars = /* glsl */ `
@@ -86,6 +91,9 @@ uniform float shaftGlitterStrength;
 uniform float shaftGlitterSpread;
 uniform float shaftGlitterRipple;
 uniform float shaftGlitterScale;
+uniform float shaftForwardShafts;
+uniform float shaftForwardHaze;
+uniform float shaftForwardSpread;
 
 // whether a channel pillar stands between p and sun k (on its light's path through the water)
 float shaftPastPillars(vec3 p, int k) {
@@ -157,25 +165,30 @@ float shaftPastWalls(vec2 q, int k) {
     return k == 0 ? m.r : m.g;
 }
 
-vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface) {
+// 'view' (the direction looked along, for the light in the water; zero for a surface) adds the forward scattering: the
+// water's specks bend light only a little, so looking towards a sun, along its shafts, they're brighter, in a haze
+// that also stands for all the shafts too thin to show
+vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface, vec3 view) {
     vec3 light = vec3(0.0);
     for (int k = 0; k < ${SHAFT_LIGHTS}; k++) {
         if (shaftLightColor[k].r + shaftLightColor[k].g + shaftLightColor[k].b <= 0.0) continue;
         float facing = onSurface ? max(dot(normal, shaftLightDir[k]), 0.0) : 1.0;
         if (facing <= 0.0) continue;
+        float forward = onSurface ? 0.0 : exp(-(1.0 - dot(view, shaftLightDir[k])) / shaftForwardSpread);
         // up along the light to where it came through the surface
         vec2 q = p.xz + shaftLightDir[k].xz / max(shaftLightDir[k].y, 0.2) * below;
-        light += shaftLightColor[k] * shaftSurfaceLight(q, k) * facing * shaftPastWalls(q, k) * shaftPastPillars(p, k);
+        float patches = shaftSurfaceLight(q, k) * (1.0 + shaftForwardShafts * forward) + shaftForwardHaze * forward;
+        light += shaftLightColor[k] * patches * facing * shaftPastWalls(q, k) * shaftPastPillars(p, k);
     }
     return light * exp(-below * shaftDepthFade);
 }
 
-vec3 shaftLight(vec3 p, float below) {
-    return shaftLightWeighted(p, below, vec3(0.0, 1.0, 0.0), false);
+vec3 shaftLight(vec3 p, float below, vec3 view) {
+    return shaftLightWeighted(p, below, vec3(0.0, 1.0, 0.0), false, view);
 }
 
 vec3 shaftLightOn(vec3 p, float below, vec3 normal) {
-    return shaftLightWeighted(p, below, normal, true);
+    return shaftLightWeighted(p, below, normal, true, vec3(0.0));
 }
 
 // the sun glittering on the surface seen from below, at point p where its (rippled) normal is 'normal', looked at along
