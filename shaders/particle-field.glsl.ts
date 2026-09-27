@@ -180,6 +180,8 @@ vec2 flowAroundPillars(vec2 straight, vec2 flow, out float lift) {
 
 // height of the water surface under the particle, set by particleWorld while it's on or in the water
 float particleSurfaceY = 0.0;
+// seconds since this particle landed on the water (negative while it's still falling), for the embers cooling
+varying float vParticleSinceLanding;
 
 // world position of this particle, and how visible it is (fades at the box edges and as it sinks).
 // Particles that reach the water float on it for a while, drifting with the flow, then sink and fade. The time since
@@ -206,6 +208,7 @@ vec3 particleWorld(out float visible, out float landed) {
 
     if (world.y < particleWaterY) {
         float sinceLanding = (particleWaterY - world.y) / max(fall, 1e-4);
+        vParticleSinceLanding = sinceLanding;
         // landed on rock rather than water
         if (insidePillar(world.xz)) visible = 0.0;
         // carried by the flow, around the pillars
@@ -222,6 +225,7 @@ vec3 particleWorld(out float visible, out float landed) {
     }
     // in the air: blown outwards and up
     if (landed < 0.5) world += blastOffset(world);
+    if (landed < 0.5) vParticleSinceLanding = -1.0;
     vParticleSunk = max(particleWaterY - world.y, 0.0);
     return world;
 }
@@ -316,6 +320,10 @@ uniform float dotWhiten;
 
 export const flashTintPars = /* glsl */ `
 // (edits) ${fileName}
+varying float vParticleSinceLanding;
+// 1 for embers, which cool to near black once they land in the fluid; over how many seconds
+uniform float particleCools;
+uniform float particleCoolSeconds;
 varying float vParticleSunk;
 // the water's underwater colour, and how fast a sinking particle disappears into it (per metre of depth)
 uniform vec3 particleMurkColor;
@@ -331,6 +339,11 @@ uniform float particleFlash;
 export const flashTintFrag = /* glsl */ `
 #include <opaque_fragment>
 // (edits) ${fileName}
+// an ember that has landed in the fluid cools: its glow dies and it goes near black
+if (particleCools > 0.5 && vParticleSinceLanding >= 0.0) {
+    float cooled = smoothstep(0.0, particleCoolSeconds, vParticleSinceLanding);
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, vec3(0.012, 0.010, 0.010), cooled);
+}
 gl_FragColor.rgb = mix(gl_FragColor.rgb, particleFlashColor, particleFlash);
 // sinking, seen from above: through the thick water it's quickly swallowed by its colour, so it clearly goes under (in
 // output colours, like the rest of the underwater shading). From under the water it's right there with the camera,
@@ -395,4 +408,49 @@ float rim = dimpleRim * smoothstep(0.55, 0.75, r) * (1.0 - smoothstep(0.75, 1.0,
 float alpha = max(dimple, rim) * dimpleFade;
 if (alpha < 0.002) discard;
 gl_FragColor = vec4(dimpleRimColor * (rim / max(max(dimple, rim), 1e-4)), alpha);
+`;
+
+/**
+ * Steam: a small puff rising off each ember as it lands in the fluid (the hiss), a camera-facing quad per particle,
+ * hidden the rest of the time. Replaces <begin_vertex>
+ */
+export const steamPars = /* glsl */ `
+// (edits) ${fileName}
+uniform float steamSeconds;
+uniform float steamSize;
+uniform float steamRise;
+varying vec2 steamUv;
+varying float steamFade;
+`;
+
+export const steamBeginVertex = /* glsl */ `
+// (edits) ${fileName}
+float steamVisible;
+float steamLanded;
+vec3 steamCentre = particleWorld(steamVisible, steamLanded);
+float steamAge = vParticleSinceLanding / steamSeconds;
+float steamOn = steamLanded * step(0.0, steamAge) * step(steamAge, 1.0) * steamVisible * flakeWeight(steamCentre);
+steamFade = steamOn * smoothstep(0.0, 0.1, steamAge) * (1.0 - steamAge);
+steamUv = position.xy * 2.0;
+vec3 camRight = vec3(viewMatrix[0][0], viewMatrix[1][0], viewMatrix[2][0]);
+vec3 camUp = vec3(viewMatrix[0][1], viewMatrix[1][1], viewMatrix[2][1]);
+// rises and swells as it goes, drifting a little sideways
+vec3 steamAt = vec3(steamCentre.x + (particleSeed.x - 0.5) * 0.02 * steamAge, particleSurfaceY + steamRise * steamAge, steamCentre.z);
+float steamScale = steamSize * (0.5 + steamAge) * (0.7 + 0.6 * particleSeed.z) * step(0.0001, steamFade);
+vec3 transformed = steamAt + (camRight * position.x + camUp * position.y) * steamScale;
+`;
+
+export const steamFragPars = /* glsl */ `
+// (edits) ${fileName}
+uniform float steamOpacity;
+varying vec2 steamUv;
+varying float steamFade;
+`;
+
+export const steamFrag = /* glsl */ `
+// (edits) ${fileName}
+float steamR = length(steamUv);
+float steamA = (1.0 - smoothstep(0.2, 1.0, steamR)) * steamFade * steamOpacity;
+if (steamA < 0.002) discard;
+gl_FragColor.a = steamA;
 `;

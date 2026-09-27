@@ -787,6 +787,13 @@ export interface ParticleSettings {
     sinkDepth: number;
     /** how quickly a sinking particle disappears into the water's colour, per metre it's gone under */
     sinkMurk: number;
+    /** the orange flakes are embers: how long they take to cool to black once they land in the fluid */
+    emberCoolSeconds: number;
+    /** the puff of steam off each landing ember: how long it lasts, its size, how high it rises, how opaque it is */
+    steamSeconds: number;
+    steamSize: number;
+    steamRise: number;
+    steamOpacity: number;
     /**
      * a meteor impact's blast: how far it shoves particles (metres, at the impact), over what distance that fades, how
      * fast it rolls out, how long they take to come to rest in their new place, and how much it sets flakes spinning
@@ -836,6 +843,11 @@ export const PARTICLES: ParticleSettings = {
     sinkSpeed: 0.01,
     sinkDepth: 0.25,
     sinkMurk: 20,
+    emberCoolSeconds: 1.5,
+    steamSeconds: 1.2,
+    steamSize: 0.05,
+    steamRise: 0.12,
+    steamOpacity: 0.45,
     blastStrength: 0.8,
     blastReach: 4,
     blastSpeed: 15,

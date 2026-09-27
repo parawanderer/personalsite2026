@@ -42,6 +42,10 @@ import {
     flakeBeginVertex,
     flakeRotationPars,
     particleFieldPars,
+    steamBeginVertex,
+    steamFrag,
+    steamFragPars,
+    steamPars,
 } from '../shaders/particle-field.glsl';
 import { WATER_LEVEL_Y } from './water';
 import type { PillarField } from './walls';
@@ -160,6 +164,11 @@ export class ParticleField implements AnimatedEntity {
             particleGustSettle: { value: 1 },
             particleGustSpin: { value: 0 },
             particleFlash: { value: 0 },
+            particleCoolSeconds: { value: 1.5 },
+            steamSeconds: { value: 1 },
+            steamSize: { value: 0.05 },
+            steamRise: { value: 0.1 },
+            steamOpacity: { value: 0.5 },
             particleMurkColor: { value: new Color() },
             particleSinkMurk: { value: 0 },
         };
@@ -204,10 +213,21 @@ export class ParticleField implements AnimatedEntity {
                 metalness: 0.1,
                 side: DoubleSide,
             });
-            flakeMaterial.onBeforeCompile = (params) => this.editFlake(params, shown);
+            // the orange set are embers: they cool once they land, and hiss
+            const cools = { value: colour.colorKey === 'flakeColor2' ? 1 : 0 };
+            flakeMaterial.onBeforeCompile = (params) => this.editFlake(params, shown, cools);
             this.materialHook?.(flakeMaterial);
             this.flakeMaterials.push(flakeMaterial);
             this.add(new Mesh(flakes, flakeMaterial));
+
+            if (cools.value > 0) {
+                // steam off the embers as they land, drawn after the water like the dimples
+                const steamMaterial = new MeshBasicMaterial({ color: 0xdfe6e4, transparent: true, depthWrite: false });
+                steamMaterial.onBeforeCompile = (params) => this.editSteam(params, shown);
+                const steam = new Mesh(this.instanced(dotShape, seedAttribute, count), steamMaterial);
+                steam.renderOrder = 2;
+                this.add(steam);
+            }
 
             // drawn after the water (also transparent), just above its surface
             const dimples = new Mesh(this.instanced(dotShape, seedAttribute, count), this.dimpleMaterial(shown));
@@ -218,7 +238,7 @@ export class ParticleField implements AnimatedEntity {
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
             const whiten = { value: 0 };
             this.dotWhiten.set(colour.colorKey, whiten);
-            dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown, whiten);
+            dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown, whiten, cools);
             this.materialHook?.(dotMaterial);
             this.add(new Mesh(dots, dotMaterial));
         }
@@ -264,22 +284,30 @@ export class ParticleField implements AnimatedEntity {
         this.meshes.push(mesh);
     }
 
-    private editFlake(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
+    private editFlake(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>, cools: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${flakeRotationPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <beginnormal_vertex>', flakeBeginNormal);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', flakeBeginVertex);
         params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${flashTintPars}`);
         params.fragmentShader = replace(params.fragmentShader, '#include <opaque_fragment>', flashTintFrag);
+        Object.assign(params.uniforms, this.uniforms, { particleShown: shown, particleCools: cools });
+    }
+
+    private editSteam(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>): void {
+        params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${steamPars}`);
+        params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', steamBeginVertex);
+        params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${steamFragPars}`);
+        params.fragmentShader = replace(params.fragmentShader, '#include <dithering_fragment>', `#include <dithering_fragment>\n${steamFrag}`);
         Object.assign(params.uniforms, this.uniforms, { particleShown: shown });
     }
 
-    private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>, whiten: IUniform<number>): void {
+    private editDot(params: WebGLProgramParametersWithUniforms, shown: IUniform<number>, whiten: IUniform<number>, cools: IUniform<number>): void {
         params.vertexShader = replace(params.vertexShader, '#include <common>', `#include <common>\n${particleFieldPars}\n${dotPars}`);
         params.vertexShader = replace(params.vertexShader, '#include <begin_vertex>', dotBeginVertex);
         params.fragmentShader = replace(params.fragmentShader, '#include <common>', `#include <common>\n${dotFragPars}\n${flashTintPars}`);
         params.fragmentShader = replace(params.fragmentShader, '#include <opaque_fragment>', flashTintFrag);
         params.fragmentShader = replace(params.fragmentShader, '#include <dithering_fragment>', `#include <dithering_fragment>\n${dotFrag}`);
-        Object.assign(params.uniforms, this.uniforms, { particleShown: shown, dotWhiten: whiten });
+        Object.assign(params.uniforms, this.uniforms, { particleShown: shown, dotWhiten: whiten, particleCools: cools });
     }
 
     /**
@@ -308,6 +336,11 @@ export class ParticleField implements AnimatedEntity {
         u.dotSize.value = s.dotSize;
         u.particleFloatTime.value = s.floatSeconds;
         u.particleSinkMurk.value = s.sinkMurk;
+        u.particleCoolSeconds.value = Math.max(s.emberCoolSeconds, 0.05);
+        u.steamSeconds.value = Math.max(s.steamSeconds, 0.05);
+        u.steamSize.value = s.steamSize;
+        u.steamRise.value = s.steamRise;
+        u.steamOpacity.value = s.steamOpacity;
         u.particleBlastStrength.value = s.blastStrength;
         u.particleBlastReach.value = Math.max(s.blastReach, 0.1);
         u.particleBlastSpeed.value = Math.max(s.blastSpeed, 0.1);
@@ -407,6 +440,11 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'dotWhiten1', 0, 1, 0.01).name('dotWhiten1 (cyan, far)').onChange(apply);
         folder.add(this.settings, 'dotWhiten2', 0, 1, 0.01).name('dotWhiten2 (orange, far)').onChange(apply);
         folder.add(this.settings, 'sinkMurk', 0, 100, 0.5).onChange(apply);
+        folder.add(this.settings, 'emberCoolSeconds', 0.05, 10, 0.05).onChange(apply);
+        folder.add(this.settings, 'steamSeconds', 0.1, 5, 0.05).onChange(apply);
+        folder.add(this.settings, 'steamSize', 0, 0.3, 0.005).onChange(apply);
+        folder.add(this.settings, 'steamRise', 0, 0.5, 0.005).onChange(apply);
+        folder.add(this.settings, 'steamOpacity', 0, 1, 0.01).onChange(apply);
         folder.add(this.settings, 'blastStrength', 0, 3, 0.05).onChange(apply);
         folder.add(this.settings, 'blastReach', 0.5, 15, 0.1).onChange(apply);
         folder.add(this.settings, 'blastSpeed', 1, 60, 0.5).onChange(apply);
