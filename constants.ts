@@ -827,7 +827,7 @@ export interface ParticleSettings {
 }
 
 export const PARTICLES: ParticleSettings = {
-    count: 1600,
+    count: 1000,
     boxSize: 9,
     fallSpeed: 0.04,
     sway: 0.0,
@@ -848,7 +848,7 @@ export const PARTICLES: ParticleSettings = {
     steamSeconds: 1.2,
     steamSize: 0.16,
     steamRise: 0.2,
-    steamOpacity: 0.45,
+    steamOpacity: 0.05,
     steamColor: '#dfe6e4',
     blastStrength: 0.8,
     blastReach: 4,
@@ -1006,6 +1006,16 @@ export interface GodRaySettings {
     minElevationDeg: number;
     /** how much the canyon's walls block the light: 1 as their pillars stand, 0 not at all */
     wallBlocking: number;
+    /**
+     * the sun glittering on the surface seen from below, where its light comes in (and the shafts start): brightness, and
+     * how far around the sun's place in the window the glints reach
+     */
+    glitter: number;
+    glitterSpreadDeg: number;
+    /** how much more the ripples tilt the glints than they bend the view through the window (more: livelier glitter) */
+    glitterRipple: number;
+    /** how much finer the ripples that glint are than the ones that bend the view through the window */
+    glitterScale: number;
 }
 
 export const GOD_RAYS: GodRaySettings = {
@@ -1020,6 +1030,10 @@ export const GOD_RAYS: GodRaySettings = {
     onSurfaces: 0.8,
     minElevationDeg: 15,
     wallBlocking: 1,
+    glitter: 6,
+    glitterSpreadDeg: 3,
+    glitterRipple: 3,
+    glitterScale: 16,
 };
 
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars

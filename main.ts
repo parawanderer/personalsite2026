@@ -409,6 +409,7 @@ const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const)
     const sunTweaks = tweaks.addFolder(name, body);
     const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour, index);
     if (sunTweaks.folder) sun.bindTweaks(sunTweaks.folder);
+    scheduler.add({ update: () => sun.underwater = water.cameraUnderwater });
     scheduler.add(sun);
     return { sun, body: sunTweaks.params };
 });

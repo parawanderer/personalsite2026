@@ -24,6 +24,7 @@ import { customFogExtension, ShaderExtension } from "./animated-fog";
 import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/water-fogedits.glsl";
 import { applyUnderwater } from "../shaders/underwater.glsl";
 import { displacedVertex, interactionMain, interactionPars, TOUCH_POINTS } from "../shaders/water-interaction.glsl";
+import { shaftUniforms } from "../shaders/sun-shafts.glsl";
 import { undersideFragment, undersideVertex } from "../shaders/water-underside.glsl";
 import type { PillarField } from "./walls";
 
@@ -877,6 +878,8 @@ export class WaterFactory {
                 surfaceWaveHeight: underwaterUniforms.surfaceWaveHeight,
                 surfaceWaveTime: underwaterUniforms.surfaceWaveTime,
                 surfaceWaveFlow: underwaterUniforms.surfaceWaveFlow,
+                // the sunlight coming in, for its glitter on the surface
+                ...shaftUniforms,
             },
             transparent: true,
             // writes depth, and is drawn before the other see-through things: what's above the surface (the particles

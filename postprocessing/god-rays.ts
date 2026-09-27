@@ -162,6 +162,10 @@ export class GodRaysPass extends Pass {
         shaftUniforms.shaftSharpness.value = s.sharpness;
         shaftUniforms.shaftDepthFade.value = s.depthFade;
         shaftUniforms.shaftOnSurfaces.value = s.onSurfaces;
+        shaftUniforms.shaftGlitterStrength.value = s.glitter;
+        shaftUniforms.shaftGlitterSpread.value = Math.max(1 - Math.cos(s.glitterSpreadDeg * Math.PI / 180), 1e-4);
+        shaftUniforms.shaftGlitterRipple.value = s.glitterRipple;
+        shaftUniforms.shaftGlitterScale.value = s.glitterScale;
         u.strength.value = s.strength;
         u.waterLevel.value = waterLevel;
         u.maxDistance.value = s.maxDistance;
@@ -181,6 +185,10 @@ export class GodRaysPass extends Pass {
         folder.add(s, 'minElevationDeg', 0, 80, 1);
         folder.add(s, 'wallBlocking', 0, 1.5, 0.01);
         folder.add(s, 'onSurfaces', 0, 3, 0.05);
+        folder.add(s, 'glitter', 0, 5, 0.05);
+        folder.add(s, 'glitterSpreadDeg', 1, 40, 0.5);
+        folder.add(s, 'glitterRipple', 0, 12, 0.1);
+        folder.add(s, 'glitterScale', 1, 20, 0.5);
     }
 
     public setSize(width: number, height: number): void {

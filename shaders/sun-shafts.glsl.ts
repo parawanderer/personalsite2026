@@ -48,6 +48,14 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftWallMaskCorner: { value: new Vector2() },
     shaftWallMaskSize: { value: new Vector2(1, 1) },
     shaftWallMaskOn: { value: 0 },
+    // the sun glittering on the surface seen from below: brightness, how far from the sun's place the glints reach
+    // (1 - cosine of the angle)
+    shaftGlitterStrength: { value: 1 },
+    shaftGlitterSpread: { value: 0.02 },
+    // how much more the ripples tilt the glints than the view through the window
+    shaftGlitterRipple: { value: 1 },
+    // how much finer the ripples that make the glints are than those that bend the view (shaders/water-underside.glsl.ts)
+    shaftGlitterScale: { value: 1 },
 };
 
 export const shaftPars = /* glsl */ `
@@ -74,6 +82,10 @@ uniform sampler2D shaftWallMask;
 uniform vec2 shaftWallMaskCorner;
 uniform vec2 shaftWallMaskSize;
 uniform float shaftWallMaskOn;
+uniform float shaftGlitterStrength;
+uniform float shaftGlitterSpread;
+uniform float shaftGlitterRipple;
+uniform float shaftGlitterScale;
 
 // whether a channel pillar stands between p and sun k (on its light's path through the water)
 float shaftPastPillars(vec3 p, int k) {
@@ -164,5 +176,26 @@ vec3 shaftLight(vec3 p, float below) {
 
 vec3 shaftLightOn(vec3 p, float below, vec3 normal) {
     return shaftLightWeighted(p, below, normal, true);
+}
+
+// the sun glittering on the surface seen from below, at point p where its (rippled) normal is 'normal', looked at along
+// 'view': a wave facet flashes where it bends a sun's light straight at the eye, so the glints crowd around where the
+// sun shows through the window and follow the ripples. Brightest on the patches that let the shafts through (they start
+// there), fainter between them, and not where the walls or pillars keep the sun off the surface
+vec3 shaftGlitter(vec3 p, vec3 view, vec3 normal) {
+    vec3 light = vec3(0.0);
+    if (shaftGlitterStrength <= 0.0) return light;
+    // the ripples tilted further than they show: bent through the surface, their small tilts would barely move the glints
+    vec3 facet = normalize(vec3(normal.x * shaftGlitterRipple, normal.y, normal.z * shaftGlitterRipple));
+    for (int k = 0; k < ${SHAFT_LIGHTS}; k++) {
+        if (shaftLightColor[k].r + shaftLightColor[k].g + shaftLightColor[k].b <= 0.0) continue;
+        // the sun's light as this facet bends it into the water, and how close that comes to straight at the eye
+        vec3 bent = refract(-shaftSunDir[k], facet, 1.0 / 1.33);
+        float lobe = exp(-(1.0 - max(dot(view, -bent), 0.0)) / shaftGlitterSpread);
+        if (lobe < 0.002) continue;
+        float patches = mix(0.3, 1.0, shaftSurfaceLight(p.xz, k));
+        light += shaftLightColor[k] * lobe * patches * shaftPastWalls(p.xz, k) * shaftPastPillars(p, k);
+    }
+    return light * shaftGlitterStrength;
 }
 `;

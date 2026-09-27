@@ -1,4 +1,5 @@
 import { toFileName } from "./util";
+import { shaftPars } from "./sun-shafts.glsl";
 import { surfaceWavePars } from "./underwater.glsl";
 
 const fileName = toFileName(import.meta.url);
@@ -39,6 +40,7 @@ uniform float undersideClarity;
 uniform float undersideMirror;
 uniform float undersideRipple;
 varying vec3 vWorld;
+${shaftPars}
 
 // the water's own ripple texture, the same way the surface samples it (three's Water shader)
 vec4 getNoise(vec2 uv) {
@@ -80,6 +82,14 @@ void main() {
     // outside the window: the depths mirrored, a little lighter than the water itself
     vec3 mirror = waterColor * (1.0 + undersideMirror * (1.0 - window));
     vec3 color = mix(waterColor, mirror, transmitted) + waterColor * rim * transmitted * 0.8;
-    gl_FragColor = vec4(color, 1.0 - see);
+    float alpha = 1.0 - see;
+    // the sun glittering where its light comes in (shaders/sun-shafts.glsl.ts): added over what shows through
+    // on finer ripples than the window's (many small facets each catching the sun), tilted by the same rolling waves
+    vec4 fine = getNoise((vWorld.xz - flowOffset) * size * rippleScale * shaftGlitterScale);
+    vec3 facets = normalize(normalize(fine.xzy * vec3(rippleAmp, 1.0, rippleAmp)) - vec3(slope.x, 0.0, slope.y));
+    vec3 glints = shaftGlitter(vWorld, view, facets) * transmitted;
+    float glint = min(max(glints.r, max(glints.g, glints.b)), 1.0);
+    float covered = alpha + (1.0 - alpha) * glint;
+    gl_FragColor = vec4((color * alpha + glints) / max(covered, 1e-3), covered);
 }
 `;
