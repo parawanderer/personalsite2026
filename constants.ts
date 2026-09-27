@@ -412,7 +412,7 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     shadowCasterWedgeDeg: 45,
     shadowCanyonHeight: 3,
     showShadowCasters: false,
-    splashHeight: 1.4,
+    splashHeight: 3.0,
     splashSpread: 2.35,
     splashDropletSize: 0.05,
     splashMistCount: 900,
@@ -787,6 +787,15 @@ export interface ParticleSettings {
     sinkDepth: number;
     /** how quickly a sinking particle disappears into the water's colour, per metre it's gone under */
     sinkMurk: number;
+    /**
+     * a meteor impact's blast: how far it shoves particles (metres, at the impact), over what distance that fades, how
+     * fast it rolls out, how slowly they settle back, and how much it sets flakes spinning
+     */
+    blastStrength: number;
+    blastReach: number;
+    blastSpeed: number;
+    blastSettleSeconds: number;
+    blastSpin: number;
     /** the dip in the water under floating flakes: size (times the flake's), darkness, rim brightness and colour */
     dimpleSize: number;
     dimpleDarkness: number;
@@ -817,6 +826,11 @@ export const PARTICLES: ParticleSettings = {
     sinkSpeed: 0.01,
     sinkDepth: 0.25,
     sinkMurk: 20,
+    blastStrength: 0.8,
+    blastReach: 4,
+    blastSpeed: 15,
+    blastSettleSeconds: 2.5,
+    blastSpin: 6,
     pillarMargin: 0.02,
     dimpleSize: 2.1,
     dimpleDarkness: 0.12,
@@ -1022,7 +1036,7 @@ export interface SunShaftSettings {
 
 export const SUN_SHAFTS: SunShaftSettings = {
     enabled: true,
-    strength: 0.6,
+    strength: 1.2,
     glowRadius: 0.12,
     reach: 0.85,
     decay: 0.975,

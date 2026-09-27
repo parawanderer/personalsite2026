@@ -137,6 +137,8 @@ export class ShootingStars implements AnimatedEntity {
     /** told when the flash's shadows should start or stop showing, for the surfaces that receive them */
     public onShadows?: (shown: boolean) => void;
     /** told the flash's colour, brightness (0 to 1) and position every frame, for things that fake its light */
+    /** told where a meteor hits the water */
+    public onImpact?: (at: Vector3) => void;
     public onFlash?: (color: Color, amount: number, at: Vector3) => void;
     private readonly mist: SplashMist;
     private readonly casters: Mesh<BufferGeometry, MeshBasicMaterial>;
@@ -309,6 +311,7 @@ export class ShootingStars implements AnimatedEntity {
                     this.flash.shadow.needsUpdate = true;
                     this.mist.splash(this.impact, now);
                     this.water.splash(impact.x, impact.z, this.flash.position);
+                    this.onImpact?.(this.impact);
                 }
                 this.meteor = undefined;
             } else {

@@ -48,6 +48,29 @@ uniform float particleTouchPush;
 
 // floating particles pushed aside by the cursor's dents, drifting back as they refill. The push fades out with distance
 // gently enough (for push strengths up to about 1) that particles never pass each other, they only squeeze aside
+// a meteor's impact: the blast of air rolls out from it, shoving particles away as it reaches them (and setting flakes
+// spinning), then lets them drift slowly back. Stateless: worked out from the time since the impact
+uniform vec3 particleBlastCentre;
+uniform float particleBlastAge;
+uniform float particleBlastStrength;
+uniform float particleBlastReach;
+uniform float particleBlastSpeed;
+uniform float particleBlastSettle;
+uniform float particleBlastSpinAmount;
+// the extra spin the blast gave this particle, for flakeTumble
+float particleBlastSpin = 0.0;
+
+vec3 blastOffset(vec3 p) {
+    if (particleBlastStrength <= 0.0 || particleBlastAge > particleBlastSettle * 5.0) return vec3(0.0);
+    vec3 d = p - particleBlastCentre;
+    float r = max(length(d), 1e-3);
+    float reached = smoothstep(r, r + 1.0, particleBlastAge * particleBlastSpeed);
+    float amount = particleBlastStrength * exp(-r / particleBlastReach) * reached * exp(-particleBlastAge / particleBlastSettle);
+    particleBlastSpin = amount * particleBlastSpinAmount;
+    // mostly outwards, a little lifted
+    return (d / r + vec3(0.0, 0.3, 0.0)) * amount;
+}
+
 vec2 pushedByTouch(vec2 p) {
     vec2 offset = vec2(0.0);
     float r2Push = particleTouchRadius * particleTouchRadius;
@@ -161,12 +184,16 @@ vec3 particleWorld(out float visible, out float landed) {
         float lift;
         world.xz = flowAroundPillars(world.xz + particleFlow * sinceLanding, particleFlow, lift);
         world.xz = pushedByTouch(world.xz);
+        // floating ones are shoved across the surface
+        world.xz += blastOffset(world).xz;
         float sinking = max(sinceLanding - particleFloatTime, 0.0) * particleSinkSpeed;
         world.y = particleWaterY + lift - sinking;
         particleSurfaceY = particleWaterY + lift;
         visible *= 1.0 - smoothstep(0.0, particleSinkDepth, sinking);
         landed = 1.0;
     }
+    // in the air: blown outwards and up
+    if (landed < 0.5) world += blastOffset(world);
     vParticleSunk = max(particleWaterY - world.y, 0.0);
     return world;
 }
@@ -198,7 +225,7 @@ mat3 flakeFlat() {
 mat3 flakeTumble() {
     vec4 s = particleSeed;
     vec3 axis = normalize(vec3(s.y - 0.5, s.z - 0.5, s.w - 0.5) + 1e-3);
-    float angle = particleTime * flakeSpin * (0.5 + s.x) + s.w * 6.2831;
+    float angle = particleTime * flakeSpin * (0.5 + s.x) + s.w * 6.2831 + particleBlastSpin * (0.5 + s.y);
     float c = cos(angle), si = sin(angle), ic = 1.0 - c;
     return mat3(
         c + axis.x * axis.x * ic, axis.y * axis.x * ic + axis.z * si, axis.z * axis.x * ic - axis.y * si,

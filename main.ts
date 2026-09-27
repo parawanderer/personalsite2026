@@ -388,6 +388,7 @@ shootingStars.onShadows = (shown) => {
     water.receivesShadows = shown;
 };
 shootingStars.onShadows(false);
+shootingStars.onImpact = (at) => particles.blast(at);
 shootingStars.onFlash = (color, amount, at) => {
     sensor.setFlash(amount, color, at);
     particles.setFlash(color, amount);

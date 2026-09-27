@@ -146,6 +146,13 @@ export class ParticleField implements AnimatedEntity {
             particleTouchPoints: { value: Array.from({ length: TOUCH_POINTS }, () => new Vector3()) },
             particleTouchRadius: { value: 1 },
             particleTouchPush: { value: 0 },
+            particleBlastCentre: { value: new Vector3() },
+            particleBlastAge: { value: 1e3 },
+            particleBlastStrength: { value: 0 },
+            particleBlastReach: { value: 1 },
+            particleBlastSpeed: { value: 1 },
+            particleBlastSettle: { value: 1 },
+            particleBlastSpinAmount: { value: 0 },
             particleFlash: { value: 0 },
             particleMurkColor: { value: new Color() },
             particleSinkMurk: { value: 0 },
@@ -295,6 +302,11 @@ export class ParticleField implements AnimatedEntity {
         u.dotSize.value = s.dotSize;
         u.particleFloatTime.value = s.floatSeconds;
         u.particleSinkMurk.value = s.sinkMurk;
+        u.particleBlastStrength.value = s.blastStrength;
+        u.particleBlastReach.value = Math.max(s.blastReach, 0.1);
+        u.particleBlastSpeed.value = Math.max(s.blastSpeed, 0.1);
+        u.particleBlastSettle.value = Math.max(s.blastSettleSeconds, 0.1);
+        u.particleBlastSpinAmount.value = s.blastSpin;
         this.dotWhiten.get('flakeColor1')!.value = s.dotWhiten1;
         this.dotWhiten.get('flakeColor2')!.value = s.dotWhiten2;
         u.particleSinkSpeed.value = s.sinkSpeed;
@@ -345,6 +357,14 @@ export class ParticleField implements AnimatedEntity {
         this.uniforms.particleMurkColor.value = color;
     }
 
+    private blastStart = -1e3;
+
+    /** a meteor hit the water at `at`: its blast pushes the particles around it away */
+    public blast(at: Vector3): void {
+        this.uniforms.particleBlastCentre.value.copy(at);
+        this.blastStart = this.uniforms.particleTime.value;
+    }
+
     public setGlow(glow: number): void {
         for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
     }
@@ -375,10 +395,16 @@ export class ParticleField implements AnimatedEntity {
         folder.add(this.settings, 'dotWhiten1', 0, 1, 0.01).name('dotWhiten1 (cyan, far)').onChange(apply);
         folder.add(this.settings, 'dotWhiten2', 0, 1, 0.01).name('dotWhiten2 (orange, far)').onChange(apply);
         folder.add(this.settings, 'sinkMurk', 0, 100, 0.5).onChange(apply);
+        folder.add(this.settings, 'blastStrength', 0, 3, 0.05).onChange(apply);
+        folder.add(this.settings, 'blastReach', 0.5, 15, 0.1).onChange(apply);
+        folder.add(this.settings, 'blastSpeed', 1, 60, 0.5).onChange(apply);
+        folder.add(this.settings, 'blastSettleSeconds', 0.2, 10, 0.1).onChange(apply);
+        folder.add(this.settings, 'blastSpin', 0, 20, 0.1).onChange(apply);
     }
 
     public update(clock: Clock): void {
         this.uniforms.particleTime.value = clock.elapsedTime;
+        this.uniforms.particleBlastAge.value = clock.elapsedTime - this.blastStart;
         this.uniforms.particleLiftHeight.value = this.lip.height;
         this.uniforms.particleLiftWidth.value = this.lip.width;
         this.uniforms.particlePatchRadius.value = this.lip.patchRadius;
