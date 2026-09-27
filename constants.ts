@@ -789,7 +789,7 @@ export interface ParticleSettings {
     sinkMurk: number;
     /**
      * a meteor impact's blast: how far it shoves particles (metres, at the impact), over what distance that fades, how
-     * fast it rolls out, how slowly they settle back, and how much it sets flakes spinning
+     * fast it rolls out, how long they take to come to rest in their new place, and how much it sets flakes spinning
      */
     blastStrength: number;
     blastReach: number;
@@ -798,7 +798,8 @@ export interface ParticleSettings {
     blastSpin: number;
     /**
      * the air blast's gust, reaching the whole area around the camera well before the fluid's swell: how far it shoves
-     * particles, the distance over which it halves, how fast it travels, how quickly they recover, and the spin it gives
+     * particles, the distance over which it halves, how fast it travels, how long they take to come to rest in their new
+     * place, and the spin it gives
      */
     gustStrength: number;
     gustReach: number;
@@ -838,12 +839,12 @@ export const PARTICLES: ParticleSettings = {
     blastStrength: 0.8,
     blastReach: 4,
     blastSpeed: 15,
-    blastSettleSeconds: 2.5,
+    blastSettleSeconds: 0.4,
     blastSpin: 6,
     gustStrength: 0.45,
     gustReach: 10,
     gustSpeed: 60,
-    gustSettleSeconds: 1.2,
+    gustSettleSeconds: 0.25,
     gustSpin: 5,
     pillarMargin: 0.02,
     dimpleSize: 2.1,

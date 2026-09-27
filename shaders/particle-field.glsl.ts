@@ -52,6 +52,7 @@ uniform float particleTouchPush;
 // spinning), then lets them drift slowly back. Stateless: worked out from the time since the impact
 uniform vec3 particleBlastCentre;
 uniform float particleBlastAge;
+uniform float particleBlastTime;
 uniform float particleBlastStrength;
 uniform float particleBlastReach;
 uniform float particleBlastSpeed;
@@ -66,8 +67,15 @@ uniform float particleGustSpin;
 // the extra spin the blast gave this particle, for flakeTumble
 float particleBlastSpin = 0.0;
 
+// a push moves a particle to a new place and drag stops it there: it eases out to its final offset over 'settle' seconds
+// and keeps it. Only for the particle that was there at the impact: once it has fallen out of the box and come round
+// again at the top, it's a fresh one (and the next impact doesn't yank older particles back to their old paths)
 vec3 blastOffset(vec3 p) {
-    if (particleBlastAge > max(particleBlastSettle, particleGustSettle) * 5.0 + 2.0) return vec3(0.0);
+    if (particleBlastAge < 0.0 || particleBlastAge > 1e4) return vec3(0.0);
+    float fall = particleFall * (0.5 + particleSeed.w);
+    float lifeThen = floor((particleSeed.y * particleBoxSize - fall * particleBlastTime) / particleBoxSize);
+    float lifeNow = floor((particleSeed.y * particleBoxSize - fall * particleTime) / particleBoxSize);
+    if (lifeThen != lifeNow) return vec3(0.0);
     vec3 d = p - particleBlastCentre;
     float r = max(length(d), 1e-3);
     vec3 away = d / r;
@@ -75,16 +83,15 @@ vec3 blastOffset(vec3 p) {
 
     // close to the impact: a strong shove, mostly outwards, a little lifted
     float reached = smoothstep(r, r + 1.0, particleBlastAge * particleBlastSpeed);
-    float amount = particleBlastStrength * exp(-r / particleBlastReach) * reached * exp(-particleBlastAge / particleBlastSettle);
+    float sinceBlast = max(particleBlastAge - r / particleBlastSpeed, 0.0);
+    float amount = particleBlastStrength * exp(-r / particleBlastReach) * reached * (1.0 - exp(-sinceBlast / particleBlastSettle));
     offset += (away + vec3(0.0, 0.3, 0.0)) * amount;
     particleBlastSpin = amount * particleBlastSpinAmount;
 
-    // the gust: arrives fast, fades slowly with distance, a turbulent lurch away from the impact; each particle
-    // recovers from when it reached it, so the recovery rolls outwards too
+    // the gust: arrives fast, fades slowly with distance, a turbulent lurch away from the impact
     float sinceGust = particleBlastAge - r / particleGustSpeed;
     if (particleGustStrength > 0.0 && sinceGust > 0.0) {
-        float gust = particleGustStrength / (1.0 + r / particleGustReach)
-            * smoothstep(0.0, 0.08, sinceGust) * exp(-sinceGust / particleGustSettle);
+        float gust = particleGustStrength / (1.0 + r / particleGustReach) * (1.0 - exp(-sinceGust / particleGustSettle));
         vec3 jitter = (particleSeed.yzw - 0.5) * 0.8;
         offset += normalize(vec3(away.x, 0.15, away.z) + jitter) * gust * (0.6 + 0.8 * particleSeed.x);
         particleBlastSpin += gust * particleGustSpin;

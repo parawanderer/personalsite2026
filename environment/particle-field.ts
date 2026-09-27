@@ -147,7 +147,8 @@ export class ParticleField implements AnimatedEntity {
             particleTouchRadius: { value: 1 },
             particleTouchPush: { value: 0 },
             particleBlastCentre: { value: new Vector3() },
-            particleBlastAge: { value: 1e3 },
+            particleBlastAge: { value: 1e5 },
+            particleBlastTime: { value: -1e5 },
             particleBlastStrength: { value: 0 },
             particleBlastReach: { value: 1 },
             particleBlastSpeed: { value: 1 },
@@ -373,6 +374,7 @@ export class ParticleField implements AnimatedEntity {
     public blast(at: Vector3): void {
         this.uniforms.particleBlastCentre.value.copy(at);
         this.blastStart = this.uniforms.particleTime.value;
+        this.uniforms.particleBlastTime.value = this.blastStart;
     }
 
     public setGlow(glow: number): void {
