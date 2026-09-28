@@ -48,7 +48,6 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
-    ACID_BLEACH,
     BLACK_HOLE,
     TWILIGHT,
     PANEL_HAZE,
@@ -95,7 +94,6 @@ import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
-import { bleachUniforms } from './shaders/pillar-surface.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -385,30 +383,6 @@ const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTwea
 if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
 dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(stars);
-
-// the pillars bleached by the acid lake around the waterline
-{
-    const bleachTweaks = tweaks.addFolder('Acid bleach', ACID_BLEACH);
-    const b = bleachTweaks.params;
-    const apply = () => {
-        bleachUniforms.bleachAmount.value = b.enabled ? b.strength : 0;
-        bleachUniforms.bleachWaterLevel.value = WATER_LEVEL_Y;
-        bleachUniforms.bleachAbove.value = b.above;
-        bleachUniforms.bleachBelow.value = b.below;
-        (bleachUniforms.bleachColor.value as Color).set(b.color);
-        bleachUniforms.bleachCrust.value = b.crust;
-        (bleachUniforms.bleachCrustColor.value as Color).set(b.crustColor);
-    };
-    apply();
-    const f = bleachTweaks.folder;
-    f?.add(b, 'enabled').onChange(apply);
-    f?.add(b, 'strength', 0, 1, 0.01).onChange(apply);
-    f?.add(b, 'above', 0, 2, 0.01).onChange(apply);
-    f?.add(b, 'below', 0, 3, 0.01).onChange(apply);
-    f?.addColor(b, 'color').onChange(apply);
-    f?.add(b, 'crust', 0, 1, 0.01).onChange(apply);
-    f?.addColor(b, 'crustColor').onChange(apply);
-}
 
 // a black hole in the night sky, drawn over the stars (and bending them)
 const blackHoleTweaks = tweaks.addFolder('Black hole', BLACK_HOLE);
