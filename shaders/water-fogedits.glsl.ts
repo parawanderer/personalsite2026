@@ -96,6 +96,11 @@ export const fogFrag = /* glsl */ `
     #endif
 
     gl_FragColor.rgb = mix( gl_FragColor.rgb, mix(fogNearColor, fogFarColor, fogFactor), fogFactor );
+    // new! (edits) ${fileName}
+    // and as opaque as the fog is thick: the surface is see-through (the seabed shows where it's clear), and without
+    // this the far water let the dark seabed through its ripples instead of fading into the haze like the pillars do
+    gl_FragColor.a = mix(gl_FragColor.a, 1.0, fogFactor);
+    // END new
 ${skyGlowFrag}
 
 #endif
