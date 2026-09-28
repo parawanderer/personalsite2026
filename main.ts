@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    PILLAR_REFLECTIONS,
     PILLAR_DUST,
     ANTIALIAS,
     NIGHT_GLOW,
@@ -89,6 +90,7 @@ import { GodRaysPass } from './postprocessing/god-rays';
 import { shaftUniforms } from './shaders/sun-shafts.glsl';
 import { ShaftShadows } from './environment/shaft-shadows';
 import { SnellWindow } from './environment/snell-window';
+import { PillarReflections } from './environment/pillar-reflections';
 import { Twilight } from './environment/twilight';
 import { BlackHole } from './environment/black-hole';
 import { NightGlow } from './environment/night-glow';
@@ -570,6 +572,13 @@ const antialiasTweaks = tweaks.addFolder('Antialiasing', ANTIALIAS);
 antialiasTweaks.folder?.add(antialiasTweaks.params, 'samples', [0, 2, 4, 8]);
 composer.addPass(antialiasTweaks.params.samples > 0 ? new MsaaRenderPass(scene, camera, antialiasTweaks.params.samples) : new RenderPass(scene, camera));
 // shafts of sunlight while under the water; straight after the scene, while its depth still matches the frame
+// the scene around the camera, for the polished pillars to reflect
+const pillarReflectionTweaks = tweaks.addFolder('Pillar reflections', PILLAR_REFLECTIONS);
+const pillarReflections = new PillarReflections(renderer, walls.material, pillarReflectionTweaks.params);
+if (pillarReflectionTweaks.folder) pillarReflections.bindTweaks(pillarReflectionTweaks.folder);
+// the water left out of the capture (it would draw its own mirror again for each face)
+const captureForReflections = (capturing: boolean) => water.captureAbove(capturing);
+
 // the world above seen from under the water, through its surface
 const snellTweaks = tweaks.addFolder('Snell window', SNELL_WINDOW);
 const snellWindow = new SnellWindow(snellTweaks.params);
@@ -697,6 +706,7 @@ const animate = () => {
         camera.updateProjectionMatrix();
     }
     snellWindow.update(renderer, scene, camera, water.cameraUnderwater, WATER_LEVEL_Y, captureAbove);
+    pillarReflections.update(renderer, scene, camera, clock.elapsedTime, water.cameraUnderwater, captureForReflections);
 
     panelHaze.update(clock.elapsedTime);
     composer.render();

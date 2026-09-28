@@ -214,6 +214,26 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFogSpeed: 0,
 };
 
+// something for the polished pillars to reflect (environment/pillar-reflections.ts)
+export interface PillarReflectionSettings {
+    enabled: boolean;
+    /** how strongly they reflect it (kept low: reflections lighten the dark faces) */
+    intensity: number;
+    /** how strongly the normal map tilts the surface (1: as the texture has it) */
+    normalScale: number;
+    /** of each face of the captured cube, and how often it's captured again (it follows the camera and the time of day) */
+    resolution: number;
+    refreshSeconds: number;
+}
+
+export const PILLAR_REFLECTIONS: PillarReflectionSettings = {
+    enabled: false,
+    intensity: 0.4,
+    normalScale: 1,
+    resolution: 128,
+    refreshSeconds: 5,
+};
+
 // dust on the pillars' tops (shaders/pillar-surface.glsl.ts): ash and glass flakes settled on what faces up
 export interface PillarDustSettings {
     enabled: boolean;
