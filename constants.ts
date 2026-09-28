@@ -1086,6 +1086,28 @@ export const SNELL_WINDOW: SnellWindowSettings = {
     facesPerFrame: 1,
 };
 
+// the text panels' backing: a bank of the scene's haze behind them (postprocessing/panel-haze.ts)
+export interface PanelHazeSettings {
+    enabled: boolean;
+    /** how much of the scene behind drowns in it, and its brightness (times the fog's colour: below 1 is darker) */
+    density: number;
+    brightness: number;
+    /** how far the scene behind it is blurred (CSS pixels, roughly a fifth of the blur's reach) */
+    blurPx: number;
+    /** how far past the panel's box it thins out, and how ragged that edge is */
+    edgePx: number;
+    fray: number;
+}
+
+export const PANEL_HAZE: PanelHazeSettings = {
+    enabled: true,
+    density: 0.55,
+    brightness: 0.25,
+    blurPx: 10,
+    edgePx: 220,
+    fray: 0.2,
+};
+
 // light spilling around whatever is brighter than white (the suns, glints, the meteor's flash), like in a lens
 // (UnrealBloomPass, main.ts)
 export interface BloomSettings {

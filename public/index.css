@@ -309,11 +309,8 @@ svg .anim * {
 }
 
 .text-panel {
-    background: #3434341c;
-    /* box-shadow: 0px 20px 20px #59272742; */
+    /* no backing of its own: the scene draws a bank of haze behind it (postprocessing/panel-haze.ts) */
     line-height: 20pt;
-    backdrop-filter: blur(14px);
-    border-radius: 2pt;
 }
 
 .text-panel-content {

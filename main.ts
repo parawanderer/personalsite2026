@@ -49,6 +49,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    PANEL_HAZE,
     BLOOM,
     SKY_SPOT,
     SNELL_WINDOW,
@@ -98,6 +99,7 @@ import { ForegroundManager } from './ui/foreground-manager';
 import { moveCameraTo } from './animate/camera';
 import { FilmPass } from './postprocessing/filmpass';
 import { DistanceBlurPass } from './postprocessing/distance-blur';
+import { PanelHazePass } from './postprocessing/panel-haze';
 import { LoadingManager } from './ui/loading-manager';
 import { Tweaks } from './ui/tweaks';
 import { Grain } from './ui/grain';
@@ -505,6 +507,12 @@ bloomTweaks.folder?.add(bloomTweaks.params, 'strength', 0, 2, 0.01).onChange(app
 bloomTweaks.folder?.add(bloomTweaks.params, 'radius', 0, 1, 0.01).onChange(applyBloom);
 bloomTweaks.folder?.add(bloomTweaks.params, 'threshold', 0, 3, 0.01).onChange(applyBloom);
 composer.addPass(bloom);
+// the text panels' backing, a bank of haze behind the open one
+const panelHazeTweaks = tweaks.addFolder('Panel haze', PANEL_HAZE);
+// in the colour the pillars' fog ends in far off (the sky's), which follows the time of day
+const panelHaze = new PanelHazePass(document.getElementById('hiddenPanel')!, walls.fogUniforms.fogFarColor.value as Color, panelHazeTweaks.params);
+if (panelHazeTweaks.folder) panelHaze.bindTweaks(panelHazeTweaks.folder);
+composer.addPass(panelHaze);
 // the camera as a sensor on another planet: overexposed by a meteor's flash, then recovering
 const sensorTweaks = tweaks.addFolder('Sensor', SENSOR);
 const sensor = new SensorPass(camera, sensorTweaks.params, (boost) => (filmPass.uniforms as { intensity: { value: number } }).intensity.value = FILM_GRAIN + boost);
@@ -575,6 +583,7 @@ const animate = () => {
     }
     snellWindow.update(renderer, scene, camera, water.cameraUnderwater, WATER_LEVEL_Y, captureAbove);
 
+    panelHaze.update(clock.elapsedTime);
     composer.render();
 }
 // compile the shaders a meteor's splashdown needs now, behind the loading screen, instead of stalling its impact
