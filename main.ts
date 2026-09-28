@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    BLACK_HOLE,
     TWILIGHT,
     PANEL_HAZE,
     BLOOM,
@@ -86,6 +87,7 @@ import { shaftUniforms } from './shaders/sun-shafts.glsl';
 import { ShaftShadows } from './environment/shaft-shadows';
 import { SnellWindow } from './environment/snell-window';
 import { Twilight } from './environment/twilight';
+import { BlackHole } from './environment/black-hole';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
@@ -381,6 +383,13 @@ const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTwea
 if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
 dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(stars);
+
+// a black hole in the night sky, drawn over the stars (and bending them)
+const blackHoleTweaks = tweaks.addFolder('Black hole', BLACK_HOLE);
+const blackHole = new BlackHole(sky.material, blackHoleTweaks.params);
+if (blackHoleTweaks.folder) blackHole.bindTweaks(blackHoleTweaks.folder);
+dayNight.number((v) => blackHole.setNight(v), () => 0, 'nightAurora');
+scheduler.add(blackHole);
 
 // a volcano past the walls at night: a red glow on one horizon, and its light on the pillars
 const volcanoTweaks = tweaks.addFolder('Volcanic glow', VOLCANIC_GLOW);

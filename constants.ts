@@ -208,6 +208,56 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFogSpeed: 0,
 };
 
+// a black hole in the night sky with its accretion disc (environment/black-hole.ts)
+export interface BlackHoleSettings {
+    enabled: boolean;
+    /** how much of it shows by day (it fades in with the night) */
+    byDay: number;
+    /** where it hangs: 0 down the channel, 90 is +x, and degrees above the horizon */
+    azimuthDeg: number;
+    elevationDeg: number;
+    /** how wide its black shadow looks (degrees), and how far round it the sky is bent (times that) */
+    shadowDeg: number;
+    regionScale: number;
+    /** how the disc is seen: 90 edge-on, 0 face-on; and how it's rolled on the sky */
+    inclinationDeg: number;
+    rollDeg: number;
+    /** the disc's inner and outer edge, in the hole's masses (its shadow is about 5.2 across) */
+    discInner: number;
+    discOuter: number;
+    /** how fast it spins (-1 to 1: which way, and how much it drags the light round and pulls its shadow aside) */
+    spin: number;
+    /** how fast the disc's streaks turn, its brightness, and how much brighter its side coming towards us is */
+    discSpeed: number;
+    discBrightness: number;
+    beaming: number;
+    /** the disc's colours, from its hot inner edge out */
+    hotColor: string;
+    warmColor: string;
+    coolColor: string;
+}
+
+export const BLACK_HOLE: BlackHoleSettings = {
+    enabled: true,
+    byDay: 0,
+    // over the far end of the channel, as seen from the home view
+    azimuthDeg: 6,
+    elevationDeg: 10,
+    shadowDeg: 4,
+    regionScale: 5,
+    inclinationDeg: 80,
+    rollDeg: -20,
+    discInner: 4,
+    discOuter: 16,
+    spin: 0.6,
+    discSpeed: 0.3,
+    discBrightness: 1.2,
+    beaming: 3,
+    hotColor: '#fff1d0',
+    warmColor: '#ffa040',
+    coolColor: '#a8301a',
+};
+
 // sunset and sunrise (environment/twilight.ts): while the large sun is low, the day/night blend's colours are pulled
 // towards these, and a warm glow lies on the sky and the far fog around the sun
 export interface TwilightSettings {
