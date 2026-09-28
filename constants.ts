@@ -1086,6 +1086,24 @@ export const SNELL_WINDOW: SnellWindowSettings = {
     facesPerFrame: 1,
 };
 
+// light spilling around whatever is brighter than white (the suns, glints, the meteor's flash), like in a lens
+// (UnrealBloomPass, main.ts)
+export interface BloomSettings {
+    enabled: boolean;
+    /** how much spills, and how far (0 to 1) */
+    strength: number;
+    radius: number;
+    /** how bright something has to be (before tone mapping) to spill */
+    threshold: number;
+}
+
+export const BLOOM: BloomSettings = {
+    enabled: true,
+    strength: 0.4,
+    radius: 0.5,
+    threshold: 1,
+};
+
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars
 // (environment/volcanic-glow.ts)
 export interface VolcanicGlowSettings {

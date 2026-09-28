@@ -20,6 +20,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import {
     CAMERA_INITIAL_Z,
@@ -48,6 +49,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    BLOOM,
     SKY_SPOT,
     SNELL_WINDOW,
     SUN_SHAFTS,
@@ -487,6 +489,22 @@ const blurTweaks = tweaks.addFolder('Distance blur', DISTANCE_BLUR);
 const distanceBlur = new DistanceBlurPass(camera, blurTweaks.params);
 if (blurTweaks.folder) distanceBlur.bindTweaks(blurTweaks.folder);
 composer.addPass(distanceBlur);
+// bloom: after the blur, so what's out of focus doesn't smear its glow twice
+const bloomTweaks = tweaks.addFolder('Bloom', BLOOM);
+const bloom = new UnrealBloomPass(new Vector2(width, height), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
+const applyBloom = () => {
+    const b = bloomTweaks.params;
+    bloom.enabled = b.enabled;
+    bloom.strength = b.strength;
+    bloom.radius = b.radius;
+    bloom.threshold = b.threshold;
+};
+applyBloom();
+bloomTweaks.folder?.add(bloomTweaks.params, 'enabled').onChange(applyBloom);
+bloomTweaks.folder?.add(bloomTweaks.params, 'strength', 0, 2, 0.01).onChange(applyBloom);
+bloomTweaks.folder?.add(bloomTweaks.params, 'radius', 0, 1, 0.01).onChange(applyBloom);
+bloomTweaks.folder?.add(bloomTweaks.params, 'threshold', 0, 3, 0.01).onChange(applyBloom);
+composer.addPass(bloom);
 // the camera as a sensor on another planet: overexposed by a meteor's flash, then recovering
 const sensorTweaks = tweaks.addFolder('Sensor', SENSOR);
 const sensor = new SensorPass(camera, sensorTweaks.params, (boost) => (filmPass.uniforms as { intensity: { value: number } }).intensity.value = FILM_GRAIN + boost);
