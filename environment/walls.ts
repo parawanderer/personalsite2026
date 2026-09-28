@@ -575,6 +575,8 @@ export class Walls implements AnimatedEntity {
         folder.add(s, 'hexScale', 0.2, 4, 0.05).onChange(syncSurface);
         folder.add(s, 'hexContrast', 1, 16, 0.1).onChange(syncSurface);
         folder.add(s, 'macroStrength', 0, 1, 0.01).onChange(syncSurface);
+        folder.add(s, 'gradeGamma', 0.5, 3, 0.01).onChange(syncSurface);
+        folder.add(s, 'gradeGain', 0.2, 3, 0.01).onChange(syncSurface);
         folder.add(s, 'macroScale', 0.02, 2, 0.01).onChange(syncSurface);
         folder.add(s, 'chamfer', 0, 0.45, 0.01).onFinishChange(rebuild);
         folder.add(s, 'damageChance', 0, 1, 0.01).onFinishChange(rebuild);
@@ -624,6 +626,8 @@ const applySurfaceUniforms = (uniforms: { [name: string]: IUniform<number> }, sh
     uniforms.hexScale.value = shape.hexScale;
     uniforms.hexContrast.value = shape.hexContrast;
     uniforms.macroStrength.value = shape.macroStrength;
+    uniforms.gradeGamma.value = shape.gradeGamma;
+    uniforms.gradeGain.value = shape.gradeGain;
     uniforms.macroScale.value = shape.macroScale;
 };
 
@@ -872,6 +876,8 @@ export class WallsFactory {
             hexScale: { value: 0 },
             hexContrast: { value: 0 },
             macroStrength: { value: 0 },
+            gradeGamma: { value: 1 },
+            gradeGain: { value: 1 },
             macroScale: { value: 0 },
             reflectionPass: { value: 0 },
             // how much darker faces the meteor flash doesn't reach look right now (shaders/pillar-surface.glsl.ts)

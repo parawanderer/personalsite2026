@@ -234,13 +234,13 @@ export interface PillarDustSettings {
 
 export const PILLAR_DUST: PillarDustSettings = {
     enabled: true,
-    coverage: 0.6,
+    coverage: 1.0,
     scale: 2,
     roughness: 0.75,
     color: '#8a8580',
     tint: 0.06,
     sheen: '#1e1d1b',
-    grainsPerMetre: 60,
+    grainsPerMetre: 200,
     grainShare: 0.4,
 };
 
@@ -844,6 +844,12 @@ export interface PillarShape {
     /** how hard neighbouring cells blend, higher keeps more of the texture's contrast */
     hexContrast: number;
     /** large scale brightness variation across the walls */
+    /**
+     * the colour map's grade (shaders/pillar-surface.glsl.ts): 1.63 and 1 recreate the edit once baked into the file;
+     * higher gamma: darker shadows, more contrast; gain: brighter overall
+     */
+    gradeGamma: number;
+    gradeGain: number;
     macroStrength: number;
     /** frequency of that variation, per world unit */
     macroScale: number;
@@ -866,6 +872,8 @@ export const PILLAR_SHAPE: PillarShape = {
     hexScale: 0.2,
     hexContrast: 6,
     macroStrength: 0.25,
+    gradeGamma: 1.63,
+    gradeGain: 1,
     macroScale: 0.35,
     chamfer: 0.12,
     damageChance: 0.15,

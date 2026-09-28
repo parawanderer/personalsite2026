@@ -16,6 +16,8 @@ uniform float hexScale;
 uniform float hexContrast;
 uniform float macroStrength;
 uniform float macroScale;
+uniform float gradeGamma;
+uniform float gradeGain;
 // 1 while the water renders its reflection, which only needs the plain texture. Set around that render
 // (Walls.setReflectionPass), not guessed from the camera's height: the camera itself can be under the water
 uniform float reflectionPass;
@@ -206,17 +208,39 @@ const flashShadowFrag = /* glsl */ `
 #include <opaque_fragment>
 `;
 
+/**
+ * The colour map as downloaded is a mid-grey marble; the pillars want it near-black. This is the curve that was once
+ * baked into the file by hand (fitted from the edited file against the original: under half a level of error),
+ * applied here instead so any resolution of the original can be dropped in: per channel, in sRGB,
+ * gain * value^gamma + offset, the gain slightly stronger in blue
+ */
+const colourGrade = /* glsl */ `
+// (edits) ${fileName}
+{
+    vec3 graded = sRGBTransferOETF(sampledDiffuseColor).rgb;
+    graded = vec3(0.4080, 0.4180, 0.4302) * gradeGain * pow(graded, vec3(gradeGamma)) + vec3(0.0181, 0.0172, 0.0166);
+    sampledDiffuseColor.rgb = sRGBTransferEOTF(vec4(graded, 1.0)).rgb;
+}
+diffuseColor *= sampledDiffuseColor;
+`;
+
 const hexSampled = (chunk: string, sampler: string, uv: string) => {
     const search = `texture2D( ${sampler}, ${uv} )`;
     if (!chunk.includes(search)) console.warn(`Shader chunk no longer contains "${search}"; hex tiling not applied to ${sampler}.`);
     return chunk.split(search).join(`textureHex( ${sampler}, ${uv} )`);
 };
 
+const graded = (chunk: string) => {
+    const search = 'diffuseColor *= sampledDiffuseColor;';
+    if (!chunk.includes(search)) console.warn(`Shader chunk no longer contains "${search}"; colour grade not applied.`);
+    return chunk.replace(search, colourGrade);
+};
+
 export const applyPillarSurface = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform<number> }) => {
     // chunks are still #includes at this point, so swap in edited copies
     params.fragmentShader = params.fragmentShader
         .replace('#include <common>', `#include <common>\n${hexTilingPars}\n${dustPars}`)
-        .replace('#include <map_fragment>', `${hexSampled(ShaderChunk.map_fragment, 'map', 'vMapUv')}\n${macroVariation}`)
+        .replace('#include <map_fragment>', `${graded(hexSampled(ShaderChunk.map_fragment, 'map', 'vMapUv'))}\n${macroVariation}`)
         .replace('#include <normal_fragment_maps>', `${hexSampled(ShaderChunk.normal_fragment_maps, 'normalMap', 'vNormalMapUv')}\n${dustFrag}`)
         .replace('#include <lights_physical_fragment>', `#include <lights_physical_fragment>\n${dustLights}`)
         .replace('#include <shadowmap_pars_fragment>', flashShadowPars)
