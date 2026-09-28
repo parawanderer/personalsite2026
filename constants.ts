@@ -208,6 +208,50 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFogSpeed: 0,
 };
 
+// sunset and sunrise (environment/twilight.ts): while the large sun is low, the day/night blend's colours are pulled
+// towards these, and a warm glow lies on the sky and the far fog around the sun
+export interface TwilightSettings {
+    enabled: boolean;
+    /** how far at most the colours go towards the palette */
+    strength: number;
+    /** the sun's height (degrees) where it starts, is at its fullest, and has gone again below the horizon */
+    startElevationDeg: number;
+    peakElevationDeg: number;
+    endElevationDeg: number;
+    sky: string;
+    fogNear: string;
+    fogFar: string;
+    sceneFog: string;
+    /** the colour of the light down the channel, and of the ambient light from the sky */
+    light: string;
+    ambient: string;
+    /** the glow around the sun on the horizon: colour, brightness on the sky and in the far fog, width and height */
+    glowColor: string;
+    glowStrength: number;
+    fogGlowStrength: number;
+    glowWidthDeg: number;
+    glowHeight: number;
+}
+
+export const TWILIGHT: TwilightSettings = {
+    enabled: true,
+    strength: 0.8,
+    startElevationDeg: 22,
+    peakElevationDeg: 1,
+    endElevationDeg: -10,
+    sky: '#8a7894',
+    fogNear: '#c07a5c',
+    fogFar: '#8e7088',
+    sceneFog: '#7d6a80',
+    light: '#ffb088',
+    ambient: '#ffc4a0',
+    glowColor: '#ff8a4a',
+    glowStrength: 0.6,
+    fogGlowStrength: 0.4,
+    glowWidthDeg: 40,
+    glowHeight: 0.15,
+};
+
 // the two suns/moons (environment/celestial.ts); azimuth 0 looks down the channel (-z), 90 is +x
 export interface CelestialBody {
     color: string;

@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    TWILIGHT,
     PANEL_HAZE,
     BLOOM,
     SKY_SPOT,
@@ -84,6 +85,7 @@ import { GodRaysPass } from './postprocessing/god-rays';
 import { shaftUniforms } from './shaders/sun-shafts.glsl';
 import { ShaftShadows } from './environment/shaft-shadows';
 import { SnellWindow } from './environment/snell-window';
+import { Twilight } from './environment/twilight';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
@@ -445,6 +447,27 @@ const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const)
     scheduler.add(sun);
     return { sun, body: sunTweaks.params };
 });
+
+// sunset and sunrise: while the large sun is low, the colours the day/night blend left go towards a twilight palette
+// (after it, and after the suns have moved)
+const twilightTweaks = tweaks.addFolder('Twilight', TWILIGHT);
+const twilight = new Twilight(sky.material, suns[0].sun.direction, twilightTweaks.params);
+if (twilightTweaks.folder) twilight.bindTweaks(twilightTweaks.folder);
+{
+    const t = twilightTweaks.params;
+    twilight
+        .add(sky.material.color, () => t.sky)
+        .add(walls.fogUniforms.fogNearColor.value, () => t.fogNear)
+        .add(walls.fogUniforms.fogFarColor.value, () => t.fogFar)
+        .add(water.fogUniforms.fogNearColor.value, () => t.fogNear)
+        .add(water.fogUniforms.fogFarColor.value, () => t.fogFar)
+        .add((scene.fog as FogExp2).color, () => t.sceneFog)
+        .add(scene.background as Color, () => t.sceneFog)
+        .add(skySpot.color, () => t.light)
+        .add(skySun.color, () => t.light)
+        .add(ambientLight.color, () => t.ambient);
+}
+scheduler.add(twilight);
 
 
 // debug-related UI elements

@@ -27,6 +27,11 @@ export const skyGlowUniforms: { [name: string]: IUniform } = {
     glowVolcanoColor: { value: new Color(0, 0, 0) },
     glowVolcanoWidth: { value: 0.4 },
     glowVolcanoHeight: { value: 0.1 },
+    // the same for the warm glow around a setting or rising sun (environment/twilight.ts)
+    glowTwilightDir: { value: new Vector3(0, 0, -1) },
+    glowTwilightColor: { value: new Color(0, 0, 0) },
+    glowTwilightWidth: { value: 0.5 },
+    glowTwilightHeight: { value: 0.15 },
 };
 
 export const skyGlowPars = /* glsl */ `
@@ -41,6 +46,19 @@ uniform vec3 glowVolcanoDir;
 uniform vec3 glowVolcanoColor;
 uniform float glowVolcanoWidth;
 uniform float glowVolcanoHeight;
+
+uniform vec3 glowTwilightDir;
+uniform vec3 glowTwilightColor;
+uniform float glowTwilightWidth;
+uniform float glowTwilightHeight;
+
+// a glow low on the horizon in one direction, as the fog picks it up: widest and strongest towards it near the
+// horizon, fading upwards and twice as fast downwards (the far water lies just below)
+vec3 horizonFogGlow(vec3 viewDir, vec3 towards, vec3 color, float width, float height) {
+    vec2 flatDir = normalize(viewDir.xz + vec2(1e-5));
+    float across = acos(clamp(dot(flatDir, normalize(towards.xz + vec2(1e-5))), -1.0, 1.0));
+    return color * exp(-pow(across / width, 2.0)) * exp(-max(viewDir.y, -2.0 * viewDir.y) / height);
+}
 
 // the volcano's glow as the fog picks it up: widest and strongest towards it near the horizon, fading upwards and
 // twice as fast downwards (the far water lies just below)
@@ -72,4 +90,6 @@ export const skyGlowFrag = /* glsl */ `
     gl_FragColor.rgb += skyGlow(normalize(vFogWorldPosition - cameraPosition)) * smoothstep(glowFogStart, 1.0, fogFactor);
     // and the fog towards the volcano at night takes on its red, as thick as the fog is
     if (glowVolcanoColor.r + glowVolcanoColor.g + glowVolcanoColor.b > 0.0) gl_FragColor.rgb += volcanoFogGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
+    // and towards a setting or rising sun, its warm glow
+    if (glowTwilightColor.r + glowTwilightColor.g + glowTwilightColor.b > 0.0) gl_FragColor.rgb += horizonFogGlow(normalize(vFogWorldPosition - cameraPosition), glowTwilightDir, glowTwilightColor, glowTwilightWidth, glowTwilightHeight) * fogFactor;
 `;
