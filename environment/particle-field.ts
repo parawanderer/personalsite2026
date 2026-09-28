@@ -415,6 +415,15 @@ export class ParticleField implements AnimatedEntity {
         this.uniforms.particleBlastTime.value = this.blastStart;
     }
 
+    /** overrides one set's colour (the day/night cycle moves the cyan flakes' with the light) */
+    public setFlakeColor(colorKey: 'flakeColor1' | 'flakeColor2', color: Color): void {
+        this.flakeMaterials.forEach((m, k) => {
+            if (this.colours[k].colorKey !== colorKey) return;
+            m.color.copy(color);
+            m.emissive.copy(color);
+        });
+    }
+
     public setGlow(glow: number): void {
         for (const m of this.flakeMaterials) m.emissiveIntensity = glow;
     }

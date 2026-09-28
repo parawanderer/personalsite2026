@@ -194,10 +194,15 @@ export class Aurora implements AnimatedEntity {
         return 0;
     }
 
+    /** 0-1, how much it's out right now (the night times its hours) */
+    public get amount(): number {
+        return this.nightAmount * this.presence;
+    }
+
     public update(clock: Clock): void {
         const s = this.settings;
         const u = this.uniforms;
-        const amount = this.nightAmount * this.presence;
+        const amount = this.amount;
         u.auroraAmount.value = s.brightness * amount;
         u.auroraTime.value = clock.elapsedTime * s.speed;
         u.auroraLow.value.set(s.colorLow);

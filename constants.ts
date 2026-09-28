@@ -180,7 +180,7 @@ export interface DayNightSettings {
 
 export const DAY_NIGHT: DayNightSettings = {
     hour: 12,
-    nightSky: '#1a2023',
+    nightSky: '#151b1e',
     nightFogNear: '#2b4e5f',
     nightFogFar: '#202631',
     nightSceneFog: '#1a2e2e',
@@ -260,8 +260,8 @@ export const BLACK_HOLE: BlackHoleSettings = {
     hotColor: '#fff1d0',
     warmColor: '#ffa040',
     coolColor: '#a8301a',
-    lightStrength: 0.8,
-    waterScatter: 0.3,
+    lightStrength: 0.63,
+    waterScatter: 0.04,
 };
 
 // sunset and sunrise (environment/twilight.ts): while the large sun is low, the day/night blend's colours are pulled
@@ -498,7 +498,7 @@ export const SHOOTING_STARS: ShootingStarSettings = {
     duration: 0.7,
     length: 10,
     width: 0.25,
-    splashChance: 0.25,
+    splashChance: 0.05,
     splashLight: 2000,
     splashLightRange: 30,
     splashWaterGlow: 6.5,
@@ -946,6 +946,13 @@ export interface ParticleSettings {
     /** colours of the two particle sets' flakes (their dots use the particle textures) */
     flakeColor1: string;
     flakeColor2: string;
+    /**
+     * the cyan flakes' colour following the light: at dawn and dusk (Twilight), at night without the aurora, and
+     * while the aurora is out (flakeColor1 is the day's)
+     */
+    flakeColor1Twilight: string;
+    flakeColor1Night: string;
+    flakeColor1Aurora: string;
 }
 
 export const PARTICLES: ParticleSettings = {
@@ -989,6 +996,9 @@ export const PARTICLES: ParticleSettings = {
     dimpleRimColor: '#a1c4bf',
     flakeColor1: '#699694',
     flakeColor2: '#e1602d',
+    flakeColor1Twilight: '#a0848a',
+    flakeColor1Night: '#4d6f8c',
+    flakeColor1Aurora: '#4fbf9c',
 };
 
 // particles

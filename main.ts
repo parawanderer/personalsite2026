@@ -479,6 +479,25 @@ if (twilightTweaks.folder) twilight.bindTweaks(twilightTweaks.folder);
 }
 scheduler.add(twilight);
 
+// the cyan flakes take on the light's colour through the day: dusk and dawn, the night, and the aurora while it's out
+{
+    const p = particleTweaks.params;
+    const flake = new Color(), mixIn = new Color();
+    scheduler.add({
+        update: () => {
+            flake.set(p.flakeColor1)
+                .lerp(mixIn.set(p.flakeColor1Night), dayNight.nightAmount)
+                .lerp(mixIn.set(p.flakeColor1Aurora), aurora.amount)
+                .lerp(mixIn.set(p.flakeColor1Twilight), twilight.amount);
+            particles.setFlakeColor('flakeColor1', flake);
+        },
+    });
+    const f = particleTweaks.folder;
+    f?.addColor(p, 'flakeColor1Twilight');
+    f?.addColor(p, 'flakeColor1Night');
+    f?.addColor(p, 'flakeColor1Aurora');
+}
+
 
 // debug-related UI elements
 // the frame rate with ?tweaks; the camera's coordinates too in DEBUG
