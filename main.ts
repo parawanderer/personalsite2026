@@ -84,6 +84,7 @@ import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
+import { snellUniforms } from './shaders/snell-window.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -249,6 +250,8 @@ pillarTweaks.folder?.add(pillarTweaks.params, 'seabedDepthBelow', 1, 12, 0.1).on
 scheduler.add({
     update: () => {
         seabed.visible = water.cameraUnderwater;
+        // what's above the water seen bent through its surface
+        snellUniforms.snellOn.value = water.cameraUnderwater ? 1 : 0;
         walls.setAirFog(!water.cameraUnderwater);
     },
 });

@@ -3,6 +3,7 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
+import { snellPars, snellUniforms } from '../shaders/snell-window.glsl';
 import { VolcanicGlowSettings } from '../constants';
 
 const pars = /* glsl */ `
@@ -67,13 +68,13 @@ export class VolcanicGlow implements AnimatedEntity {
         const previous = skyMaterial.onBeforeCompile;
         skyMaterial.onBeforeCompile = (params, renderer) => {
             previous.call(skyMaterial, params, renderer);
-            Object.assign(params.uniforms, this.uniforms);
+            Object.assign(params.uniforms, this.uniforms, snellUniforms);
             params.vertexShader = params.vertexShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vGlowWorld;')
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvGlowWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
-                .replace('#include <common>', `#include <common>\n${pars}`)
-                .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (volcanoColor.r + volcanoColor.g + volcanoColor.b > 0.0) gl_FragColor.rgb += volcanoGlow(normalize(vGlowWorld - cameraPosition));');
+                .replace('#include <common>', `#include <common>\n${pars}\n${snellPars}`)
+                .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (volcanoColor.r + volcanoColor.g + volcanoColor.b > 0.0) gl_FragColor.rgb += volcanoGlow(snellAirDir(normalize(vGlowWorld - cameraPosition))) * snellThrough(normalize(vGlowWorld - cameraPosition));');
         };
         skyMaterial.needsUpdate = true;
     }

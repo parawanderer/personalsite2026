@@ -2,6 +2,7 @@ import { Clock, Color, DirectionalLight, IUniform, MeshBasicMaterial, Scene, Web
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
+import { snellPars, snellUniforms } from '../shaders/snell-window.glsl';
 import { AuroraSettings } from '../constants';
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
@@ -156,9 +157,9 @@ export class Aurora implements AnimatedEntity {
             .replace('#include <common>', '#include <common>\nvarying vec3 vAuroraWorld;')
             .replace('#include <fog_vertex>', '#include <fog_vertex>\nvAuroraWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
         params.fragmentShader = params.fragmentShader
-            .replace('#include <common>', `#include <common>\n${auroraPars}`)
-            .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (auroraAmount > 0.0) gl_FragColor.rgb += aurora(normalize(vAuroraWorld - cameraPosition));');
-        Object.assign(params.uniforms, this.uniforms);
+            .replace('#include <common>', `#include <common>\n${auroraPars}\n${snellPars}`)
+            .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (auroraAmount > 0.0) gl_FragColor.rgb += aurora(snellAirDir(normalize(vAuroraWorld - cameraPosition))) * snellThrough(normalize(vAuroraWorld - cameraPosition));');
+        Object.assign(params.uniforms, this.uniforms, snellUniforms);
     }
 
     /**
