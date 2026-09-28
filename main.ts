@@ -254,6 +254,7 @@ scheduler.add({
         sky.position.copy(camera.position);
         // what's above the water seen bent through its surface
         snellUniforms.snellOn.value = water.cameraUnderwater ? 1 : 0;
+        snellUniforms.snellWaterLevel.value = WATER_LEVEL_Y;
         walls.setAirFog(!water.cameraUnderwater);
     },
 });

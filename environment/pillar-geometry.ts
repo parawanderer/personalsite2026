@@ -18,8 +18,9 @@ export interface PillarInstance {
     bevel: number;
 }
 
-// rings from bottom to top: the (inset) bottom cap, the bottom and top edges of the sides, the (inset) top cap
-const enum Ring { BottomCap, BottomEdge, TopEdge, TopCap }
+// rings from bottom to top: the (inset) bottom cap, the bottom edge of the sides, optionally one where the water cuts
+// across them, their top edge, the (inset) top cap
+const enum Ring { BottomCap, BottomEdge, Water, TopEdge, TopCap }
 const enum Kind { Side, Cap }
 
 interface TemplateVertex {
@@ -28,6 +29,8 @@ interface TemplateVertex {
     kind: Kind;
     /** index into the cumulative perimeter, n for the seam so the texture doesn't wrap backwards */
     perimeterIndex: number;
+    /** on the Water ring: 1 for the band above it (its copy sits just above the water), -1 for the one below */
+    waterSide: number;
 }
 
 interface Template {
@@ -60,6 +63,8 @@ const vertexPosition = (template: Template, v: TemplateVertex, radius: number, h
     const half = height / 2;
     const y = v.ring === Ring.BottomCap ? -half
         : v.ring === Ring.BottomEdge ? -half + bevel
+        // placed on the waterline by buildPillarMesh
+        : v.ring === Ring.Water ? 0
         : v.ring === Ring.TopEdge ? half - bevel
         : half;
     out[0] = px * r;
@@ -71,7 +76,7 @@ const vertexPosition = (template: Template, v: TemplateVertex, radius: number, h
  * Topology shared by pillars: flat faces with their own vertices so each face gets its own texture mapping.
  * Without a bevel the sides run straight from cap to cap; with one there's a slanted ring between sides and caps.
  */
-const buildTemplate = (chamfer: number, bevelled: boolean): Template => {
+const buildTemplate = (chamfer: number, bevelled: boolean, waterRing: boolean): Template => {
     const polygon = chamferedHexagon(chamfer);
     const n = polygon.length;
 
@@ -82,22 +87,31 @@ const buildTemplate = (chamfer: number, bevelled: boolean): Template => {
     }
 
     const template: Template = { polygon, perimeter, vertices: [], indices: [] };
-    const add = (ring: Ring, corner: number, kind: Kind, perimeterIndex: number) => template.vertices.push({ ring, corner, kind, perimeterIndex }) - 1;
+    const add = (ring: Ring, corner: number, kind: Kind, perimeterIndex: number, waterSide = 0) => template.vertices.push({ ring, corner, kind, perimeterIndex, waterSide }) - 1;
     const band = (lower: Ring, upper: Ring) => {
         for (let i = 0; i < n; i++) {
             const j = (i + 1) % n;
-            const a = add(lower, i, Kind.Side, i), b = add(lower, j, Kind.Side, i + 1);
-            const c = add(upper, j, Kind.Side, i + 1), d = add(upper, i, Kind.Side, i);
+            const a = add(lower, i, Kind.Side, i, 1), b = add(lower, j, Kind.Side, i + 1, 1);
+            const c = add(upper, j, Kind.Side, i + 1, -1), d = add(upper, i, Kind.Side, i, -1);
             template.indices.push(a, b, c, a, c, d);
         }
     };
 
+    // the sides, split where the water crosses them if asked
+    const sides = (lower: Ring, upper: Ring) => {
+        if (waterRing) {
+            band(lower, Ring.Water);
+            band(Ring.Water, upper);
+        } else {
+            band(lower, upper);
+        }
+    };
     if (bevelled) {
         band(Ring.BottomCap, Ring.BottomEdge);
-        band(Ring.BottomEdge, Ring.TopEdge);
+        sides(Ring.BottomEdge, Ring.TopEdge);
         band(Ring.TopEdge, Ring.TopCap);
     } else {
-        band(Ring.BottomCap, Ring.TopCap);
+        sides(Ring.BottomCap, Ring.TopCap);
     }
     for (const ring of [Ring.BottomCap, Ring.TopCap]) {
         const first = template.vertices.length;
@@ -126,11 +140,11 @@ const buildTemplate = (chamfer: number, bevelled: boolean): Template => {
 /**
  * All pillars as one mesh. Texture coordinates are in world units so the texture never stretches, and bevels keep their
  * size whatever the pillar's height. withPieceIndex adds a 'pieceIndex' attribute: which of the instances each vertex
- * belongs to.
+ * belongs to. With waterLevel, the sides get an extra ring of vertices where the water crosses them.
  */
-export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape, withPieceIndex = false): BufferGeometry => {
-    const sharp = buildTemplate(shape.chamfer, false);
-    const bevelled = buildTemplate(shape.chamfer, true);
+export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape, withPieceIndex = false, waterLevel?: number): BufferGeometry => {
+    const sharp = buildTemplate(shape.chamfer, false, waterLevel !== undefined);
+    const bevelled = buildTemplate(shape.chamfer, true, waterLevel !== undefined);
     const templateOf = (inst: PillarInstance) => inst.bevel > 0 ? bevelled : sharp;
 
     let vertexCount = 0, indexCount = 0;
@@ -158,9 +172,20 @@ export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape,
             .multiply(rot.makeRotationX(inst.leanRad))
             .multiply(rot.makeRotationY(inst.spinRad));
         m.setPosition(inst.centre);
+        const axisY = m.elements[5];
+        const half = inst.height / 2;
 
         template.vertices.forEach((v, k) => {
             vertexPosition(template, v, inst.radius, inst.height, bevel, local);
+            if (v.ring === Ring.Water && waterLevel !== undefined && Math.abs(axisY) > 1e-3) {
+                // on the waterline itself, along this corner's edge: seen from under the water, what's above the surface
+                // shows bent into the window overhead while what's below doesn't, and the two parts of the pillar come
+                // apart there. So the band above gets its own copy of the ring a hair above the water, the band below
+                // one a hair below
+                const level = waterLevel + v.waterSide * 0.002;
+                const cornerY = m.elements[1] * local[0] + m.elements[9] * local[2];
+                local[1] = Math.min(Math.max((level - inst.centre.y - cornerY) / axisY, -half + bevel + 0.01), half - bevel - 0.01);
+            }
             p.set(local[0], local[1], local[2]).applyMatrix4(m);
 
             const vi = vBase + k;
