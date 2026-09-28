@@ -1071,6 +1071,10 @@ export interface StarSettings {
     bandTurnDeg: number;
     /** how far their colours vary, from bluish to warm */
     tint: number;
+    /** a richer Milky Way along the band: a brighter, clumpy glow crossed by dark dust lanes */
+    milkyWay: boolean;
+    /** stars that differ more: a few much brighter ones, and clearer colours from blue-white to orange */
+    varied: boolean;
     /** how high above the horizon they've fully come through the haze (sine of the angle) */
     horizon: number;
     /** where the sky turns around (elevation above the horizon, direction), and how many turns it makes per day */
@@ -1091,11 +1095,46 @@ export const STARS: StarSettings = {
     bandTiltDeg: 35,
     bandTurnDeg: 20,
     tint: 0.6,
+    milkyWay: false,
+    varied: false,
     horizon: 0.15,
     // behind the home view, just above the volcano; the black hole sits on it, the stars turning around it
     poleElevationDeg: 25,
     poleAzimuthDeg: 165,
     turnsPerDay: 1,
+};
+
+// two faint lights of a real night sky (environment/night-glow.ts)
+export interface NightGlowSettings {
+    /** the zodiacal light: a tilted cone of glow rising from where the sun set, after dusk (and before dawn) */
+    zodiacal: boolean;
+    zodiacalStrength: number;
+    zodiacalColor: string;
+    /** how far up it reaches (degrees, where it's faded to a third), how wide its base is, and how it leans */
+    zodiacalLengthDeg: number;
+    zodiacalWidthDeg: number;
+    zodiacalTiltDeg: number;
+    /** airglow: the upper air's own faint glow, a soft band above the horizon all night */
+    airglow: boolean;
+    airglowStrength: number;
+    airglowColor: string;
+    /** how high its band is at its brightest, and how thick */
+    airglowPeakDeg: number;
+    airglowWidthDeg: number;
+}
+
+export const NIGHT_GLOW: NightGlowSettings = {
+    zodiacal: false,
+    zodiacalStrength: 0.08,
+    zodiacalColor: '#d8cfc0',
+    zodiacalLengthDeg: 25,
+    zodiacalWidthDeg: 12,
+    zodiacalTiltDeg: 25,
+    airglow: false,
+    airglowStrength: 0.02,
+    airglowColor: '#7fa88a',
+    airglowPeakDeg: 10,
+    airglowWidthDeg: 7,
 };
 
 // the camera as a sensor, overexposed by a meteor's flash (postprocessing/sensor.ts)

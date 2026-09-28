@@ -20,6 +20,8 @@ uniform float starBand;
 uniform float starBandGlow;
 uniform float starTint;
 uniform float starHorizon;
+uniform float starMilkyWay;
+uniform float starVaried;
 // the sky's turn: stars (and their band) are placed in a frame that rotates around the celestial pole with the time of day
 uniform mat3 starRotation;
 
@@ -27,6 +29,14 @@ float starHash(vec3 p) {
     p = fract(p * vec3(0.1031, 0.1030, 0.0973));
     p += dot(p, p.yxz + 33.33);
     return fract((p.x + p.y) * p.z);
+}
+
+float starNoise(vec3 p) {
+    vec3 i = floor(p);
+    vec3 f = fract(p);
+    f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(starHash(i), starHash(i + vec3(1, 0, 0)), f.x), mix(starHash(i + vec3(0, 1, 0)), starHash(i + vec3(1, 1, 0)), f.x), f.y),
+               mix(mix(starHash(i + vec3(0, 0, 1)), starHash(i + vec3(1, 0, 1)), f.x), mix(starHash(i + vec3(0, 1, 1)), starHash(i + vec3(1, 1, 1)), f.x), f.y), f.z);
 }
 
 vec3 starHash3(vec3 p) {
@@ -50,15 +60,24 @@ vec3 stars(vec3 dir) {
     float bandCloseness = 1.0 - smoothstep(0.0, 0.35, abs(dot(dir, starBandNormal)));
     float share = starShare * (1.0 + starBand * 2.0 * bandCloseness);
     vec3 glow = vec3(0.55, 0.62, 0.8) * starBandGlow * bandCloseness * bandCloseness;
+    if (starMilkyWay > 0.5) {
+        // clumped star clouds, split along the middle by dark dust lanes
+        float along = dot(dir, starBandNormal);
+        float clouds = 0.35 + 1.3 * starNoise(dir * 7.0) * starNoise(dir * 17.0 + 3.1);
+        float lanes = smoothstep(0.35, 0.65, starNoise(dir * 11.0 + 9.3)) * (1.0 - smoothstep(0.0, 0.12, abs(along + 0.03 * (starNoise(dir * 5.0) - 0.5))));
+        glow = vec3(0.62, 0.64, 0.72) * starBandGlow * 3.5 * bandCloseness * bandCloseness * clouds * (1.0 - 0.85 * lanes);
+    }
 
     if (r.x > share) return glow * horizon;
     vec3 centre = normalize((cell + 0.25 + 0.5 * starHash3(cell + 7.7)) / starCells);
     float d = length(dir - centre) / (pixel * starSize);
     float spot = exp(-d * d * 2.0);
     // mostly faint, a few bright
-    float brightness = 0.06 + 1.8 * pow(r.y, 10.0);
+    float brightness = starVaried > 0.5 ? 0.04 + 4.0 * pow(r.y, 16.0) : 0.06 + 1.8 * pow(r.y, 10.0);
     float twinkle = 1.0 - starTwinkle * (0.5 + 0.5 * sin(starTime * starTwinkleSpeed * (0.6 + r.z) + r.z * 40.0));
     vec3 tint = mix(vec3(1.0), mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.85, 0.7), r.z), starTint);
+    // blue-white, white, yellow, orange, from the hottest to the coolest
+    if (starVaried > 0.5) tint = r.z < 0.25 ? vec3(0.7, 0.8, 1.0) : r.z < 0.6 ? vec3(1.0) : r.z < 0.85 ? vec3(1.0, 0.9, 0.7) : vec3(1.0, 0.65, 0.4);
     return (tint * spot * brightness * twinkle + glow) * horizon;
 }
 `;
@@ -80,6 +99,8 @@ export class Stars implements AnimatedEntity {
         starBandGlow: { value: 0 },
         starTint: { value: 0 },
         starHorizon: { value: 0.2 },
+        starMilkyWay: { value: 0 },
+        starVaried: { value: 0 },
         starRotation: { value: new Matrix3() },
     };
     private readonly rotation = new Matrix4();
@@ -124,6 +145,8 @@ export class Stars implements AnimatedEntity {
         u.starBandGlow.value = s.bandGlow;
         u.starTint.value = s.tint;
         u.starHorizon.value = Math.max(s.horizon, 1e-3);
+        u.starMilkyWay.value = s.milkyWay ? 1 : 0;
+        u.starVaried.value = s.varied ? 1 : 0;
         // the pole: up at poleElevationDeg above the horizon, towards poleAzimuthDeg (0 down the channel, 90 is +x)
         const el = degToRad(s.poleElevationDeg);
         const az = degToRad(s.poleAzimuthDeg);
@@ -150,6 +173,8 @@ export class Stars implements AnimatedEntity {
         folder.add(s, 'bandTiltDeg', -90, 90, 1);
         folder.add(s, 'bandTurnDeg', -180, 180, 1);
         folder.add(s, 'tint', 0, 1, 0.01);
+        folder.add(s, 'milkyWay');
+        folder.add(s, 'varied');
         folder.add(s, 'horizon', 0.01, 1, 0.01);
         folder.add(s, 'poleElevationDeg', -90, 90, 1);
         folder.add(s, 'poleAzimuthDeg', -180, 180, 1);

@@ -175,11 +175,13 @@ export class BlackHole implements AnimatedEntity {
                 .replace('void main() {', `${pars}\nvoid main() {`)
                 .replace('#include <tonemapping_fragment>', `if (holeAmount > 0.0) {
     vec3 holeDir = normalize(vHoleWorld - cameraPosition);
-    // what glows in the planet's own air (the aurora, the volcano's glow) is in front of it: taken out of the sky
+    // what glows in the planet's own air (the aurora, the volcano's glow) or its own system is in front of it: taken out of the sky
     // behind, and put back over it
     vec3 inAir = vec3(0.0);
     if (auroraAmount > 0.0) inAir += aurora(holeDir);
     if (volcanoColor.r + volcanoColor.g + volcanoColor.b > 0.0) inAir += volcanoGlow(holeDir);
+    // and the airglow, and the zodiacal dust, both much nearer than it
+    inAir += nightGlow(holeDir);
     vec4 hole = holeSky(holeDir, gl_FragColor.rgb - inAir);
     gl_FragColor.rgb = mix(gl_FragColor.rgb, hole.rgb + inAir, hole.a * holeAmount);
 }

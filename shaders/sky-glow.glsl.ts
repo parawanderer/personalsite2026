@@ -1,5 +1,6 @@
 import { Color, IUniform, Vector3 } from "three";
 
+import { nightGlowPars, nightGlowUniforms } from "./night-glow.glsl";
 import { toFileName } from "./util";
 
 const fileName = toFileName(import.meta.url);
@@ -32,9 +33,12 @@ export const skyGlowUniforms: { [name: string]: IUniform } = {
     glowTwilightColor: { value: new Color(0, 0, 0) },
     glowTwilightWidth: { value: 0.5 },
     glowTwilightHeight: { value: 0.15 },
+    // and the night sky's faint glows (shaders/night-glow.glsl.ts)
+    ...nightGlowUniforms,
 };
 
 export const skyGlowPars = /* glsl */ `
+${nightGlowPars}
 // (edits) ${fileName}
 uniform vec3 glowSunDirection[${SUN_COUNT}];
 uniform vec3 glowSunRadiance[${SUN_COUNT}];
@@ -91,5 +95,7 @@ export const skyGlowFrag = /* glsl */ `
     // and the fog towards the volcano at night takes on its red, as thick as the fog is
     if (glowVolcanoColor.r + glowVolcanoColor.g + glowVolcanoColor.b > 0.0) gl_FragColor.rgb += volcanoFogGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
     // and towards a setting or rising sun, its warm glow
+    // the night sky's faint glows, which the fog fades into like the sky
+    gl_FragColor.rgb += nightGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
     if (glowTwilightColor.r + glowTwilightColor.g + glowTwilightColor.b > 0.0) gl_FragColor.rgb += horizonFogGlow(normalize(vFogWorldPosition - cameraPosition), glowTwilightDir, glowTwilightColor, glowTwilightWidth, glowTwilightHeight) * fogFactor;
 `;

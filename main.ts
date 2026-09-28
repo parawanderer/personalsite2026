@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    NIGHT_GLOW,
     BLACK_HOLE,
     TWILIGHT,
     PANEL_HAZE,
@@ -88,6 +89,7 @@ import { ShaftShadows } from './environment/shaft-shadows';
 import { SnellWindow } from './environment/snell-window';
 import { Twilight } from './environment/twilight';
 import { BlackHole } from './environment/black-hole';
+import { NightGlow } from './environment/night-glow';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
@@ -383,6 +385,13 @@ const stars = new Stars(sky.material, starFieldTweaks.params, () => dayNightTwea
 if (starFieldTweaks.folder) stars.bindTweaks(starFieldTweaks.folder);
 dayNight.number((v) => stars.setNight(v), () => 0, 'nightAurora');
 scheduler.add(stars);
+
+// the zodiacal light after dusk and before dawn, and airglow all night
+const nightGlowTweaks = tweaks.addFolder('Night glow', NIGHT_GLOW);
+const nightGlow = new NightGlow(sky.material, SUN_LARGE, () => dayNightTweaks.params.hour, nightGlowTweaks.params);
+if (nightGlowTweaks.folder) nightGlow.bindTweaks(nightGlowTweaks.folder);
+dayNight.number((v) => nightGlow.setNight(v), () => 0, 'nightAurora');
+scheduler.add(nightGlow);
 
 // a black hole in the night sky, drawn over the stars (and bending them)
 const blackHoleTweaks = tweaks.addFolder('Black hole', BLACK_HOLE);
