@@ -71,6 +71,8 @@ vec3 lightAtDepth(float depth) {
 #ifdef UNDERWATER_WATERLINE
 ${interactionPars}
 float waterSurfaceY(vec3 p) {
+    // seen from under the water the surface is the underside, which rolls with the waves but has no lip
+    if (viewUnderwater > 0.5) return waterLevelY + surfaceWave(p.xz);
     // far from the level, nothing it does reaches
     if (abs(p.y - waterLevelY) > 0.6) return waterLevelY;
     float y = waterLevelY;
@@ -85,7 +87,7 @@ float waterSurfaceY(vec3 p) {
 }
 #else
 float waterSurfaceY(vec3 p) {
-    return waterLevelY;
+    return viewUnderwater > 0.5 ? waterLevelY + surfaceWave(p.xz) : waterLevelY;
 }
 #endif
 uniform float wetBandHeight;
