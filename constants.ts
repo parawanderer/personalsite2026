@@ -194,7 +194,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightExposureScale: 1,
     nightUnderwaterColor: '#0c1a1c',
     nightCausticColor: '#2d3a49',
-    nightCausticStrength: 4.19,
+    nightCausticStrength: 1.11,
     nightFlakeGlow: 1.74,
     nightOrangeParticles: 0,
     nightRimScale: 0.01,
@@ -243,8 +243,8 @@ export const SUN_LARGE: CelestialBody = {
     hoursUp: 13,
     periodHours: 24,
     azimuthRise: 150,
-    // sets down the far end of the channel
-    azimuthSet: 0,
+    // sets down the far end of the channel, as seen from the home view (which looks slightly right of straight down it)
+    azimuthSet: 10,
     peakElevation: 55,
     lightIntensity: 0.6,
 };
@@ -1082,7 +1082,7 @@ export interface SnellWindowSettings {
 
 export const SNELL_WINDOW: SnellWindowSettings = {
     enabled: true,
-    resolution: 256,
+    resolution: 512,
     facesPerFrame: 1,
 };
 
