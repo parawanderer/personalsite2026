@@ -844,7 +844,6 @@ export class WallsFactory {
         const material: MeshPhysicalMaterial = new MeshPhysicalMaterial({
             ...materialTextures,
             //clearcoat: 0.07,
-            displacementScale: 0.001,
             iridescence: 0.2,
             specularIntensity: 1.0,
             metalness: 0.3,

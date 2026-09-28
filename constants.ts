@@ -550,7 +550,6 @@ export const FOG_UPDATE_BY = 1/FOG_SLOWNESS;
 export const AMBIENT_LIGHT_SKY_COLOR = Color.fromHex('#1d2f3a');
 export const AMBIENT_LIGHT_GROUND_COLOR = Color.fromHex('#ffffff');
 export const AMBIENT_LIGHT_INTENSITY = 10;
-export const SKY_TEXTURE = 'nightsky_edit.jpg';
 
 export const SPOTLIGHT_SKY_COLOR = Color.fromHex('#ffffff');
 export const SPOTLIGHT_SKY_INTENSITY = 600;
@@ -1246,7 +1245,7 @@ export interface BloomSettings {
 
 export const BLOOM: BloomSettings = {
     enabled: true,
-    strength: 0.4,
+    strength: 0.12,
     radius: 0.5,
     threshold: 1,
     knee: 1,
@@ -1298,7 +1297,7 @@ export interface SunShaftSettings {
 
 export const SUN_SHAFTS: SunShaftSettings = {
     enabled: true,
-    strength: 0.9,
+    strength: 0.52,
     glowRadius: 0.12,
     reach: 0.85,
     decay: 0.975,

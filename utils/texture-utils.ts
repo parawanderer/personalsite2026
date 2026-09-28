@@ -11,7 +11,6 @@ export interface TextureOptions {
 export interface PBRMaterial {
     map: Texture;
     normalMap?: Texture;
-    displacementMap?: Texture;
     specularColorMap?: Texture;
     aoMap?: Texture;
 }
@@ -22,7 +21,6 @@ const DIFFUSE = 'diffuse';
 const NORMAL = 'normal';
 const SPECULAR = 'specular';
 const AO = 'ao';
-const DISPLACEMENT = 'displacement';
 
 
 export class TextureLoader {
@@ -54,14 +52,12 @@ export class TextureLoader {
         const normalMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, NORMAL));
         const specularColorMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, SPECULAR));
         const aoMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, AO));
-        const displacementMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, DISPLACEMENT));
 
         const ret = {
             map,
             normalMap,
             specularColorMap,
             aoMap,
-            displacementMap
         };
 
         //console.log(ret);
