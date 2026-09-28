@@ -216,11 +216,13 @@ svg .anim * {
 
 .hideable-ui {
     opacity: 1;
-    transition: all 2s ease-in-out;
+    transition: opacity 2s ease-in-out, filter 2s ease-in-out;
 }
 
+/* going to Explore (and back), the whole HUD fades through a blur like the pages */
 .hideable-ui.hidden {
     opacity: 0;
+    filter: blur(8px);
 }
 
 .hideable-ui.no-display {
@@ -380,20 +382,21 @@ a.link-item:hover .link-name:after {
     color: #ffffffa0;
 }
 
+/* the panel comes and goes the same way as its pages: fading through a blur, without moving */
 .hidden-panel {
     opacity: 0;
+    filter: blur(8px);
     visibility: hidden;
-    transform: translateY(1.5rem);
     transition:
         opacity 1s ease-in-out,
-        transform 1s ease-in-out,
+        filter 1s ease-in-out,
         visibility 0s linear 1s;
 }
 
 .hidden-panel.show {
     opacity: 1;
+    filter: none;
     visibility: visible;
-    transform: none;
     transition-delay: 0s;
 }
 
@@ -469,30 +472,40 @@ a.contact-item:hover .contact-text:after {
 }
 
 
-.flip-panel {
-    perspective: 1600px;
+/* the two pages share the panel: switching between them, the one showing fades out through a blur, then the other
+   resolves in from one (like a film's title cards), rather than any movement */
+:root {
+    --page-fade: 0.6s;
 }
 
-.flip-panel-inner {
+.page-panel-inner {
     display: grid;
-    transition: transform 0.8s;
-    transform-style: preserve-3d;
 }
 
-.flip-panel.flipped .flip-panel-inner {
-    transform: rotateY(-180deg);
-}
-
-.flip-panel-front, .flip-panel-back {
-    /* both faces share one grid cell so the panel sizes to the taller one */
+.page {
+    /* both pages share one grid cell so the panel sizes to the taller one */
     grid-area: 1 / 1;
-    -webkit-backface-visibility: hidden; /* Safari */
-    backface-visibility: hidden;
+    color: white;
+    transition:
+        opacity var(--page-fade) ease-in-out,
+        filter var(--page-fade) ease-in-out,
+        visibility 0s linear var(--page-fade);
 }
 
-.flip-panel-back {
-    color: white;
-    transform: rotateY(180deg);
+/* the page not showing: faded and blurred, out of the way of clicks and screen readers once gone */
+.page-panel:not(.show-contact) .contact-page, .page-panel.show-contact .links-page {
+    opacity: 0;
+    filter: blur(6px);
+    visibility: hidden;
+}
+
+.page-panel.no-page-fade .page {
+    transition: none !important;
+}
+
+/* the page coming in waits for the other to have gone */
+.page-panel:not(.show-contact) .links-page, .page-panel.show-contact .contact-page {
+    transition-delay: var(--page-fade), var(--page-fade), 0s;
 }
 
 

@@ -7,7 +7,9 @@ import { TITLE_HOME, TITLE_LINKS, TITLE_CONTACT } from '../constants';
 const ANIMATE_APPEAR = 'animate-appear';
 
 const SHOW = "show";
-const FLIPPED = "flipped";
+// the panel shows its Contact page instead of its Links page
+const SHOW_CONTACT = "show-contact";
+const NO_PAGE_FADE = "no-page-fade";
 const HIDDEN = "hidden";
 const NO_DISPLAY = "no-display";
 const HINTS_FADE_MS = 1000; // matches the .show opacity transition in index.css
@@ -153,11 +155,27 @@ export class ForegroundManager {
         this.onPressHomeButtonCallback();
     }
 
+    /**
+     * Picks the panel's page: faded across when the panel is showing; switched at once when it isn't, so the page it
+     * had doesn't show while the panel fades in
+     */
+    private showPage(contact: boolean): void {
+        const panel = this.hiddenPanel;
+        const instant = !panel.classList.contains(SHOW);
+        if (instant) panel.classList.add(NO_PAGE_FADE);
+        panel.classList.toggle(SHOW_CONTACT, contact);
+        if (instant) {
+            // applied before the transitions come back
+            void panel.offsetWidth;
+            panel.classList.remove(NO_PAGE_FADE);
+        }
+        panel.classList.add(SHOW);
+    }
+
     private onPressLinks() {
         console.log("Clicked links button!");
 
-        this.hiddenPanel.classList.add(SHOW);
-        this.hiddenPanel.classList.remove(FLIPPED);
+        this.showPage(false);
         this.setCurrent(this.linksButton);
 
         document.title = TITLE_LINKS;
@@ -169,8 +187,7 @@ export class ForegroundManager {
     private onPressContact() {
         console.log("Clicked contact button!");
 
-        this.hiddenPanel.classList.add(SHOW);
-        this.hiddenPanel.classList.add(FLIPPED);
+        this.showPage(true);
         this.setCurrent(this.contactButton);
 
         document.title = TITLE_CONTACT;
