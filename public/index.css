@@ -483,8 +483,10 @@ a.contact-item:hover .contact-text:after {
 }
 
 .page {
-    /* both pages share one grid cell so the panel sizes to the taller one */
+    /* both pages share one grid cell so the panel sizes to the taller one; each keeps its own height, sitting at the
+       bottom like the panel, so the haze behind it can fit the one showing (postprocessing/panel-haze.ts) */
     grid-area: 1 / 1;
+    align-self: end;
     color: white;
     transition:
         opacity var(--page-fade) ease-in-out,

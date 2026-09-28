@@ -510,7 +510,9 @@ composer.addPass(bloom);
 // the text panels' backing, a bank of haze behind the open one
 const panelHazeTweaks = tweaks.addFolder('Panel haze', PANEL_HAZE);
 // in the colour the pillars' fog ends in far off (the sky's), which follows the time of day
-const panelHaze = new PanelHazePass(document.getElementById('hiddenPanel')!, walls.fogUniforms.fogFarColor.value as Color, panelHazeTweaks.params);
+const hazePanel = document.getElementById('hiddenPanel')!;
+const hazePage = () => hazePanel.querySelector<HTMLElement>(hazePanel.classList.contains('show-contact') ? '.contact-page' : '.links-page')!;
+const panelHaze = new PanelHazePass(hazePanel, hazePage, walls.fogUniforms.fogFarColor.value as Color, panelHazeTweaks.params);
 if (panelHazeTweaks.folder) panelHaze.bindTweaks(panelHazeTweaks.folder);
 composer.addPass(panelHaze);
 // the camera as a sensor on another planet: overexposed by a meteor's flash, then recovering

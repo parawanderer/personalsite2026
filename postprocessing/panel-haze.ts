@@ -126,12 +126,16 @@ export class PanelHazePass extends Pass {
     private readonly composite: ShaderMaterial;
     private readonly compositeQuad: FullScreenQuad;
     private readonly box = new Vector4();
+    private readonly target = new Vector4();
+    private lastTime = 0;
+    private wasShown = false;
 
     /**
-     * @param panel the element whose box the haze fills
+     * @param panel the element whose opacity the haze follows, and whose box bounds it (it scrolls what doesn't fit)
+     * @param page the page of it that's showing, whose box the haze fills
      * @param fogColor the colour of the far fog (it changes with the time of day), shared
      */
-    constructor(private readonly panel: HTMLElement, private readonly fogColor: Color, private readonly settings: PanelHazeSettings) {
+    constructor(private readonly panel: HTMLElement, private readonly page: () => HTMLElement, private readonly fogColor: Color, private readonly settings: PanelHazeSettings) {
         super();
         this.blur = new ShaderMaterial({
             uniforms: { tInput: { value: null }, step: { value: new Vector2() } },
@@ -171,12 +175,24 @@ export class PanelHazePass extends Pass {
     public update(time: number): void {
         const s = this.settings;
         const opacity = parseFloat(getComputedStyle(this.panel).opacity) || 0;
+        const dt = Math.min(Math.max(time - this.lastTime, 0), 0.1);
+        this.lastTime = time;
         this.enabled = s.enabled && opacity > 0.001;
-        if (!this.enabled) return;
-        const r = this.panel.getBoundingClientRect();
+        if (!this.enabled) {
+            this.wasShown = false;
+            return;
+        }
+        // the showing page's box, within the panel's (what's scrolled out of it isn't shown)
+        const p = this.panel.getBoundingClientRect();
+        const r = this.page().getBoundingClientRect();
         // the canvas fills the window
         const w = window.innerWidth, h = window.innerHeight;
-        this.box.set(r.left / w, 1 - r.bottom / h, r.right / w, 1 - r.top / h);
+        this.target.set(Math.max(r.left, p.left) / w, 1 - Math.min(r.bottom, p.bottom) / h, Math.min(r.right, p.right) / w, 1 - Math.max(r.top, p.top) / h);
+        // eased towards it, so switching between pages of different lengths grows or shrinks the haze (while the
+        // text is faded out between them); at once when the panel appears
+        if (this.wasShown) this.box.lerp(this.target, 1 - Math.exp(-dt / 0.25));
+        else this.box.copy(this.target);
+        this.wasShown = true;
         const u = this.composite.uniforms;
         (u.box.value as Vector4).copy(this.box);
         u.amount.value = opacity;
