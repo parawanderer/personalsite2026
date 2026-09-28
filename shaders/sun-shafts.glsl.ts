@@ -36,12 +36,15 @@ export const shaftUniforms: { [name: string]: IUniform } = {
     shaftWallRows: { value: 0 },
     // 1: the walls block the light as they stand, 0: not at all
     shaftWallBlocking: { value: 1 },
-    // per sun, a depth map from its (bent) light over the channel pillars near the camera, and world to that map
-    // (environment/shaft-shadows.ts); shaftShadowOn 0 while there are none
+    // per sun, a map from its (bent) light of which channel pillar piece is where near the camera (plus one, 0: none),
+    // and world to that map; the pieces' table, and their outline's chamfer (environment/shaft-shadows.ts);
+    // shaftShadowOn 0 while there are none
     shaftShadowMap0: { value: null },
     shaftShadowMap1: { value: null },
     shaftShadowMatrix: { value: Array.from({ length: SHAFT_LIGHTS }, () => new Matrix4()) },
     shaftShadowOn: { value: 0 },
+    shaftPillarPieces: { value: null },
+    shaftPillarChamfer: { value: 0 },
     // the walls' blocking, worked out once per frame over the channel's surface (per sun in r and g) by
     // environment/shaft-shadows.ts from shaftPastWallsTraced, and looked up from there: x, z of its corner and its size
     shaftWallMask: { value: null },
@@ -83,6 +86,8 @@ uniform sampler2D shaftShadowMap0;
 uniform sampler2D shaftShadowMap1;
 uniform mat4 shaftShadowMatrix[${SHAFT_LIGHTS}];
 uniform float shaftShadowOn;
+uniform sampler2D shaftPillarPieces;
+uniform float shaftPillarChamfer;
 uniform sampler2D shaftWallMask;
 uniform vec2 shaftWallMaskCorner;
 uniform vec2 shaftWallMaskSize;
@@ -95,15 +100,79 @@ uniform float shaftForwardShafts;
 uniform float shaftForwardHaze;
 uniform float shaftForwardSpread;
 
-// whether a channel pillar stands between p and sun k (on its light's path through the water)
+// whether the light's path from p towards the sun (along d) passes through pillar piece i, taken as a cylinder (its
+// hexagon's shadow is within about a centimetre of a round one's, and a cylinder is cheaper to test): the path clipped
+// between its ends, then to within its radius of its axis
+bool shaftHitsPiece(vec3 p, vec3 d, int i) {
+    vec4 centre = texelFetch(shaftPillarPieces, ivec2(0, i), 0);
+    // its axis, and half its length
+    vec4 axis = texelFetch(shaftPillarPieces, ivec2(1, i), 0);
+    vec3 o = p - centre.xyz;
+    float s = dot(o, axis.xyz);
+    float v = dot(d, axis.xyz);
+    // from a little past p, so a pillar's face doesn't shadow itself
+    float near = 0.01;
+    float far = 1e4;
+    if (abs(v) < 1e-6) {
+        if (abs(s) > axis.w) return false;
+    } else {
+        float t1 = (-axis.w - s) / v;
+        float t2 = (axis.w - s) / v;
+        near = max(near, min(t1, t2));
+        far = min(far, max(t1, t2));
+    }
+    // between the hexagon's inner and outer radius
+    float radius = centre.w * mix(0.8660254, 1.0 - shaftPillarChamfer * 0.5, 0.5);
+    vec3 oAcross = o - s * axis.xyz;
+    vec3 dAcross = d - v * axis.xyz;
+    float a = dot(dAcross, dAcross);
+    float b = dot(oAcross, dAcross);
+    float c = dot(oAcross, oAcross) - radius * radius;
+    // starting inside it: p is on this pillar's own surface (the round shape bulges past its flat faces), which doesn't
+    // shadow itself
+    if (c <= 0.0 && abs(s) <= axis.w) return false;
+    if (a < 1e-8) return false;
+    float disc = b * b - a * c;
+    if (disc < 0.0) return false;
+    float root = sqrt(disc);
+    near = max(near, (-b - root) / a);
+    far = min(far, (-b + root) / a);
+    return near <= far;
+}
+
+// the piece (plus one; negative near an edge) and its depth at a texel of sun k's map
+vec2 shaftPieceAt(ivec2 texel, int k) {
+    return k == 0 ? texelFetch(shaftShadowMap0, texel, 0).rg : texelFetch(shaftShadowMap1, texel, 0).rg;
+}
+
+// a texel's piece plus one (0: none), whether it's marked as near an edge or not
+float shaftPieceOf(float r) {
+    return r >= 0.0 ? r : -r - 1.0;
+}
+
+// whether a channel pillar stands between p and sun k (on its light's path through the water). Away from a shadow's
+// edge, the map's nearest texel says which piece is there, and comparing depths is enough. Near one, the pieces of the
+// four texels nearest are each tested as they're shaped, so the edge is sharp and straight however coarse the map
 float shaftPastPillars(vec3 p, int k) {
     if (shaftShadowOn < 0.5) return 1.0;
     vec4 c = shaftShadowMatrix[k] * vec4(p, 1.0);
     vec2 uv = c.xy * 0.5 + 0.5;
     if (uv.x < 0.0 || uv.y < 0.0 || uv.x > 1.0 || uv.y > 1.0) return 1.0;
-    float here = c.z * 0.5 + 0.5;
-    float occluder = k == 0 ? texture2D(shaftShadowMap0, uv).r : texture2D(shaftShadowMap1, uv).r;
-    return here - 0.0004 > occluder ? 0.0 : 1.0;
+    ivec2 size = k == 0 ? textureSize(shaftShadowMap0, 0) : textureSize(shaftShadowMap1, 0);
+    vec2 texel = uv * vec2(size);
+    vec2 nearest = shaftPieceAt(min(ivec2(texel), size - 1), k);
+    if (nearest.x >= 0.0) return nearest.x == 0.0 || c.z * 0.5 + 0.5 - 0.0004 <= nearest.y ? 1.0 : 0.0;
+    ivec2 base = clamp(ivec2(floor(texel - 0.5)), ivec2(0), size - 2);
+    float a = shaftPieceOf(shaftPieceAt(base, k).x);
+    float b = shaftPieceOf(shaftPieceAt(base + ivec2(1, 0), k).x);
+    float e = shaftPieceOf(shaftPieceAt(base + ivec2(0, 1), k).x);
+    float f = shaftPieceOf(shaftPieceAt(base + ivec2(1, 1), k).x);
+    vec3 d = shaftLightDir[k];
+    if (a > 0.0 && shaftHitsPiece(p, d, int(a) - 1)) return 0.0;
+    if (b > 0.0 && b != a && shaftHitsPiece(p, d, int(b) - 1)) return 0.0;
+    if (e > 0.0 && e != a && e != b && shaftHitsPiece(p, d, int(e) - 1)) return 0.0;
+    if (f > 0.0 && f != a && f != b && f != e && shaftHitsPiece(p, d, int(f) - 1)) return 0.0;
+    return 1.0;
 }
 
 vec4 shaftWallRow(float z) {
@@ -167,7 +236,7 @@ float shaftPastWalls(vec2 q, int k) {
 
 // 'view' (the direction looked along, for the light in the water; zero for a surface) adds the forward scattering: the
 // water's specks bend light only a little, so looking towards a sun, along its shafts, they're brighter, in a haze
-// that also stands for all the shafts too thin to show
+// that also stands for all the shafts too thin to show.
 vec3 shaftLightWeighted(vec3 p, float below, vec3 normal, bool onSurface, vec3 view) {
     vec3 light = vec3(0.0);
     for (int k = 0; k < ${SHAFT_LIGHTS}; k++) {

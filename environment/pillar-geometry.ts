@@ -125,9 +125,10 @@ const buildTemplate = (chamfer: number, bevelled: boolean): Template => {
 
 /**
  * All pillars as one mesh. Texture coordinates are in world units so the texture never stretches, and bevels keep their
- * size whatever the pillar's height.
+ * size whatever the pillar's height. withPieceIndex adds a 'pieceIndex' attribute: which of the instances each vertex
+ * belongs to.
  */
-export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape): BufferGeometry => {
+export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape, withPieceIndex = false): BufferGeometry => {
     const sharp = buildTemplate(shape.chamfer, false);
     const bevelled = buildTemplate(shape.chamfer, true);
     const templateOf = (inst: PillarInstance) => inst.bevel > 0 ? bevelled : sharp;
@@ -141,11 +142,12 @@ export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape)
     const positions = new Float32Array(vertexCount * 3);
     const uvs = new Float32Array(vertexCount * 2);
     const indices = new Uint32Array(indexCount);
+    const pieceIndex = withPieceIndex ? new Float32Array(vertexCount) : null;
 
     const m = new Matrix4(), rot = new Matrix4();
     const local = [0, 0, 0];
     const p = new Vector3();
-    let vBase = 0, iBase = 0;
+    let vBase = 0, iBase = 0, piece = 0;
 
     for (const inst of instances) {
         const template = templateOf(inst);
@@ -173,6 +175,7 @@ export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape)
             uvs[vi * 2 + 1] = w * shape.textureScale + inst.uvOffsetV;
         });
 
+        pieceIndex?.fill(piece++, vBase, vBase + template.vertices.length);
         for (let k = 0; k < template.indices.length; k++) indices[iBase + k] = vBase + template.indices[k];
         vBase += template.vertices.length;
         iBase += template.indices.length;
@@ -182,6 +185,7 @@ export const buildPillarMesh = (instances: PillarInstance[], shape: PillarShape)
     geometry.setAttribute('position', new BufferAttribute(positions, 3));
     geometry.setAttribute('uv', new BufferAttribute(uvs, 2));
     geometry.setIndex(new BufferAttribute(indices, 1));
+    if (pieceIndex) geometry.setAttribute('pieceIndex', new BufferAttribute(pieceIndex, 1));
     geometry.computeVertexNormals();
     return geometry;
 };
