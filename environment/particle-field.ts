@@ -81,6 +81,10 @@ const replace = (source: string, search: string, replacement: string) => {
     return source.replace(search, replacement);
 };
 
+// how much a channel of the day colour has to be scaled to become the same channel of another (capped: a channel the
+// day colour hardly has can't be brought out of the texture much)
+const tintTowards = (to: number, from: number): number => Math.min(to / Math.max(from, 0.02), 3);
+
 interface FieldColour {
     texture: Texture;
     /** which of the settings' flake colours this set uses */
@@ -98,6 +102,9 @@ export class ParticleField implements AnimatedEntity {
     private readonly meshes: Mesh[] = [];
     private readonly uniforms: { [name: string]: IUniform };
     private readonly flakeMaterials: MeshStandardMaterial[] = [];
+    // the far-away dots' materials, one per colour set like the flakes'
+    private readonly dotMaterials: MeshBasicMaterial[] = [];
+    private readonly dayColor = new Color();
     /** per particle set, how far its far-away dots are turned towards white */
     private readonly dotWhiten = new Map<string, IUniform<number>>();
     private readonly steamMaterials: MeshBasicMaterial[] = [];
@@ -193,6 +200,7 @@ export class ParticleField implements AnimatedEntity {
         }
         this.meshes.length = 0;
         this.flakeMaterials.length = 0;
+        this.dotMaterials.length = 0;
         this.steamMaterials.length = 0;
 
         const flakeShape = makeFlakeGeometry(7);
@@ -240,6 +248,7 @@ export class ParticleField implements AnimatedEntity {
 
             const dots = this.instanced(dotShape, seedAttribute, count);
             const dotMaterial = new MeshBasicMaterial({ map: colour.texture, transparent: true, depthWrite: false });
+            this.dotMaterials.push(dotMaterial);
             const whiten = { value: 0 };
             this.dotWhiten.set(colour.colorKey, whiten);
             dotMaterial.onBeforeCompile = (params) => this.editDot(params, shown, whiten, cools);
@@ -421,6 +430,11 @@ export class ParticleField implements AnimatedEntity {
             if (this.colours[k].colorKey !== colorKey) return;
             m.color.copy(color);
             m.emissive.copy(color);
+            // the far-away dots are drawn from a texture already in the day colour: tinted by how far this colour has
+            // moved from it (white by day), so a flake doesn't change colour as it comes close enough to turn into one
+            this.dayColor.set(this.settings[colorKey]);
+            const d = this.dotMaterials[k];
+            if (d) d.color.setRGB(tintTowards(color.r, this.dayColor.r), tintTowards(color.g, this.dayColor.g), tintTowards(color.b, this.dayColor.b));
         });
     }
 
