@@ -120,6 +120,10 @@ float pillarDust = 0.0;
     if (dustAmount > 0.0 && !isReflectionPass()) {
         vec3 dustUp = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
         float facing = dot(normalize(nonPerturbedNormal), dustUp);
+        // how many pixels a grain cell spans (worked out before any branching: derivatives aren't reliable inside it)
+        float grainPixels = 1.0 / max(length(fwidth(vFogWorldPosition.xz)) * dustGrainCells, 1e-4);
+        // only on what faces up: the sides skip the rest
+        if (facing > 0.55) {
         vec3 dp = vFogWorldPosition * dustScale;
         float drifts = 0.5 + 0.5 * (0.65 * macroNoise(dp) + 0.35 * macroNoise(dp * 4.3));
         // settles on what faces up, thinning towards the edges of the drifts
@@ -130,7 +134,8 @@ float pillarDust = 0.0;
         // own strength, pale ash and now and then a dark glassy one that glints. In world units on the flat (it lies on
         // what faces up); a layer fades out once its grains get smaller than a couple of pixels, where they'd only
         // flicker, leaving the tone above
-        for (int layer = 0; layer < 2; layer++) {
+        // and the grains only where there's dust, near enough for them to show
+        if (pillarDust > 0.0 && grainPixels > 2.0) for (int layer = 0; layer < 2; layer++) {
             float cells = layer == 0 ? dustGrainCells * 2.5 : dustGrainCells;
             float share = layer == 0 ? dustGrainShare : dustGrainShare * 0.3;
             vec2 gp = vFogWorldPosition.xz * cells + float(layer) * 17.0;
@@ -145,11 +150,12 @@ float pillarDust = 0.0;
             float notch = 0.8 + 0.2 * sin(atan(d.y, d.x) * 5.0 + gr * 30.0);
             float gsize = 0.08 + 0.18 * macroHash(vec3(gcell, 5.1));
             float grain = 1.0 - smoothstep(gsize * notch * 0.7, gsize * notch, length(d));
-            float cellPixels = 1.0 / max(length(fwidth(gp)), 1e-4);
+            float cellPixels = grainPixels * (layer == 0 ? 0.4 : 1.0);
             grain *= smoothstep(2.0, 5.0, cellPixels) * pillarDust * (0.35 + 0.5 * macroHash(vec3(gcell, 9.7)));
             bool glassy = macroHash(vec3(gcell, 11.3)) < 0.2;
             diffuseColor.rgb = mix(diffuseColor.rgb, glassy ? diffuseColor.rgb * 0.4 : dustColor, grain);
             if (glassy) roughnessFactor = mix(roughnessFactor, 0.15, grain);
+        }
         }
     }
 #endif
