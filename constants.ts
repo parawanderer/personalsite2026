@@ -1092,7 +1092,7 @@ export interface PanelHazeSettings {
     /** how much of the scene behind drowns in it, and its brightness (times the fog's colour: below 1 is darker) */
     density: number;
     brightness: number;
-    /** how far the scene behind it is blurred (CSS pixels, roughly a fifth of the blur's reach) */
+    /** how far the scene behind it is blurred (10: about 22 screen pixels either way) */
     blurPx: number;
     /** how far past the panel's box it thins out, and how ragged that edge is */
     edgePx: number;
@@ -1106,10 +1106,10 @@ export interface PanelHazeSettings {
 export const PANEL_HAZE: PanelHazeSettings = {
     enabled: true,
     density: 0.55,
-    brightness: 0.25,
-    blurPx: 10,
+    brightness: 0.88,
+    blurPx: 10.5,
     edgePx: 220,
-    fray: 0.2,
+    fray: 0.87,
     fromScene: 1,
     drift: 0.03,
 };

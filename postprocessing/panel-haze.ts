@@ -5,7 +5,7 @@ import { FullScreenQuad, Pass } from 'three/addons/postprocessing/Pass.js';
 import { PanelHazeSettings } from '../constants';
 
 // the blur is taken at this share of the screen's resolution (it's soft anyway)
-const RESOLUTION = 0.5;
+const RESOLUTION = 0.25;
 
 const VERTEX = /* glsl */ `
 varying vec2 vUv;
@@ -213,24 +213,28 @@ export class PanelHazePass extends Pass {
     }
 
     public render(renderer: WebGLRenderer, writeBuffer: WebGLRenderTarget, readBuffer: WebGLRenderTarget): void {
-        // the whole frame blurred, across then down, twice over (at the lower resolution, its steps in its own texels):
-        // one wide pass leaves its taps far enough apart to ghost bright things into steps
-        const spread = this.settings.blurPx * RESOLUTION / Math.SQRT2;
+        // the whole frame shrunk to a quarter (averaging each 4 by 4 block), then blurred across and down, as many
+        // times over as the blur is wide. Each pass steps a single texel between its taps: wider steps would leave
+        // gaps that copy small bright things into a grid of squares
+        this.shrink.uniforms.tInput.value = readBuffer.texture;
+        (this.shrink.uniforms.texel.value as Vector2).set(1 / readBuffer.width, 1 / readBuffer.height);
+        renderer.setRenderTarget(this.blurB);
+        this.shrinkQuad.render(renderer);
+        // blurPx 10 spreads about 22 of the screen's pixels, and one pass about 9; passes add up like variances
+        const passes = Math.min(Math.max(Math.round((this.settings.blurPx * 2.2 / 9) ** 2), 1), 16);
         const u = this.blur.uniforms;
-        let input = readBuffer.texture;
-        for (let i = 0; i < 2; i++) {
-            u.tInput.value = input;
-            (u.step.value as Vector2).set(spread / this.blurA.width, 0);
+        for (let i = 0; i < passes; i++) {
+            u.tInput.value = this.blurB.texture;
+            (u.step.value as Vector2).set(1 / this.blurA.width, 0);
             renderer.setRenderTarget(this.blurA);
             this.blurQuad.render(renderer);
             u.tInput.value = this.blurA.texture;
-            (u.step.value as Vector2).set(0, spread / this.blurA.height);
+            (u.step.value as Vector2).set(0, 1 / this.blurA.height);
             renderer.setRenderTarget(this.blurB);
             this.blurQuad.render(renderer);
-            input = this.blurB.texture;
         }
 
-        // then shrunk to a few texels (from the half-size blur: 1/8, then 1/32 of the screen)
+        // then shrunk to a few texels (from the quarter-size blur: 1/16, then 1/64 of the screen)
         for (const [from, to] of [[this.blurB, this.shrinkA], [this.shrinkA, this.colors]] as const) {
             this.shrink.uniforms.tInput.value = from.texture;
             (this.shrink.uniforms.texel.value as Vector2).set(1 / from.width, 1 / from.height);

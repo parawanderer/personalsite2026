@@ -20,7 +20,6 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
 import {
     CAMERA_INITIAL_Z,
@@ -100,6 +99,7 @@ import { moveCameraTo } from './animate/camera';
 import { FilmPass } from './postprocessing/filmpass';
 import { DistanceBlurPass } from './postprocessing/distance-blur';
 import { PanelHazePass } from './postprocessing/panel-haze';
+import { SmoothBloomPass } from './postprocessing/smooth-bloom';
 import { LoadingManager } from './ui/loading-manager';
 import { Tweaks } from './ui/tweaks';
 import { Grain } from './ui/grain';
@@ -493,7 +493,7 @@ if (blurTweaks.folder) distanceBlur.bindTweaks(blurTweaks.folder);
 composer.addPass(distanceBlur);
 // bloom: after the blur, so what's out of focus doesn't smear its glow twice
 const bloomTweaks = tweaks.addFolder('Bloom', BLOOM);
-const bloom = new UnrealBloomPass(new Vector2(width, height), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
+const bloom = new SmoothBloomPass(new Vector2(width, height), BLOOM.strength, BLOOM.radius, BLOOM.threshold);
 const applyBloom = () => {
     const b = bloomTweaks.params;
     bloom.enabled = b.enabled;
