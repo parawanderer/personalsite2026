@@ -73,9 +73,10 @@ export class Twilight implements AnimatedEntity {
     public update(): void {
         const s = this.settings;
         const elevation = Math.asin(Math.min(Math.max(this.sunDirection.y, -1), 1)) * 180 / Math.PI;
-        // coming in as the sun comes down to the horizon, going once it's far enough below
+        // coming in as the sun comes down to the horizon, and going as slowly again as it sinks below (at dawn, the
+        // same the other way round)
         const amount = s.enabled
-            ? (1 - smoothstep(elevation, s.peakElevationDeg, s.startElevationDeg)) * smoothstep(elevation, s.endElevationDeg, s.peakElevationDeg - 4) * s.strength
+            ? (1 - smoothstep(elevation, s.peakElevationDeg, s.startElevationDeg)) * smoothstep(elevation, s.endElevationDeg, s.peakElevationDeg) * s.strength
             : 0;
         this.amount = amount;
         for (const t of this.tinted) t.target.lerp(this.tint.set(t.color()), amount);

@@ -238,7 +238,7 @@ export const TWILIGHT: TwilightSettings = {
     strength: 0.8,
     startElevationDeg: 22,
     peakElevationDeg: 1,
-    endElevationDeg: -10,
+    endElevationDeg: -18,
     sky: '#8a7894',
     fogNear: '#c07a5c',
     fogFar: '#8e7088',
