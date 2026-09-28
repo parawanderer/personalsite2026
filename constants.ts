@@ -1097,6 +1097,10 @@ export interface PanelHazeSettings {
     /** how far past the panel's box it thins out, and how ragged that edge is */
     edgePx: number;
     fray: number;
+    /** where its colour comes from: 0 the far fog's, 1 the scene's own big colours around the panel, as slow blobs */
+    fromScene: number;
+    /** how fast those blobs flow */
+    drift: number;
 }
 
 export const PANEL_HAZE: PanelHazeSettings = {
@@ -1106,6 +1110,8 @@ export const PANEL_HAZE: PanelHazeSettings = {
     blurPx: 10,
     edgePx: 220,
     fray: 0.2,
+    fromScene: 1,
+    drift: 0.03,
 };
 
 // light spilling around whatever is brighter than white (the suns, glints, the meteor's flash), like in a lens
