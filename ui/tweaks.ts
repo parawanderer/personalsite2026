@@ -49,8 +49,11 @@ const rememberCollapsed = (gui: GUI, title: string) => {
 };
 
 const CHANGED_CLASS = 'tweak-changed';
+// on a folder holding a changed control anywhere inside it, open or collapsed
+const FOLDER_CHANGED_CLASS = 'tweak-folder-changed';
 const CHANGED_STYLE = `
 .lil-gui .controller.${CHANGED_CLASS} > .name { color: #ffd84a; }
+.lil-gui.${FOLDER_CHANGED_CLASS} > .title { color: #ffd84a; }
 .lil-gui .controller .tweak-reset {
     display: none;
     /* lil-gui makes every button in the panel full width */
@@ -87,7 +90,8 @@ const sameValue = (a: unknown, b: unknown): boolean => {
  * Hand-tweaking panel (three's bundled lil-gui). Enable with `?tweaks` in the URL or DEBUG.
  *
  * Values changed in the panel, and which folders are collapsed, persist in localStorage so they survive reloads.
- * The names of controls whose value differs from its default in constants.ts show in yellow.
+ * The names of controls whose value differs from its default in constants.ts show in yellow, and so do the titles of
+ * the folders holding them.
  * "Copy values" puts the current values on the clipboard to paste back into constants.ts.
  * When disabled, every folder simply gets its defaults.
  */
@@ -108,7 +112,10 @@ export class Tweaks {
         const style = document.createElement('style');
         style.textContent = CHANGED_STYLE;
         document.head.appendChild(style);
-        this.gui.onChange(({ controller }) => this.markChanged(controller));
+        this.gui.onChange(({ controller }) => {
+            this.markChanged(controller);
+            this.markFolders();
+        });
         // controls are added over time (some folders only once their scene part has loaded)
         let queued = false;
         new MutationObserver(() => {
@@ -117,6 +124,7 @@ export class Tweaks {
             queueMicrotask(() => {
                 queued = false;
                 this.gui?.controllersRecursive().forEach((c) => this.markChanged(c));
+                this.markFolders();
             });
         }).observe(this.gui.domElement, { childList: true, subtree: true });
     }
@@ -127,6 +135,14 @@ export class Tweaks {
         const changed = !sameValue(controller.getValue(), defaults[controller.property]);
         controller.domElement.classList.toggle(CHANGED_CLASS, changed);
         if (changed) this.addResetButton(controller, defaults[controller.property]);
+    }
+
+    /** folders' titles in yellow while any control inside them is */
+    private markFolders(): void {
+        this.gui?.foldersRecursive().forEach((folder) => {
+            const changed = folder.domElement.querySelector(`.controller.${CHANGED_CLASS}`) !== null;
+            folder.domElement.classList.toggle(FOLDER_CHANGED_CLASS, changed);
+        });
     }
 
     /** a small button after the name that puts the default back, in place */
