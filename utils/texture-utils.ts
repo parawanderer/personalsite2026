@@ -49,9 +49,11 @@ export class TextureLoader {
         }
 
         const map: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, DIFFUSE), options);
-        const normalMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, NORMAL));
-        const specularColorMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, SPECULAR));
-        const aoMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, AO));
+        // the other maps wrap like the colour one, but stay in linear space (they're data, not colours)
+        const dataOptions: TextureOptions | undefined = options && { wrapS: options.wrapS, wrapT: options.wrapT };
+        const normalMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, NORMAL), dataOptions);
+        const specularColorMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, SPECULAR), dataOptions);
+        const aoMap: Texture = this.getTexture(basePathPattern.replace(PLACEHOLDER, AO), dataOptions);
 
         const ret = {
             map,
