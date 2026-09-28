@@ -833,7 +833,7 @@ export class WallsFactory {
         }
 
         const materialTextures = new TextureLoader(this.loadingMgr).getPBRMaterialTextures(
-            `storm_marble_2-1K/1K_storm___honed___marble_2_${PLACEHOLDER}.png`,
+            `storm_marble_2-1K/1K_storm___honed___marble_2_${PLACEHOLDER}.webp`,
             {
                 wrapS: RepeatWrapping,
                 wrapT: RepeatWrapping,
