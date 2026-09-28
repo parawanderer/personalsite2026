@@ -240,9 +240,10 @@ export interface BlackHoleSettings {
 export const BLACK_HOLE: BlackHoleSettings = {
     enabled: true,
     byDay: 0,
-    // over the far end of the channel, as seen from the home view
-    azimuthDeg: 6,
-    elevationDeg: 10,
+    // on the celestial pole (Stars), so it stays put while the stars turn around it: behind the home view, above the
+    // volcano, for whoever turns around
+    azimuthDeg: 165,
+    elevationDeg: 25,
     shadowDeg: 4,
     regionScale: 5,
     inclinationDeg: 80,
@@ -1071,8 +1072,9 @@ export const STARS: StarSettings = {
     bandTurnDeg: 20,
     tint: 0.6,
     horizon: 0.15,
-    poleElevationDeg: 38,
-    poleAzimuthDeg: 150,
+    // behind the home view, just above the volcano; the black hole sits on it, the stars turning around it
+    poleElevationDeg: 25,
+    poleAzimuthDeg: 165,
     turnsPerDay: 1,
 };
 
