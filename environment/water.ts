@@ -3,7 +3,6 @@ import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
 import {
-    CAMERA_INITIAL_Z,
     FOG_UPDATE_BY,
     FOG_UPDATE_EVERY_MS,
     PILLARS_FOG_FAR_COLOR,
@@ -12,8 +11,6 @@ import {
     PILLARS_FOG_NOISE_IMPACT,
     PILLARS_FOG_NOISE_SPEED,
     ROW_LENGTH_X,
-    ROW_LENGTH_Z,
-    WALLS_OFFSET,
     WATER_COLOR,
     WATER_SUN_COLOR,
     WaterLook
@@ -38,6 +35,9 @@ const pick = (uniforms: { [name: string]: IUniform }, names: string[]): { [name:
 export const WATER_LEVEL_Y = -1;
 // the ceiling seen from under the water: its size around the camera, and how finely it's divided (its waves are about
 // a metre long)
+// the surface seen from above and the flat seabed under it: squares this wide that follow the camera, reaching past
+// the camera's far plane, so the water never ends
+const SURFACE_SIZE = 2000;
 const UNDERSIDE_SIZE = 40;
 const UNDERSIDE_SEGMENTS = 200;
 // how far past the impact (and the camera) the splash mesh reaches, so its edges sit where the waves have faded
@@ -440,6 +440,9 @@ export class Water implements AnimatedEntity {
 
     /** snapped to the vertex spacing so the displaced surface doesn't swim as the camera moves */
     private followCamera(): void {
+        // the whole surface and the seabed go wherever the camera goes (their look depends only on world position)
+        this.water.position.x = this.seabed.position.x = this.camera.position.x;
+        this.water.position.z = this.seabed.position.z = this.camera.position.z;
         if (!this.patch) return;
         const step = (this.look.displacementRadius * 2) / this.patch.geometry.parameters.widthSegments;
         const x = Math.round(this.camera.position.x / step) * step;
@@ -704,10 +707,7 @@ export class WaterFactory {
     constructor(private loadingMgr: LoadingManager, private scene: Scene) {}
 
     public makeWater(normalsPath: string, offsetZ: number, look: WaterLook, camera: Camera): Water {
-        const width = 2*ROW_LENGTH_X + 2*WALLS_OFFSET;
-        const depth = CAMERA_INITIAL_Z + ROW_LENGTH_Z*2;
-
-        const geometry = new PlaneGeometry(width, depth);
+        const geometry = new PlaneGeometry(SURFACE_SIZE, SURFACE_SIZE);
 
         const water = new ThreeWater(geometry, {
             textureWidth: 512,

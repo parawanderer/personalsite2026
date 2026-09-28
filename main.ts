@@ -250,6 +250,8 @@ pillarTweaks.folder?.add(pillarTweaks.params, 'seabedDepthBelow', 1, 12, 0.1).on
 scheduler.add({
     update: () => {
         seabed.visible = water.cameraUnderwater;
+        // the sky's dome goes with the camera: it's drawn by direction, and would otherwise end where the water doesn't
+        sky.position.copy(camera.position);
         // what's above the water seen bent through its surface
         snellUniforms.snellOn.value = water.cameraUnderwater ? 1 : 0;
         walls.setAirFog(!water.cameraUnderwater);
