@@ -36,6 +36,11 @@ export const WATER_LEVEL_Y = -1;
 // the surface seen from above and the flat seabed under it: squares this wide that follow the camera, reaching past
 // the camera's far plane, so the water never ends
 const SURFACE_SIZE = 2000;
+// divided into cells this many to a side, and moved only in steps of one cell: a plane of two huge triangles sliding
+// with the camera made the reflection jitter (the reflection's coordinates interpolated across triangles kilometres
+// wide, clipped at the camera's near plane, lose precision). Its look depends only on world position, so the steps
+// don't show
+const SURFACE_SEGMENTS = 40;
 // the ceiling seen from under the water: its size around the camera, and how finely it's divided (its waves are about
 // a metre long)
 const UNDERSIDE_SIZE = 40;
@@ -460,9 +465,10 @@ export class Water implements AnimatedEntity {
 
     /** snapped to the vertex spacing so the displaced surface doesn't swim as the camera moves */
     private followCamera(): void {
-        // the whole surface and the seabed go wherever the camera goes (their look depends only on world position)
-        this.water.position.x = this.seabed.position.x = this.camera.position.x;
-        this.water.position.z = this.seabed.position.z = this.camera.position.z;
+        // the whole surface and the seabed go wherever the camera goes, a cell at a time (see SURFACE_SEGMENTS)
+        const cell = SURFACE_SIZE / SURFACE_SEGMENTS;
+        this.water.position.x = this.seabed.position.x = Math.round(this.camera.position.x / cell) * cell;
+        this.water.position.z = this.seabed.position.z = Math.round(this.camera.position.z / cell) * cell;
         if (!this.patch) return;
         const step = (this.look.displacementRadius * 2) / this.patch.geometry.parameters.widthSegments;
         const x = Math.round(this.camera.position.x / step) * step;
@@ -729,7 +735,7 @@ export class WaterFactory {
     constructor(private loadingMgr: LoadingManager, private scene: Scene) {}
 
     public makeWater(normalsPath: string, offsetZ: number, look: WaterLook, camera: Camera): Water {
-        const geometry = new PlaneGeometry(SURFACE_SIZE, SURFACE_SIZE);
+        const geometry = new PlaneGeometry(SURFACE_SIZE, SURFACE_SIZE, SURFACE_SEGMENTS, SURFACE_SEGMENTS);
 
         const water = new ThreeWater(geometry, {
             textureWidth: 512,
