@@ -35,9 +35,12 @@ vec3 zodiacalLight(vec3 dir) {
     float across = asin(clamp(dot(dir, normal), -1.0, 1.0));
     vec3 inPlane = normalize(dir - dot(dir, normal) * normal);
     float along = atan(dot(inPlane, zodiacalAxis), dot(inPlane, zodiacalBase));
-    if (along < 0.0) return vec3(0.0);
+    // the leaning cone's base dips below its own start on one side: fade out there instead of cutting it off (a hard
+    // cut drew a straight diagonal edge across the sky)
+    float start = smoothstep(-0.35, 0.1, along);
+    along = max(along, 0.0);
     float width = zodiacalWidth * (1.0 - 0.6 * clamp(along / (zodiacalLength * 2.5), 0.0, 1.0));
-    return zodiacalColor * exp(-along / zodiacalLength) * exp(-pow(across / width, 2.0)) * smoothstep(0.0, 0.04, dir.y);
+    return zodiacalColor * start * exp(-along / zodiacalLength) * exp(-pow(across / width, 2.0)) * smoothstep(0.0, 0.04, dir.y);
 }
 
 // airglow: the upper air glowing faintly by itself at night, seen edge-on as a soft band a little above the horizon
