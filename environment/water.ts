@@ -33,11 +33,11 @@ const pick = (uniforms: { [name: string]: IUniform }, names: string[]): { [name:
 };
 
 export const WATER_LEVEL_Y = -1;
-// the ceiling seen from under the water: its size around the camera, and how finely it's divided (its waves are about
-// a metre long)
 // the surface seen from above and the flat seabed under it: squares this wide that follow the camera, reaching past
 // the camera's far plane, so the water never ends
 const SURFACE_SIZE = 2000;
+// the ceiling seen from under the water: its size around the camera, and how finely it's divided (its waves are about
+// a metre long)
 const UNDERSIDE_SIZE = 40;
 const UNDERSIDE_SEGMENTS = 200;
 // how far past the impact (and the camera) the splash mesh reaches, so its edges sit where the waves have faded
