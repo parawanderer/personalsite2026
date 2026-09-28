@@ -142,6 +142,11 @@ export interface DayNightSettings {
     nightSky: string;
     nightFogNear: string;
     nightFogFar: string;
+    /**
+     * the far fog at night while the aurora isn't out (nightFogFar is with it): nothing lights the haze then, so it's
+     * about as dark as the sky it fades into at the horizon
+     */
+    nightFogFarNoAurora: string;
     /** the plain fog that particles and the seabed use */
     nightSceneFog: string;
     nightAmbientSky: string;
@@ -183,6 +188,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightSky: '#151b1e',
     nightFogNear: '#2b4e5f',
     nightFogFar: '#202631',
+    nightFogFarNoAurora: '#181b23',
     nightSceneFog: '#1a2e2e',
     nightAmbientSky: '#94dfff',
     nightAmbientGround: '#00378f',
@@ -996,9 +1002,9 @@ export const PARTICLES: ParticleSettings = {
     dimpleRimColor: '#a1c4bf',
     flakeColor1: '#699694',
     flakeColor2: '#e1602d',
-    flakeColor1Twilight: '#a0848a',
-    flakeColor1Night: '#4d6f8c',
-    flakeColor1Aurora: '#4fbf9c',
+    flakeColor1Twilight: '#d0bc90',
+    flakeColor1Night: '#43140e',
+    flakeColor1Aurora: '#adadad',
 };
 
 // particles

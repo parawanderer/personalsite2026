@@ -407,6 +407,19 @@ if (auroraTweaks.folder) aurora.bindTweaks(auroraTweaks.folder);
 aurora.addToWater((edit) => water.extendShader(edit));
 dayNight.number((v) => aurora.setNight(v), () => 0, 'nightAurora');
 scheduler.add(aurora);
+// at night the far fog is only lit while the aurora is out: before and after it, the haze goes about as dark as the
+// sky it fades into at the horizon (after the day/night blend, before twilight's)
+{
+    const dark = new Color();
+    scheduler.add({
+        update: () => {
+            dark.set(dayNightTweaks.params.nightFogFarNoAurora);
+            const unlit = dayNight.nightAmount * (1 - aurora.presence);
+            (walls.fogUniforms.fogFarColor.value as Color).lerp(dark, unlit);
+            (water.fogUniforms.fogFarColor.value as Color).lerp(dark, unlit);
+        },
+    });
+}
 
 // shooting stars at night, now and then one coming down into the channel
 const starTweaks = tweaks.addFolder('Shooting stars', SHOOTING_STARS);

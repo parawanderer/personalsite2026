@@ -179,8 +179,8 @@ export class Aurora implements AnimatedEntity {
         this.nightAmount = amount;
     }
 
-    /** 0-1, how far it has come out by this hour; the night wraps round midnight */
-    private get presence(): number {
+    /** 0-1, how far it has come out by this hour (whatever the light); the night wraps round midnight */
+    public get presence(): number {
         const s = this.settings;
         // hours since the fade-in started, 0-24
         const since = (h: number) => ((this.hour() - h) % 24 + 24) % 24;
