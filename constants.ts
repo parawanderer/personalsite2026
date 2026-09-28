@@ -1269,6 +1269,11 @@ export const PANEL_HAZE: PanelHazeSettings = {
     drift: 0.03,
 };
 
+// multisampling of the frame (main.ts): samples per pixel, 0 for none (FXAA alone); needs a reload to change
+export const ANTIALIAS = {
+    samples: 2,
+};
+
 // light spilling around whatever is brighter than white (the suns, glints, the meteor's flash), like in a lens
 // (UnrealBloomPass, main.ts)
 export interface BloomSettings {

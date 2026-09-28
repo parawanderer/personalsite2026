@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    ANTIALIAS,
     NIGHT_GLOW,
     BLACK_HOLE,
     TWILIGHT,
@@ -105,6 +106,7 @@ import { moveCameraTo } from './animate/camera';
 import { FilmPass } from './postprocessing/filmpass';
 import { DistanceBlurPass } from './postprocessing/distance-blur';
 import { PanelHazePass } from './postprocessing/panel-haze';
+import { MsaaRenderPass } from './postprocessing/msaa-render-pass';
 import { SmoothBloomPass } from './postprocessing/smooth-bloom';
 import { LoadingManager } from './ui/loading-manager';
 import { Tweaks } from './ui/tweaks';
@@ -531,7 +533,11 @@ const composer = new EffectComposer(renderer);
 // the distance blur reads the scene's depth, which the render pass leaves in the composer's targets
 composer.renderTarget1.depthTexture = new DepthTexture(width, height);
 composer.renderTarget2.depthTexture = new DepthTexture(width, height);
-composer.addPass(new RenderPass(scene, camera));
+// multisampled, so the pillars' edges are antialiased properly (FXAA at the end only softens what's left); read at
+// start-up, so changing it takes a reload
+const antialiasTweaks = tweaks.addFolder('Antialiasing', ANTIALIAS);
+antialiasTweaks.folder?.add(antialiasTweaks.params, 'samples', [0, 2, 4, 8]);
+composer.addPass(antialiasTweaks.params.samples > 0 ? new MsaaRenderPass(scene, camera, antialiasTweaks.params.samples) : new RenderPass(scene, camera));
 // shafts of sunlight while under the water; straight after the scene, while its depth still matches the frame
 // the world above seen from under the water, through its surface
 const snellTweaks = tweaks.addFolder('Snell window', SNELL_WINDOW);
