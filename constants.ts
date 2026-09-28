@@ -224,14 +224,17 @@ export interface PillarReflectionSettings {
     /** of each face of the captured cube, and how often it's captured again (it follows the camera and the time of day) */
     resolution: number;
     refreshSeconds: number;
+    /** how long each new capture takes to fade in over the last */
+    fadeSeconds: number;
 }
 
 export const PILLAR_REFLECTIONS: PillarReflectionSettings = {
     enabled: false,
-    intensity: 0.4,
+    intensity: 0.6,
     normalScale: 1,
     resolution: 128,
     refreshSeconds: 5,
+    fadeSeconds: 2,
 };
 
 // dust on the pillars' tops (shaders/pillar-surface.glsl.ts): ash and glass flakes settled on what faces up
