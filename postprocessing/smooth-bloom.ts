@@ -35,7 +35,8 @@ vec3 bloomBicubic(sampler2D tex, vec2 uv) {
 
 /**
  * three's bloom, but its blurred levels (down to 1/32 of the screen) are scaled back up smoothly: plain bilinear
- * scaling showed the smallest ones as a grid of soft squares over smooth gradients like the sun's halo.
+ * scaling showed the smallest ones as a grid of soft squares over smooth gradients like the sun's halo. And with a
+ * soft threshold (knee).
  */
 export class SmoothBloomPass extends UnrealBloomPass {
     constructor(resolution: Vector2, strength: number, radius: number, threshold: number) {
@@ -46,5 +47,13 @@ export class SmoothBloomPass extends UnrealBloomPass {
         if (shader.includes('texture2D( blurTexture')) console.warn('SmoothBloomPass: the bloom composite shader changed, some levels are still scaled bilinearly');
         material.fragmentShader = shader;
         material.needsUpdate = true;
+    }
+
+    /**
+     * how gradually things start to bloom above the threshold (in brightness): three's default of 0.01 is almost a
+     * hard cut, which turns the part of a smooth glow (like the sun's halo) above it into a flat disc with an edge
+     */
+    public set knee(width: number) {
+        (this.highPassUniforms as { smoothWidth: { value: number } }).smoothWidth.value = Math.max(width, 0.001);
     }
 }

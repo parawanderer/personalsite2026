@@ -532,12 +532,14 @@ const applyBloom = () => {
     bloom.strength = b.strength;
     bloom.radius = b.radius;
     bloom.threshold = b.threshold;
+    bloom.knee = b.knee;
 };
 applyBloom();
 bloomTweaks.folder?.add(bloomTweaks.params, 'enabled').onChange(applyBloom);
 bloomTweaks.folder?.add(bloomTweaks.params, 'strength', 0, 2, 0.01).onChange(applyBloom);
 bloomTweaks.folder?.add(bloomTweaks.params, 'radius', 0, 1, 0.01).onChange(applyBloom);
 bloomTweaks.folder?.add(bloomTweaks.params, 'threshold', 0, 3, 0.01).onChange(applyBloom);
+bloomTweaks.folder?.add(bloomTweaks.params, 'knee', 0, 3, 0.01).onChange(applyBloom);
 composer.addPass(bloom);
 // the text panels' backing, a bank of haze behind the open one
 const panelHazeTweaks = tweaks.addFolder('Panel haze', PANEL_HAZE);

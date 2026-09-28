@@ -1219,6 +1219,8 @@ export interface BloomSettings {
     radius: number;
     /** how bright something has to be (before tone mapping) to spill */
     threshold: number;
+    /** over how much brightness above that the spill fades in (small: a hard cut, which rings smooth glows) */
+    knee: number;
 }
 
 export const BLOOM: BloomSettings = {
@@ -1226,6 +1228,7 @@ export const BLOOM: BloomSettings = {
     strength: 0.4,
     radius: 0.5,
     threshold: 1,
+    knee: 1,
 };
 
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars
