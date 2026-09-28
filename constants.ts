@@ -449,14 +449,21 @@ export const SKY_TEXTURE = 'nightsky_edit.jpg';
 export const SPOTLIGHT_SKY_COLOR = Color.fromHex('#ffffff');
 export const SPOTLIGHT_SKY_INTENSITY = 600;
 
-// the spot light down the channel (environment/factory.ts): its cone is 60 degrees each way from its aim, and the
-// share of that angle over which its edge fades out (0: a hard edge, which cuts a sharp line across the walls)
+// the light down the channel from the sky (environment/factory.ts), as a spot light (its cone reaches only the near
+// part of the channel) or a directional light along the same direction (the whole channel lit alike)
 export interface SkySpotSettings {
+    /** the directional light instead of the spot light */
+    directional: boolean;
+    /** the directional light's brightness (the spot light's falls off with distance, so the two can't share one) */
+    directionalIntensity: number;
+    /** the spot light's cone, 60 degrees each way from its aim, and the share of that angle over which its edge fades out (0: a hard edge, which cuts a sharp line across the walls) */
     angleDeg: number;
     penumbra: number;
 }
 
 export const SKY_SPOT: SkySpotSettings = {
+    directional: true,
+    directionalIntensity: 4,
     angleDeg: 60,
     penumbra: 0.3,
 };

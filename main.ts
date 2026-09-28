@@ -2,6 +2,7 @@
 import {
     Box2,
     DepthTexture,
+    DirectionalLight,
     Clock,
     Color,
     FogExp2,
@@ -170,14 +171,22 @@ const cubeLight = factory.makeObjectLight(0, 0, 0, 20, CUBE_LIGHT_COLOR);
 // background light
 const ambientLight = factory.makeAmbientLight();
 
-// skySpot (directional)
+// skySpot
 const skySpot = factory.makeSkySpotLight();
+// the same light as a directional one, along the spot light's aim: the whole channel lit alike. Both are always in the
+// scene (switching lights recompiles every lit material); the one not chosen has no brightness
+const skySun = new DirectionalLight(skySpot.color, 0);
+skySun.position.copy(skySpot.position);
+skySun.target.position.copy(skySpot.target.position);
+scene.add(skySun, skySun.target);
 const skySpotTweaks = tweaks.addFolder('Sky spot light', SKY_SPOT);
 const applySkySpot = () => {
     skySpot.angle = skySpotTweaks.params.angleDeg * Math.PI / 180;
     skySpot.penumbra = skySpotTweaks.params.penumbra;
 };
 applySkySpot();
+skySpotTweaks.folder?.add(skySpotTweaks.params, 'directional');
+skySpotTweaks.folder?.add(skySpotTweaks.params, 'directionalIntensity', 0, 20, 0.1);
 skySpotTweaks.folder?.add(skySpotTweaks.params, 'angleDeg', 10, 89, 1).onChange(applySkySpot);
 skySpotTweaks.folder?.add(skySpotTweaks.params, 'penumbra', 0, 1, 0.01).onChange(applySkySpot);
 
@@ -347,7 +356,12 @@ if (timeTweaks.folder) {
         .number((v) => { walls.setFogSpeed(v); water.setFogSpeed(v); }, () => 1, 'nightFogSpeed')
         // the night values of these are scales of the day ones
         .number((v) => ambientLight.intensity = hemi.intensity * v, () => 1, 'nightAmbientScale')
-        .number((v) => skySpot.intensity = spot.intensity * v, () => 1, 'nightSpotScale')
+        .number((v) => {
+            const directional = skySpotTweaks.params.directional;
+            skySpot.intensity = directional ? 0 : spot.intensity * v;
+            skySun.intensity = directional ? skySpotTweaks.params.directionalIntensity * v : 0;
+            skySun.color.copy(skySpot.color);
+        }, () => 1, 'nightSpotScale')
         .number((v) => { skyDiffuseLight1.intensity = diffuse[0].intensity * v; skyDiffuseLight2.intensity = diffuse[1].intensity * v; }, () => 1, 'nightDiffuseScale')
         .number((v) => renderer.toneMappingExposure = exposure * v, () => 1, 'nightExposureScale');
 }
