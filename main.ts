@@ -473,6 +473,7 @@ scheduler.add(shootingStars);
 // two suns/moons, following the time of day
 const fogGlowTweaks = tweaks.addFolder('Suns through fog', { fogStart: SUN_THROUGH_FOG });
 skyGlowUniforms.glowFogStart.value = fogGlowTweaks.params.fogStart;
+skyGlowUniforms.glowWaterLevel.value = WATER_LEVEL_Y;
 fogGlowTweaks.folder?.add(fogGlowTweaks.params, 'fogStart', 0, 1, 0.01).onChange((v: number) => skyGlowUniforms.glowFogStart.value = v);
 const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const).map(([name, body], index) => {
     const sunTweaks = tweaks.addFolder(name, body);

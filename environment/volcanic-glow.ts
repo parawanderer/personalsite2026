@@ -103,6 +103,7 @@ export class VolcanicGlow implements AnimatedEntity {
         (g.glowVolcanoColor.value as Color).set(s.color).multiplyScalar(s.fogStrength * this.night * flicker);
         g.glowVolcanoWidth.value = u.volcanoWidth.value;
         g.glowVolcanoHeight.value = u.volcanoHeight.value;
+        g.glowVolcanoByHeight.value = s.fogByHeight ? 1 : 0;
 
         // its light comes in low, from just above the horizon
         const el = degToRad(s.lightElevationDeg);
@@ -127,5 +128,6 @@ export class VolcanicGlow implements AnimatedEntity {
         folder.add(s, 'flicker', 0, 1, 0.01);
         folder.add(s, 'waterScatter', 0, 1, 0.005);
         folder.add(s, 'fogStrength', 0, 2, 0.01);
+        folder.add(s, 'fogByHeight');
     }
 }

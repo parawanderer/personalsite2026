@@ -1130,9 +1130,9 @@ export const NIGHT_GLOW: NightGlowSettings = {
     zodiacalLengthDeg: 25,
     zodiacalWidthDeg: 12,
     zodiacalTiltDeg: 25,
-    airglow: false,
+    airglow: true,
     airglowStrength: 0.02,
-    airglowColor: '#7fa88a',
+    airglowColor: '#7981a0',
     airglowPeakDeg: 10,
     airglowWidthDeg: 7,
 };
@@ -1271,7 +1271,7 @@ export const PANEL_HAZE: PanelHazeSettings = {
 
 // multisampling of the frame (main.ts): samples per pixel, 0 for none (FXAA alone); needs a reload to change
 export const ANTIALIAS = {
-    samples: 2,
+    samples: 0,
 };
 
 // light spilling around whatever is brighter than white (the suns, glints, the meteor's flash), like in a lens
@@ -1313,6 +1313,8 @@ export interface VolcanicGlowSettings {
     waterScatter: number;
     /** how strongly the fog towards it takes on its glow */
     fogStrength: number;
+    /** the fog's glow below the horizon fades by how high a surface stands above the water (walls washed evenly to their foot) instead of by the angle looked down at */
+    fogByHeight: boolean;
 }
 
 export const VOLCANIC_GLOW: VolcanicGlowSettings = {
@@ -1326,6 +1328,7 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     flicker: 0.25,
     waterScatter: 0.04,
     fogStrength: 0.09,
+    fogByHeight: false,
 };
 
 // streaks of sunlight between the walls' tops, above the water (postprocessing/sun-shafts.ts)

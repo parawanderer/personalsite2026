@@ -28,6 +28,10 @@ export const skyGlowUniforms: { [name: string]: IUniform } = {
     glowVolcanoColor: { value: new Color(0, 0, 0) },
     glowVolcanoWidth: { value: 0.4 },
     glowVolcanoHeight: { value: 0.1 },
+    // 1: below the horizon its glow fades by how high the fogged surface stands above the water (the haze in front of a
+    // wall is lit evenly down to its foot), 0: by the angle looked down at (main.ts sets the water's level)
+    glowVolcanoByHeight: { value: 0 },
+    glowWaterLevel: { value: 0 },
     // the same for the warm glow around a setting or rising sun (environment/twilight.ts)
     glowTwilightDir: { value: new Vector3(0, 0, -1) },
     glowTwilightColor: { value: new Color(0, 0, 0) },
@@ -50,6 +54,8 @@ uniform vec3 glowVolcanoDir;
 uniform vec3 glowVolcanoColor;
 uniform float glowVolcanoWidth;
 uniform float glowVolcanoHeight;
+uniform float glowVolcanoByHeight;
+uniform float glowWaterLevel;
 
 uniform vec3 glowTwilightDir;
 uniform vec3 glowTwilightColor;
@@ -93,7 +99,17 @@ export const skyGlowFrag = /* glsl */ `
     // (edits) ${fileName}
     gl_FragColor.rgb += skyGlow(normalize(vFogWorldPosition - cameraPosition)) * smoothstep(glowFogStart, 1.0, fogFactor);
     // and the fog towards the volcano at night takes on its red, as thick as the fog is
-    if (glowVolcanoColor.r + glowVolcanoColor.g + glowVolcanoColor.b > 0.0) gl_FragColor.rgb += volcanoFogGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
+    if (glowVolcanoColor.r + glowVolcanoColor.g + glowVolcanoColor.b > 0.0) {
+        vec3 volcanoView = normalize(vFogWorldPosition - cameraPosition);
+        vec3 volcanoFog = volcanoFogGlow(volcanoView);
+        // by height: a surface standing above the water (a wall) gets the glow as if seen level with the horizon, all
+        // the way down to its foot; the water itself keeps the fall-off by angle
+        if (glowVolcanoByHeight > 0.5 && volcanoView.y < 0.0) {
+            float standing = smoothstep(0.05, 0.6, vFogWorldPosition.y - glowWaterLevel);
+            volcanoFog = mix(volcanoFog, volcanoFogGlow(normalize(vec3(volcanoView.x, 0.0, volcanoView.z))), standing);
+        }
+        gl_FragColor.rgb += volcanoFog * fogFactor;
+    }
     // and towards a setting or rising sun, its warm glow
     // the night sky's faint glows, which the fog fades into like the sky
     gl_FragColor.rgb += nightGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
