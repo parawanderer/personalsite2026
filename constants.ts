@@ -1026,6 +1026,8 @@ export interface GodRaySettings {
     forwardShafts: number;
     forwardHaze: number;
     forwardSpreadDeg: number;
+    /** for tuning: the pillars picked to shadow the underwater light (those in the channel around the camera), highlighted */
+    showShadowCasters: boolean;
 }
 
 export const GOD_RAYS: GodRaySettings = {
@@ -1047,6 +1049,7 @@ export const GOD_RAYS: GodRaySettings = {
     forwardShafts: 5,
     forwardHaze: 0.8,
     forwardSpreadDeg: 20,
+    showShadowCasters: false,
 };
 
 // the world above the water seen from under it, through the surface (environment/snell-window.ts)

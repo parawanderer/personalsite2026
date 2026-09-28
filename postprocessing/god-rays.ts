@@ -195,6 +195,7 @@ export class GodRaysPass extends Pass {
         folder.add(s, 'forwardShafts', 0, 10, 0.1);
         folder.add(s, 'forwardHaze', 0, 2, 0.01);
         folder.add(s, 'forwardSpreadDeg', 2, 60, 0.5);
+        folder.add(s, 'showShadowCasters');
     }
 
     public setSize(width: number, height: number): void {

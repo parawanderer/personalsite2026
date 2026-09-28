@@ -1,4 +1,4 @@
-import { BufferGeometry, Color, DataTexture, FloatType, HalfFloatType, LinearFilter, Matrix4, Mesh, OrthographicCamera, RGBAFormat, RGFormat, Scene, ShaderMaterial, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
+import { BufferGeometry, Color, DataTexture, FloatType, HalfFloatType, LinearFilter, Matrix4, Mesh, MeshBasicMaterial, OrthographicCamera, RGBAFormat, RGFormat, Scene, ShaderMaterial, Vector2, Vector3, WebGLRenderer, WebGLRenderTarget } from 'three';
 import { FullScreenQuad } from 'three/addons/postprocessing/Pass.js';
 
 import { SHAFT_LIGHTS, shaftPars, shaftUniforms } from '../shaders/sun-shafts.glsl';
@@ -119,7 +119,18 @@ export class ShaftShadows {
     private readonly wallMask: WebGLRenderTarget;
     private readonly wallMaskQuad = new FullScreenQuad(wallMaskMaterial());
 
-    constructor(private readonly walls: Walls) {
+    /** for tuning: the pillars picked to shadow the underwater light, drawn over the view (through everything) */
+    public showCasters = false;
+    private readonly casters = new Mesh(new BufferGeometry(), new MeshBasicMaterial({ color: 0xff00ff, transparent: true, opacity: 0.45, depthTest: false, depthWrite: false, fog: false }));
+
+    /**
+     * @param view the scene the camera sees, where the picked pillars are shown while showCasters is on
+     */
+    constructor(private readonly walls: Walls, view: Scene) {
+        this.casters.frustumCulled = false;
+        this.casters.renderOrder = 10;
+        this.casters.visible = false;
+        view.add(this.casters);
         // the walls' blocking map covers the pillar grid, which the channel lies in
         const f = walls.pillarField;
         this.wallMask = new WebGLRenderTarget(f.size.x * WALL_MASK_PER_CELL, f.size.y * WALL_MASK_PER_CELL, { type: HalfFloatType, minFilter: LinearFilter, magFilter: LinearFilter });
@@ -130,6 +141,19 @@ export class ShaftShadows {
         this.scene.add(this.mesh);
         shaftUniforms.shaftShadowMap0.value = this.targets[0].texture;
         shaftUniforms.shaftShadowMap1.value = this.targets[1].texture;
+    }
+
+    /** the channel pillars around the viewer, picked again once it has moved far enough */
+    private pick(viewer: Vector3): void {
+        if (this.pickedAt.distanceTo(viewer) <= REPICK_DISTANCE) return;
+        this.pickedAt.copy(viewer);
+        this.mesh.geometry.dispose();
+        const picked = this.walls.channelPillars(viewer, HALF_SIZE * 1.5);
+        this.mesh.geometry = picked?.geometry ?? new BufferGeometry();
+        this.casters.geometry = this.mesh.geometry;
+        (shaftUniforms.shaftPillarPieces.value as DataTexture | null)?.dispose();
+        shaftUniforms.shaftPillarPieces.value = pieceTable(picked?.pieces ?? []);
+        shaftUniforms.shaftPillarChamfer.value = this.walls.chamfer;
     }
 
     /** the pillars were rebuilt: pick them again */
@@ -144,6 +168,9 @@ export class ShaftShadows {
     public update(renderer: WebGLRenderer, on: boolean, viewer: Vector3, waterLevel: number): void {
         shaftUniforms.shaftShadowOn.value = 0;
         shaftUniforms.shaftWallMaskOn.value = 0;
+        // picked while they're shown too, even above the water
+        if (on || this.showCasters) this.pick(viewer);
+        this.casters.visible = this.showCasters;
         if (!on) return;
 
         // the walls' blocking over the channel's surface, for this frame's sun directions
@@ -153,15 +180,6 @@ export class ShaftShadows {
         renderer.setRenderTarget(before);
         shaftUniforms.shaftWallMaskOn.value = 1;
 
-        if (this.pickedAt.distanceTo(viewer) > REPICK_DISTANCE) {
-            this.pickedAt.copy(viewer);
-            this.mesh.geometry.dispose();
-            const picked = this.walls.channelPillars(viewer, HALF_SIZE * 1.5);
-            this.mesh.geometry = picked?.geometry ?? new BufferGeometry();
-            (shaftUniforms.shaftPillarPieces.value as DataTexture | null)?.dispose();
-            shaftUniforms.shaftPillarPieces.value = pieceTable(picked?.pieces ?? []);
-            shaftUniforms.shaftPillarChamfer.value = this.walls.chamfer;
-        }
         if (!this.mesh.geometry.getAttribute('position')) return;
 
         const dirs = shaftUniforms.shaftLightDir.value as Vector3[];
