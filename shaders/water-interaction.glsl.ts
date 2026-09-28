@@ -147,11 +147,16 @@ uniform float splashRelief;
 // murky fluid scatters back
 uniform vec3 volcanoLightDir;
 uniform vec3 volcanoLightColor;
+// and the black hole's disc's (environment/black-hole.ts), the same way
+uniform vec3 holeLightDir;
+uniform vec3 holeLightColor;
 
 // the thick, ash-laden fluid isn't a clean mirror: it scatters some of the light falling on it back, most where its
 // surface (ripples, lips, swell) tilts towards the light
 vec3 volcanoWaterLight(vec3 normal) {
-    return volcanoLightColor * max(dot(normal, volcanoLightDir), 0.0);
+    // the black hole is higher up, so flat water would face it enough to glow all over: only what ripples turn
+    // towards it more than flat water catches it, as warm glints
+    return volcanoLightColor * max(dot(normal, volcanoLightDir), 0.0) + holeLightColor * max(dot(normal, holeLightDir) - holeLightDir.y, 0.0);
 }
 
 // how much more (or less) of the flash's light a tilted bit of surface gets than flat water: the light comes in low,

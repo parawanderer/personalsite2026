@@ -386,7 +386,8 @@ scheduler.add(stars);
 
 // a black hole in the night sky, drawn over the stars (and bending them)
 const blackHoleTweaks = tweaks.addFolder('Black hole', BLACK_HOLE);
-const blackHole = new BlackHole(sky.material, blackHoleTweaks.params);
+const blackHole = new BlackHole(scene, sky.material, blackHoleTweaks.params);
+blackHole.onWaterLight = (direction, color) => water.setBlackHoleLight(direction, color);
 if (blackHoleTweaks.folder) blackHole.bindTweaks(blackHoleTweaks.folder);
 dayNight.number((v) => blackHole.setNight(v), () => 0, 'nightAurora');
 scheduler.add(blackHole);

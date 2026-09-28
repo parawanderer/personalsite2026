@@ -217,6 +217,12 @@ export class Water implements AnimatedEntity {
     }
 
     /** the volcano's light on the water: towards it, and its colour times how much the fluid scatters back */
+    /** the black hole's disc's light on the water at night (environment/black-hole.ts), like the volcano's */
+    public setBlackHoleLight(direction: Vector3, color: Color): void {
+        (this.surfaceUniforms.holeLightDir.value as Vector3).copy(direction);
+        (this.surfaceUniforms.holeLightColor.value as Color).copy(color);
+    }
+
     public setVolcanoLight(direction: Vector3, color: Color): void {
         (this.surfaceUniforms.volcanoLightDir.value as Vector3).copy(direction);
         (this.surfaceUniforms.volcanoLightColor.value as Color).copy(color);
@@ -797,6 +803,8 @@ export class WaterFactory {
             splashRelief: { value: 0 },
             volcanoLightDir: { value: new Vector3(0, 1, 0) },
             volcanoLightColor: { value: new Color(0, 0, 0) },
+            holeLightDir: { value: new Vector3(0, 1, 0) },
+            holeLightColor: { value: new Color(0, 0, 0) },
             // how much darker the water is right now, next to a meteor's flash
             splashDarken: { value: 0 },
             // how much the flash's shadows darken the water's reflections right now

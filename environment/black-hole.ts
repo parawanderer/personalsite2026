@@ -1,4 +1,4 @@
-import { Color, MeshBasicMaterial, Vector3 } from 'three';
+import { Color, DirectionalLight, MeshBasicMaterial, Scene, Vector3 } from 'three';
 import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 
@@ -132,7 +132,7 @@ vec4 holeSky(vec3 dir, vec3 sky) {
  * on the sky by following each view ray near it as gravity bends it, so the black shadow, the disc's far side lifted
  * over and under it, the thin bright ring round the edge and the stars smeared around it all come out of the maths
  * rather than being painted. It spins: the disc turns, brighter on the side coming towards us, and the shadow is
- * pulled a little to one side. Fades in with the night.
+ * pulled a little to one side. Its disc lights the scene faintly from its direction. Fades in with the night.
  */
 export class BlackHole implements AnimatedEntity {
     private readonly uniforms = {
@@ -154,8 +154,14 @@ export class BlackHole implements AnimatedEntity {
         holeCool: { value: new Color() },
     };
     private night = 0;
+    // its disc's light on the scene: always there (zero at day), adding or removing a light recompiles every lit material
+    private readonly light = new DirectionalLight();
+    private readonly waterColor = new Color();
+    /** told the light's direction (towards it) and the colour the water scatters back, every frame */
+    public onWaterLight?: (direction: Vector3, color: Color) => void;
 
-    constructor(skyMaterial: MeshBasicMaterial, private readonly settings: BlackHoleSettings) {
+    constructor(scene: Scene, skyMaterial: MeshBasicMaterial, private readonly settings: BlackHoleSettings) {
+        scene.add(this.light, this.light.target);
         const previous = skyMaterial.onBeforeCompile;
         skyMaterial.onBeforeCompile = (params, renderer) => {
             previous.call(skyMaterial, params, renderer);
@@ -210,6 +216,15 @@ export class BlackHole implements AnimatedEntity {
         u.holeHot.value.set(s.hotColor);
         u.holeWarm.value.set(s.warmColor);
         u.holeCool.value.set(s.coolColor);
+
+        // the disc lights the scene faintly from its direction, in its warm middle colour
+        const shown = u.holeAmount.value;
+        this.light.position.copy(u.holeForward.value).multiplyScalar(50);
+        this.light.target.position.set(0, 0, 0);
+        this.light.color.set(s.warmColor).lerp(u.holeHot.value, 0.4);
+        this.light.intensity = s.lightStrength * shown;
+        this.waterColor.copy(this.light.color).multiplyScalar(s.waterScatter * shown);
+        this.onWaterLight?.(u.holeForward.value, this.waterColor);
     }
 
     public bindTweaks(folder: GUI): void {
@@ -228,6 +243,8 @@ export class BlackHole implements AnimatedEntity {
         folder.add(s, 'discSpeed', 0, 2, 0.01);
         folder.add(s, 'discBrightness', 0, 5, 0.01);
         folder.add(s, 'beaming', 0, 4, 0.05);
+        folder.add(s, 'lightStrength', 0, 3, 0.01);
+        folder.add(s, 'waterScatter', 0, 2, 0.01);
         folder.addColor(s, 'hotColor');
         folder.addColor(s, 'warmColor');
         folder.addColor(s, 'coolColor');

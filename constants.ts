@@ -231,6 +231,9 @@ export interface BlackHoleSettings {
     discSpeed: number;
     discBrightness: number;
     beaming: number;
+    /** the disc's light on the scene from its direction, and how much of it the water scatters back */
+    lightStrength: number;
+    waterScatter: number;
     /** the disc's colours, from its hot inner edge out */
     hotColor: string;
     warmColor: string;
@@ -257,6 +260,8 @@ export const BLACK_HOLE: BlackHoleSettings = {
     hotColor: '#fff1d0',
     warmColor: '#ffa040',
     coolColor: '#a8301a',
+    lightStrength: 0.8,
+    waterScatter: 0.3,
 };
 
 // sunset and sunrise (environment/twilight.ts): while the large sun is low, the day/night blend's colours are pulled
@@ -1277,7 +1282,7 @@ export interface SunShaftSettings {
 
 export const SUN_SHAFTS: SunShaftSettings = {
     enabled: true,
-    strength: 1.2,
+    strength: 0.9,
     glowRadius: 0.12,
     reach: 0.85,
     decay: 0.975,
