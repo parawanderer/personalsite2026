@@ -1328,7 +1328,7 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     flicker: 0.25,
     waterScatter: 0.04,
     fogStrength: 0.09,
-    fogByHeight: false,
+    fogByHeight: true,
 };
 
 // streaks of sunlight between the walls' tops, above the water (postprocessing/sun-shafts.ts)
