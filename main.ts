@@ -48,6 +48,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    PILLAR_DUST,
     ANTIALIAS,
     NIGHT_GLOW,
     BLACK_HOLE,
@@ -97,6 +98,7 @@ import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
+import { dustUniforms } from './shaders/pillar-surface.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -394,6 +396,34 @@ const nightGlow = new NightGlow(sky.material, SUN_LARGE, () => dayNightTweaks.pa
 if (nightGlowTweaks.folder) nightGlow.bindTweaks(nightGlowTweaks.folder);
 dayNight.number((v) => nightGlow.setNight(v), () => 0, 'nightAurora');
 scheduler.add(nightGlow);
+
+// dust settled on the pillars' tops
+{
+    const dustTweaks = tweaks.addFolder('Pillar dust', PILLAR_DUST);
+    const d = dustTweaks.params;
+    const apply = () => {
+        dustUniforms.dustAmount.value = d.enabled ? 1 : 0;
+        dustUniforms.dustCoverage.value = d.coverage;
+        dustUniforms.dustScale.value = d.scale;
+        dustUniforms.dustRoughness.value = d.roughness;
+        (dustUniforms.dustColor.value as Color).set(d.color);
+        dustUniforms.dustTint.value = d.tint;
+        (dustUniforms.dustSheen.value as Color).set(d.sheen);
+        dustUniforms.dustGrainCells.value = d.grainsPerMetre;
+        dustUniforms.dustGrainShare.value = d.grainShare;
+    };
+    apply();
+    const f = dustTweaks.folder;
+    f?.add(d, 'enabled').onChange(apply);
+    f?.add(d, 'coverage', 0, 1, 0.01).onChange(apply);
+    f?.add(d, 'scale', 0.2, 10, 0.1).onChange(apply);
+    f?.add(d, 'roughness', 0, 1, 0.01).onChange(apply);
+    f?.addColor(d, 'color').onChange(apply);
+    f?.add(d, 'tint', 0, 1, 0.01).onChange(apply);
+    f?.addColor(d, 'sheen').onChange(apply);
+    f?.add(d, 'grainsPerMetre', 10, 200, 1).onChange(apply);
+    f?.add(d, 'grainShare', 0, 1, 0.01).onChange(apply);
+}
 
 // a black hole in the night sky, drawn over the stars (and bending them)
 const blackHoleTweaks = tweaks.addFolder('Black hole', BLACK_HOLE);

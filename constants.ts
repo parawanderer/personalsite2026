@@ -214,6 +214,36 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFogSpeed: 0,
 };
 
+// dust on the pillars' tops (shaders/pillar-surface.glsl.ts): ash and glass flakes settled on what faces up
+export interface PillarDustSettings {
+    enabled: boolean;
+    /** how much of the up-facing rock it covers (0 to 1), and the size of its drifts (higher: smaller) */
+    coverage: number;
+    scale: number;
+    /** how rough the rock is under it (the rock's polish taken off) */
+    roughness: number;
+    /** its colour, and how far the rock takes it on (kept small: the tops should stay dark shapes) */
+    color: string;
+    tint: number;
+    /** the soft sheen it scatters back at grazing angles */
+    sheen: string;
+    /** its grains up close: how many per metre across, and the share of places that have one */
+    grainsPerMetre: number;
+    grainShare: number;
+}
+
+export const PILLAR_DUST: PillarDustSettings = {
+    enabled: true,
+    coverage: 0.6,
+    scale: 2,
+    roughness: 0.75,
+    color: '#8a8580',
+    tint: 0.06,
+    sheen: '#1e1d1b',
+    grainsPerMetre: 60,
+    grainShare: 0.4,
+};
+
 // a black hole in the night sky with its accretion disc (environment/black-hole.ts)
 export interface BlackHoleSettings {
     enabled: boolean;

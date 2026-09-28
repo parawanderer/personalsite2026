@@ -845,6 +845,9 @@ export class WallsFactory {
             ...materialTextures,
             //clearcoat: 0.07,
             iridescence: 0.2,
+            // no sheen of its own (black): the dust on the tops sets one (shaders/pillar-surface.glsl.ts)
+            sheen: 1,
+            sheenColor: 0x000000,
             specularIntensity: 1.0,
             metalness: 0.3,
             flatShading: true // force appearance to not get rounded to get proper hexagons
