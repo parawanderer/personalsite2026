@@ -47,6 +47,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    SKY_SPOT,
     SNELL_WINDOW,
     SUN_SHAFTS,
     SURFACE_CROSSING,
@@ -171,6 +172,14 @@ const ambientLight = factory.makeAmbientLight();
 
 // skySpot (directional)
 const skySpot = factory.makeSkySpotLight();
+const skySpotTweaks = tweaks.addFolder('Sky spot light', SKY_SPOT);
+const applySkySpot = () => {
+    skySpot.angle = skySpotTweaks.params.angleDeg * Math.PI / 180;
+    skySpot.penumbra = skySpotTweaks.params.penumbra;
+};
+applySkySpot();
+skySpotTweaks.folder?.add(skySpotTweaks.params, 'angleDeg', 10, 89, 1).onChange(applySkySpot);
+skySpotTweaks.folder?.add(skySpotTweaks.params, 'penumbra', 0, 1, 0.01).onChange(applySkySpot);
 
 // light sources
 const skyDiffuseLight1 = factory.makeSkyDiffuseLight(0, 10, -8, 400);

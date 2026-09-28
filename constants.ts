@@ -449,6 +449,18 @@ export const SKY_TEXTURE = 'nightsky_edit.jpg';
 export const SPOTLIGHT_SKY_COLOR = Color.fromHex('#ffffff');
 export const SPOTLIGHT_SKY_INTENSITY = 600;
 
+// the spot light down the channel (environment/factory.ts): its cone is 60 degrees each way from its aim, and the
+// share of that angle over which its edge fades out (0: a hard edge, which cuts a sharp line across the walls)
+export interface SkySpotSettings {
+    angleDeg: number;
+    penumbra: number;
+}
+
+export const SKY_SPOT: SkySpotSettings = {
+    angleDeg: 60,
+    penumbra: 0.3,
+};
+
 export const POINTLIGHT_SKY_COLOR = Color.fromHex('#6f7477');
 
 // water
