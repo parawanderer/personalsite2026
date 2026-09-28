@@ -4,6 +4,7 @@ import { degToRad } from 'three/src/math/MathUtils.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
 import { VolcanicGlowSettings } from '../constants';
+import { skyGlowUniforms } from '../shaders/sky-glow.glsl';
 
 const pars = /* glsl */ `
 // (edits) environment/volcanic-glow.ts
@@ -96,6 +97,12 @@ export class VolcanicGlow implements AnimatedEntity {
         u.volcanoHeight.value = Math.max(s.height, 0.005);
         u.volcanoFlicker.value = s.flicker;
         u.volcanoTime.value = clock.elapsedTime;
+        // the fog towards it takes on its glow too (shaders/sky-glow.glsl.ts)
+        const g = skyGlowUniforms;
+        (g.glowVolcanoDir.value as Vector3).copy(this.direction);
+        (g.glowVolcanoColor.value as Color).set(s.color).multiplyScalar(s.fogStrength * this.night * flicker);
+        g.glowVolcanoWidth.value = u.volcanoWidth.value;
+        g.glowVolcanoHeight.value = u.volcanoHeight.value;
 
         // its light comes in low, from just above the horizon
         const el = degToRad(s.lightElevationDeg);
@@ -119,5 +126,6 @@ export class VolcanicGlow implements AnimatedEntity {
         folder.add(s, 'lightElevationDeg', 0, 45, 0.5);
         folder.add(s, 'flicker', 0, 1, 0.01);
         folder.add(s, 'waterScatter', 0, 1, 0.005);
+        folder.add(s, 'fogStrength', 0, 2, 0.01);
     }
 }

@@ -21,6 +21,12 @@ export const skyGlowUniforms: { [name: string]: IUniform } = {
     glowSunHaloStrength: { value: Array.from({ length: SUN_COUNT }, () => 0) },
     // how fogged a surface has to be before the suns show through it: below this it blocks them like any surface
     glowFogStart: { value: 0.9 },
+    // the volcano's red glow low on one horizon at night (environment/volcanic-glow.ts): which way it lies, its colour
+    // times how strongly the fog takes it on (black by day), and how wide and high it reaches (radians, direction's y)
+    glowVolcanoDir: { value: new Vector3(0, 0, -1) },
+    glowVolcanoColor: { value: new Color(0, 0, 0) },
+    glowVolcanoWidth: { value: 0.4 },
+    glowVolcanoHeight: { value: 0.1 },
 };
 
 export const skyGlowPars = /* glsl */ `
@@ -31,6 +37,18 @@ uniform float glowSunRadius[${SUN_COUNT}];
 uniform float glowSunHaloScale[${SUN_COUNT}];
 uniform float glowSunHaloStrength[${SUN_COUNT}];
 uniform float glowFogStart;
+uniform vec3 glowVolcanoDir;
+uniform vec3 glowVolcanoColor;
+uniform float glowVolcanoWidth;
+uniform float glowVolcanoHeight;
+
+// the volcano's glow as the fog picks it up: widest and strongest towards it near the horizon, fading upwards and
+// twice as fast downwards (the far water lies just below)
+vec3 volcanoFogGlow(vec3 viewDir) {
+    vec2 flatDir = normalize(viewDir.xz + vec2(1e-5));
+    float across = acos(clamp(dot(flatDir, normalize(glowVolcanoDir.xz)), -1.0, 1.0));
+    return glowVolcanoColor * exp(-pow(across / glowVolcanoWidth, 2.0)) * exp(-max(viewDir.y, -2.0 * viewDir.y) / glowVolcanoHeight);
+}
 
 // same disc and halo as the sun sprites (environment/celestial.ts), by the angle from each sun
 vec3 skyGlow(vec3 viewDir) {
@@ -52,4 +70,6 @@ vec3 skyGlow(vec3 viewDir) {
 export const skyGlowFrag = /* glsl */ `
     // (edits) ${fileName}
     gl_FragColor.rgb += skyGlow(normalize(vFogWorldPosition - cameraPosition)) * smoothstep(glowFogStart, 1.0, fogFactor);
+    // and the fog towards the volcano at night takes on its red, as thick as the fog is
+    if (glowVolcanoColor.r + glowVolcanoColor.g + glowVolcanoColor.b > 0.0) gl_FragColor.rgb += volcanoFogGlow(normalize(vFogWorldPosition - cameraPosition)) * fogFactor;
 `;

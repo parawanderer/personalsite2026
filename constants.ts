@@ -463,7 +463,7 @@ export interface SkySpotSettings {
 
 export const SKY_SPOT: SkySpotSettings = {
     directional: true,
-    directionalIntensity: 4,
+    directionalIntensity: 5.8,
     angleDeg: 60,
     penumbra: 0.3,
 };
@@ -1102,6 +1102,8 @@ export interface VolcanicGlowSettings {
     flicker: number;
     /** how much of its light the murky fluid scatters back (a dull red on the ripples facing it) */
     waterScatter: number;
+    /** how strongly the fog towards it takes on its glow */
+    fogStrength: number;
 }
 
 export const VOLCANIC_GLOW: VolcanicGlowSettings = {
@@ -1114,6 +1116,7 @@ export const VOLCANIC_GLOW: VolcanicGlowSettings = {
     lightElevationDeg: 14,
     flicker: 0.25,
     waterScatter: 0.04,
+    fogStrength: 0.09,
 };
 
 // streaks of sunlight between the walls' tops, above the water (postprocessing/sun-shafts.ts)
