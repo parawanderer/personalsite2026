@@ -1,4 +1,4 @@
-import { IUniform, ShaderChunk, WebGLProgramParametersWithUniforms } from "three";
+import { Color, IUniform, ShaderChunk, WebGLProgramParametersWithUniforms } from "three";
 
 import { toFileName } from "./util";
 
@@ -81,6 +81,56 @@ const macroVariation = /* glsl */ `
 `;
 
 /**
+ * The lake is acid (a silica-thick crater lake, like Kawah Ijen's): it has bleached the basalt pale around the waterline,
+ * from a little below the surface up to where its swells reach, under a ragged tide mark with a thin sulfur crust.
+ * Kept up to date by main.ts; bleachAmount 0 turns it off.
+ */
+export const bleachUniforms: { [name: string]: IUniform } = {
+    bleachAmount: { value: 0 },
+    bleachWaterLevel: { value: 0 },
+    bleachAbove: { value: 0.35 },
+    bleachBelow: { value: 0.6 },
+    bleachColor: { value: new Color() },
+    bleachCrust: { value: 0.5 },
+    bleachCrustColor: { value: new Color() },
+};
+
+const bleachPars = /* glsl */ `
+// (edits) ${fileName}
+uniform float bleachAmount;
+uniform float bleachWaterLevel;
+uniform float bleachAbove;
+uniform float bleachBelow;
+uniform vec3 bleachColor;
+uniform float bleachCrust;
+uniform vec3 bleachCrustColor;
+`;
+
+const bleach = /* glsl */ `
+// (edits) ${fileName}
+#ifdef USE_FOG
+    if (bleachAmount > 0.0) {
+        float h = vFogWorldPosition.y - bleachWaterLevel;
+        // the tide mark wanders up and down along the rock, with a finer ragged edge
+        vec3 w = vFogWorldPosition;
+        float top = bleachAbove * (0.65 + 0.5 * macroNoise(vec3(w.x * 1.7, 0.0, w.z * 1.7)) + 0.15 * macroNoise(w * 9.0));
+        float band = smoothstep(-bleachBelow, -bleachBelow * 0.3, h) * (1.0 - smoothstep(top - 0.015, top, h));
+        // strongest at the waterline, where the acid sits longest, patchy further off
+        float patchy = 0.75 + 0.25 * macroNoise(w * 4.0);
+        float bleached = band * patchy * bleachAmount;
+        // paler and greyer (the basalt is nearly black, so from a floor up), keeping the texture's own light and dark
+        float lum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+        vec3 pale = bleachColor * (0.14 + 4.0 * mix(diffuseColor.rgb, vec3(lum), 0.7));
+        diffuseColor.rgb = mix(diffuseColor.rgb, pale, bleached);
+        // the crust along the tide mark, only on the steep sides (on a flat top the mark would be a wide ring)
+        float steep = smoothstep(0.3, 1.0, fwidth(h) / max(fwidth(w.x) + fwidth(w.z), 1e-5));
+        float line = smoothstep(top - 0.04, top - 0.015, h) * (1.0 - smoothstep(top - 0.01, top, h));
+        diffuseColor.rgb = mix(diffuseColor.rgb, bleachCrustColor * (0.5 + lum), line * steep * bleachCrust * bleachAmount);
+    }
+#endif
+`;
+
+/**
  * While a meteor's flash is on, pillar faces it doesn't reach (in a shadow from it, or turned away from it) look darker
  * next to its brightness: their other light is dimmed too, fading out with distance from the flash. Faked, since a
  * shadow only takes away the flash's own light, and the moons and sky would otherwise keep those faces as bright as ever.
@@ -115,12 +165,12 @@ const hexSampled = (chunk: string, sampler: string, uv: string) => {
 export const applyPillarSurface = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform<number> }) => {
     // chunks are still #includes at this point, so swap in edited copies
     params.fragmentShader = params.fragmentShader
-        .replace('#include <common>', `#include <common>\n${hexTilingPars}`)
-        .replace('#include <map_fragment>', `${hexSampled(ShaderChunk.map_fragment, 'map', 'vMapUv')}\n${macroVariation}`)
+        .replace('#include <common>', `#include <common>\n${hexTilingPars}\n${bleachPars}`)
+        .replace('#include <map_fragment>', `${hexSampled(ShaderChunk.map_fragment, 'map', 'vMapUv')}\n${macroVariation}\n${bleach}`)
         .replace('#include <normal_fragment_maps>', hexSampled(ShaderChunk.normal_fragment_maps, 'normalMap', 'vNormalMapUv'))
         .replace('#include <shadowmap_pars_fragment>', flashShadowPars)
         .replace('#include <opaque_fragment>', flashShadowFrag);
     // AO and specular are low contrast, their repetition doesn't show, so they keep the plain (cheaper) lookup
 
-    Object.assign(params.uniforms, uniforms);
+    Object.assign(params.uniforms, uniforms, bleachUniforms);
 };

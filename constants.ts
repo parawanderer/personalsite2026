@@ -208,6 +208,30 @@ export const DAY_NIGHT: DayNightSettings = {
     nightFogSpeed: 0,
 };
 
+// the acid lake has bleached the pillars around the waterline (shaders/pillar-surface.glsl.ts)
+export interface AcidBleachSettings {
+    enabled: boolean;
+    /** how pale it has turned them */
+    strength: number;
+    /** how far above the surface (metres, on average: the tide mark wanders) and below it */
+    above: number;
+    below: number;
+    color: string;
+    /** the thin crust along the tide mark */
+    crust: number;
+    crustColor: string;
+}
+
+export const ACID_BLEACH: AcidBleachSettings = {
+    enabled: true,
+    strength: 0.6,
+    above: 0.2,
+    below: 0.5,
+    color: '#d8d0bc',
+    crust: 0.3,
+    crustColor: '#8f7f4a',
+};
+
 // a black hole in the night sky with its accretion disc (environment/black-hole.ts)
 export interface BlackHoleSettings {
     enabled: boolean;
@@ -1225,7 +1249,7 @@ export interface BloomSettings {
 
 export const BLOOM: BloomSettings = {
     enabled: true,
-    strength: 0.4,
+    strength: 0.1,
     radius: 0.5,
     threshold: 1,
     knee: 1,
@@ -1277,7 +1301,7 @@ export interface SunShaftSettings {
 
 export const SUN_SHAFTS: SunShaftSettings = {
     enabled: true,
-    strength: 1.2,
+    strength: 0.9,
     glowRadius: 0.12,
     reach: 0.85,
     decay: 0.975,
