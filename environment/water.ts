@@ -336,11 +336,14 @@ export class Water implements AnimatedEntity {
      * Shades the parts of a material that are below the surface as seen through the water.
      * Call before the material is first rendered.
      */
-    public addUnderwaterTo(material: Material): void {
+    /**
+     * @param standsInWater for what stands in the water (the pillars): its waterline follows the displaced surface
+     */
+    public addUnderwaterTo(material: Material, standsInWater = false): void {
         const previous = material.onBeforeCompile;
         material.onBeforeCompile = (params, renderer) => {
             previous.call(material, params, renderer);
-            applyUnderwater(params, this.underwaterUniforms);
+            applyUnderwater(params, this.underwaterUniforms, standsInWater ? this.surfaceUniforms : undefined);
         };
         material.needsUpdate = true;
     }

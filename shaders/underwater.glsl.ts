@@ -2,6 +2,7 @@ import { IUniform, WebGLProgramParametersWithUniforms } from "three";
 
 import { toFileName } from "./util";
 import { shaftPars, shaftUniforms } from "./sun-shafts.glsl";
+import { interactionPars } from "./water-interaction.glsl";
 
 const fileName = toFileName(import.meta.url);
 
@@ -62,6 +63,31 @@ uniform vec3 depthAbsorption;
 vec3 lightAtDepth(float depth) {
     return exp(-depthAbsorption * max(depth, 0.0));
 }
+
+// where the water's surface is at a point (x, z), for what stands in it: on the pillars (UNDERWATER_WATERLINE) the
+// water displaced near the camera climbs them in its lip, piles up in front and dips behind, and the splash waves
+// raise and lower it, just as the water's own surface is displaced (shaders/water-interaction.glsl.ts), so the
+// caustics, the wet band and the tint under the surface follow it; elsewhere the flat level
+#ifdef UNDERWATER_WATERLINE
+${interactionPars}
+float waterSurfaceY(vec3 p) {
+    // far from the level, nothing it does reaches
+    if (abs(p.y - waterLevelY) > 0.6) return waterLevelY;
+    float y = waterLevelY;
+    float fade = patchFade(p.xz);
+    if (fade > 0.0) {
+        float unusedDamp;
+        float unusedRim;
+        float lift = displacementScale * fade;
+        y += pillarSurface(p.xz, lift, unusedDamp, unusedRim).x * lift;
+    }
+    return y + splashRipple(p.xz).x * max(fade, splashAreaFade(p.xz));
+}
+#else
+float waterSurfaceY(vec3 p) {
+    return waterLevelY;
+}
+#endif
 uniform float wetBandHeight;
 uniform float wetBandDarkness;
 uniform vec3 causticColor;
@@ -98,7 +124,7 @@ float causticPattern(vec2 uv, float t) {
 const caustics = /* glsl */ `
 // (edits) ${fileName}
 {
-    float fromSurface = vUnderwaterWorldPos.y - waterLevelY;
+    float fromSurface = vUnderwaterWorldPos.y - localWaterY;
     if (causticStrength > 0.0 && fromSurface < causticAbove && fromSurface > -causticBelow) {
         float band = fromSurface > 0.0
             ? 1.0 - smoothstep(0.0, causticAbove, fromSurface)
@@ -115,7 +141,9 @@ const caustics = /* glsl */ `
  */
 const wetBand = /* glsl */ `
 // (edits) ${fileName}
-float aboveWater = vUnderwaterWorldPos.y - waterLevelY;
+// the water's surface here, for this and the edits further down (caustics, the tint under it)
+float localWaterY = waterSurfaceY(vUnderwaterWorldPos);
+float aboveWater = vUnderwaterWorldPos.y - localWaterY;
 if (aboveWater > 0.0) {
     diffuseColor.rgb *= 1.0 - wetBandDarkness * (1.0 - smoothstep(0.0, wetBandHeight, aboveWater));
 }
@@ -158,10 +186,10 @@ if (viewUnderwater > 0.5) {
     // overhead when the camera is close under it) it's the water
     if (vUnderwaterWorldPos.y > surfaceY) transmitted = 0.0;
     gl_FragColor.rgb = mix(linearToOutputTexel(vec4(waterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
-} else if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
+} else if (vUnderwaterWorldPos.y < localWaterY && cameraPosition.y > waterLevelY) {
     // (cameras under the water here are the water's own mirror camera, which skips this)
     vec3 toCamera = cameraPosition - vUnderwaterWorldPos;
-    float submergedFraction = (waterLevelY - vUnderwaterWorldPos.y) / toCamera.y;
+    float submergedFraction = (localWaterY - vUnderwaterWorldPos.y) / toCamera.y;
     float pathInWater = length(toCamera) * submergedFraction;
     float transmitted = exp(-underwaterDensity * pathInWater);
     gl_FragColor.rgb = mix(linearToOutputTexel(vec4(underwaterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
@@ -178,7 +206,15 @@ const insertBefore = (source: string, anchor: string, content: string) => {
     return source.replace(anchor, `${content}\n${anchor}`);
 };
 
-export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }) => {
+/**
+ * @param surface the water surface's own uniforms, for materials standing in the water (the pillars): their waterline
+ *                then follows its displacement (UNDERWATER_WATERLINE)
+ */
+export const applyUnderwater = (params: WebGLProgramParametersWithUniforms, uniforms: { [name: string]: IUniform }, surface?: { [name: string]: IUniform }) => {
+    if (surface) {
+        params.fragmentShader = '#define UNDERWATER_WATERLINE\n' + params.fragmentShader;
+        Object.assign(params.uniforms, surface);
+    }
     params.vertexShader = insertAfter(params.vertexShader, '#include <common>', parsVert);
     // just before projecting, where every material has its final position (some, like the particles, replace
     // <begin_vertex> with their own)

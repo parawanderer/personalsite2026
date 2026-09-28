@@ -259,7 +259,7 @@ const pillarShapeTweaks = tweaks.addFolder('Pillar surface', PILLAR_SHAPE);
 const walls = await new WallsFactory(loadingMgr, scene).makeWalls(CAMERA_INITIAL_Z, pillarTweaks.params, pillarShapeTweaks.params, getTitleZone());
 if (pillarTweaks.folder) walls.bindTweaks(pillarTweaks.folder);
 if (pillarShapeTweaks.folder) walls.bindShapeTweaks(pillarShapeTweaks.folder);
-water.addUnderwaterTo(walls.material);
+water.addUnderwaterTo(walls.material, true);
 
 // the seabed under the channel: the tops of packed basalt columns in a bowl, only drawn while the camera is underwater
 const SEABED_COLUMN_RADIUS = 0.2;
