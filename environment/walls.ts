@@ -10,7 +10,6 @@ import { fogFrag, fogParsFrag, fogParsVert, fogVert } from "../shaders/fogedits.
 import { AnimatedEntity } from '../entity/animated-entity';
 import { fbm2D, makeRng } from '../utils/random';
 import { buildPillarMesh, PillarInstance } from './pillar-geometry';
-import { applySnellBend } from '../shaders/snell-window.glsl';
 import { applyPillarSurface } from '../shaders/pillar-surface.glsl';
 import { WATER_LEVEL_Y } from './water';
 import { WALL_PROFILE_CELLS } from '../shaders/sun-shafts.glsl';
@@ -822,8 +821,7 @@ const buildPillarsGeometry = (mask: number[][], layout: PillarLayout, shape: Pil
     computeClearance(field);
     field.dataA.needsUpdate = true;
     field.dataB.needsUpdate = true;
-    // split at the waterline, for their image bent through the surface when seen from below
-    return buildPillarMesh(instances, shape, false, WATER_LEVEL_Y);
+    return buildPillarMesh(instances, shape);
 };
 
 export class WallsFactory {
@@ -882,7 +880,6 @@ export class WallsFactory {
         material.onBeforeCompile = (params, renderer) => {
             fogShader.handle(params, renderer);
             applyPillarSurface(params, surfaceUniforms);
-            applySnellBend(params);
         };
 
         const mask = await this.parseMapTemplate(PILLARS_GEOGRAPHY_MAP);

@@ -1,4 +1,4 @@
-import { BufferGeometry, Camera, Clock, Color, DataTexture, DoubleSide, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, TextureLoader, UniformsLib, UniformsUtils, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
+import { BufferGeometry, Camera, Clock, Color, DataTexture, DoubleSide, IUniform, LoadingManager, Material, Mesh, MeshStandardMaterial, PlaneGeometry, ShaderMaterial, RepeatWrapping, Scene, Texture, TextureLoader, UniformsLib, UniformsUtils, Vector2, Vector3, WebGLProgramParametersWithUniforms } from "three";
 import GUI from "three/addons/libs/lil-gui.module.min.js";
 import { Water as ThreeWater } from "three/addons/objects/Water";
 
@@ -251,9 +251,8 @@ export class Water implements AnimatedEntity {
     }
 
     /**
-     * While the camera is under the water, the sky only shows straight overhead, through the surface's window, fading
-     * into the water towards its edge (softly: the ripples move the window's edge about); anywhere else it's the water
-     * (it would show past the ends of the channel and the surface)
+     * While the camera is under the water, the sky is the water: it's only ever seen through the surface, which shows
+     * it captured from above (environment/snell-window.ts)
      */
     public addUnderwaterToSky(skyMaterial: Material): void {
         const previous = skyMaterial.onBeforeCompile;
@@ -269,9 +268,30 @@ export class Water implements AnimatedEntity {
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvSkyUnderWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vSkyUnderWorld;\nuniform float viewUnderwater;\nuniform vec3 skyUnderwaterColor;\nuniform vec3 skyDepthAbsorption;\nuniform float skyWaterLevel;\nuniform float skyViewDensity;')
-                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(linearToOutputTexel(vec4(skyUnderwaterColor * exp(-skyDepthAbsorption * max(skyWaterLevel - cameraPosition.y - normalize(vSkyUnderWorld - cameraPosition).y / max(skyViewDensity, 0.05), 0.0)), 1.0)).rgb, gl_FragColor.rgb, smoothstep(0.35, 0.8, normalize(vSkyUnderWorld - cameraPosition).y));');
+                .replace('#include <dithering_fragment>', '#include <dithering_fragment>\nif (viewUnderwater > 0.5) gl_FragColor.rgb = mix(linearToOutputTexel(vec4(skyUnderwaterColor * exp(-skyDepthAbsorption * max(skyWaterLevel - cameraPosition.y - normalize(vSkyUnderWorld - cameraPosition).y / max(skyViewDensity, 0.05), 0.0)), 1.0)).rgb, gl_FragColor.rgb, 0.0);');
         };
         skyMaterial.needsUpdate = true;
+    }
+
+    /**
+     * For capturing the world above the water from under it (environment/snell-window.ts): its look from above, without
+     * the water itself (true), and back to the view the camera has (false)
+     */
+    public captureAbove(capturing: boolean): void {
+        if (!capturing) {
+            this.setUnderwaterView(this.viewingUnderwater);
+            return;
+        }
+        this.setUnderwaterView(false);
+        this.seabed.visible = false;
+        this.water.visible = false;
+        if (this.patch) this.patch.visible = false;
+        if (this.splashMesh) this.splashMesh.visible = false;
+    }
+
+    /** the world above the water as captured from under it, which the underside looks through */
+    public setAboveView(texture: Texture): void {
+        this.underside.material.uniforms.undersideAbove.value = texture;
     }
 
     /**
@@ -598,6 +618,7 @@ export class Water implements AnimatedEntity {
         under.undersideClarity.value = l.undersideClarity;
         under.undersideMirror.value = l.undersideMirror;
         under.undersideRipple.value = l.undersideRipple;
+        under.undersideRefraction.value = l.undersideRefraction;
         this.underwaterUniforms.underwaterDensity.value = l.underwaterDensity;
         this.seabed.position.y = WATER_LEVEL_Y - l.seabedDepth;
     }
@@ -616,6 +637,7 @@ export class Water implements AnimatedEntity {
         folder.add(this.look, 'undersideClarity', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'undersideMirror', 0, 3, 0.05).onChange(apply);
         folder.add(this.look, 'undersideRipple', 0, 4, 0.05).onChange(apply);
+        folder.add(this.look, 'undersideRefraction', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'seabedDepth', 0.1, 5, 0.05).onChange(apply).onFinishChange(() => this.onSeabedChange?.(this.look.seabedDepth));
         folder.add(this.look, 'viscosity', 0, 1, 0.01).onChange(apply);
         folder.add(this.look, 'flowAngleDeg', 0, 360, 1).onChange(apply);
@@ -875,6 +897,9 @@ export class WaterFactory {
                 undersideClarity: { value: 1 },
                 undersideMirror: { value: 0 },
                 undersideRipple: { value: 1 },
+                undersideRefraction: { value: 0.35 },
+                // the world above, captured from under the water (environment/snell-window.ts)
+                undersideAbove: { value: null },
                 surfaceWaveHeight: underwaterUniforms.surfaceWaveHeight,
                 surfaceWaveTime: underwaterUniforms.surfaceWaveTime,
                 surfaceWaveFlow: underwaterUniforms.surfaceWaveFlow,

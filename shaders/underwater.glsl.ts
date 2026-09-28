@@ -153,9 +153,10 @@ if (viewUnderwater > 0.5) {
     float hazeDepth = waterLevelY - (cameraPosition.y + normalize(fromCamera).y * min(length(fromCamera), 1.0 / max(underwaterViewDensity, 0.05)));
     vec3 waterColor = underwaterColor * lightAtDepth(hazeDepth);
     float transmitted = exp(-underwaterViewDensity * length(fromCamera) * clamp(inWater, 0.0, 1.0));
-    // what's above the surface can only be seen through Snell's window, looking up steeply enough (like the ceiling,
-    // shaders/water-underside.glsl.ts); lower, the surface mirrors the depths, which also covers past the ceiling's edge
-    if (vUnderwaterWorldPos.y > surfaceY) transmitted *= smoothstep(0.55, 0.7, normalize(fromCamera).y);
+    // what's above the surface is only ever seen through the surface, bent (the ceiling shows it, captured from above:
+    // environment/snell-window.ts), never straight on: where it's drawn anyway (past the ceiling's edge, or just
+    // overhead when the camera is close under it) it's the water
+    if (vUnderwaterWorldPos.y > surfaceY) transmitted = 0.0;
     gl_FragColor.rgb = mix(linearToOutputTexel(vec4(waterColor, 1.0)).rgb, gl_FragColor.rgb, transmitted);
 } else if (vUnderwaterWorldPos.y < waterLevelY && cameraPosition.y > waterLevelY) {
     // (cameras under the water here are the water's own mirror camera, which skips this)

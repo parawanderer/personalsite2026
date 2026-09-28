@@ -47,6 +47,7 @@ import {
     WATER_TOUCH,
     SENSOR,
     GOD_RAYS,
+    SNELL_WINDOW,
     SUN_SHAFTS,
     SURFACE_CROSSING,
     STARS,
@@ -78,13 +79,13 @@ import { SensorPass } from './postprocessing/sensor';
 import { GodRaysPass } from './postprocessing/god-rays';
 import { shaftUniforms } from './shaders/sun-shafts.glsl';
 import { ShaftShadows } from './environment/shaft-shadows';
+import { SnellWindow } from './environment/snell-window';
 import { SunShaftsPass } from './postprocessing/sun-shafts';
 import { SurfaceCrossingPass } from './postprocessing/surface-crossing';
 import { WaterTouch } from './environment/water-touch';
 import { Stars } from './environment/stars';
 import { VolcanicGlow } from './environment/volcanic-glow';
 import { skyGlowUniforms } from './shaders/sky-glow.glsl';
-import { snellUniforms } from './shaders/snell-window.glsl';
 import { TextureLoader } from './utils/texture-utils';
 import { Scheduler } from './entity/animated-entity';
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass';
@@ -135,7 +136,9 @@ scene.fog = new FogExp2(FOG_COLOR, FOG_INTENSITY);
 const loadingMgr = new LoadingManager();
 
 // camera
-const camera = new PerspectiveCamera(75, width / height, 0.1, 1000);
+const CAMERA_NEAR = 0.1;
+const UNDERWATER_NEAR = 0.02;
+const camera = new PerspectiveCamera(75, width / height, CAMERA_NEAR, 1000);
 camera.position.copy(CAMERA_HOME_POS);
 camera.lookAt(CAMERA_HOME_DIR);
 
@@ -252,9 +255,6 @@ scheduler.add({
         seabed.visible = water.cameraUnderwater;
         // the sky's dome goes with the camera: it's drawn by direction, and would otherwise end where the water doesn't
         sky.position.copy(camera.position);
-        // what's above the water seen bent through its surface
-        snellUniforms.snellOn.value = water.cameraUnderwater ? 1 : 0;
-        snellUniforms.snellWaterLevel.value = WATER_LEVEL_Y;
         walls.setAirFog(!water.cameraUnderwater);
     },
 });
@@ -415,7 +415,6 @@ const suns = ([['Sun (large)', SUN_LARGE], ['Sun (small)', SUN_SMALL]] as const)
     const sunTweaks = tweaks.addFolder(name, body);
     const sun = new Celestial(scene, camera, sunTweaks.params, () => dayNightTweaks.params.hour, index);
     if (sunTweaks.folder) sun.bindTweaks(sunTweaks.folder);
-    scheduler.add({ update: () => sun.underwater = water.cameraUnderwater });
     scheduler.add(sun);
     return { sun, body: sunTweaks.params };
 });
@@ -433,6 +432,17 @@ composer.renderTarget1.depthTexture = new DepthTexture(width, height);
 composer.renderTarget2.depthTexture = new DepthTexture(width, height);
 composer.addPass(new RenderPass(scene, camera));
 // shafts of sunlight while under the water; straight after the scene, while its depth still matches the frame
+// the world above seen from under the water, through its surface
+const snellTweaks = tweaks.addFolder('Snell window', SNELL_WINDOW);
+const snellWindow = new SnellWindow(snellTweaks.params);
+if (snellTweaks.folder) snellWindow.bindTweaks(snellTweaks.folder);
+water.setAboveView(snellWindow.texture);
+// the scene in its look from above for the capture, and back
+const captureAbove = (capturing: boolean) => {
+    water.captureAbove(capturing);
+    seabed.visible = !capturing && water.cameraUnderwater;
+    walls.setAirFog(capturing || !water.cameraUnderwater);
+};
 const godRayTweaks = tweaks.addFolder('God rays', GOD_RAYS);
 const godRays = new GodRaysPass(camera, godRayTweaks.params);
 if (godRayTweaks.folder) godRays.bindTweaks(godRayTweaks.folder);
@@ -515,6 +525,13 @@ const animate = () => {
     sunShafts.update(water.cameraUnderwater, godRaySuns, 1 - dayNight.nightAmount, camera);
     godRays.update(water.cameraUnderwater, WATER_LEVEL_Y, godRaySuns, clock.elapsedTime, water.flowOffset, waterTweaks.params.underwaterViewDensity, 1 - dayNight.nightAmount);
     shaftShadows.update(renderer, water.cameraUnderwater && godRays.enabled, camera.position, WATER_LEVEL_Y);
+    // a closer near plane under the water, so the surface just overhead isn't cut away when the camera is close under it
+    const near = water.cameraUnderwater ? UNDERWATER_NEAR : CAMERA_NEAR;
+    if (camera.near !== near) {
+        camera.near = near;
+        camera.updateProjectionMatrix();
+    }
+    snellWindow.update(renderer, scene, camera, water.cameraUnderwater, WATER_LEVEL_Y, captureAbove);
 
     composer.render();
 }

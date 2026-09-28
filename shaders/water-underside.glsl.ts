@@ -6,9 +6,11 @@ const fileName = toFileName(import.meta.url);
 
 /**
  * The water's surface seen from below, while the camera is under it. Looking up, the world above shows through a
- * rippled window (Snell's window: light from above only reaches the eye within about 49 degrees of straight up); beyond
- * it the surface is a dark mirror of the depths (total internal reflection). Everything is faded by the water between
- * the camera and the surface, like the rest of the underwater view.
+ * rippled window (Snell's window: light from above only reaches the eye within about 49 degrees of straight up, the
+ * whole sky squeezed into it); beyond it the surface is a dark mirror of the depths (total internal reflection). Each
+ * pixel's view is bent out through the rippled surface and looks up the world above, captured into a cube map
+ * (environment/snell-window.ts). Everything is faded by the water between the camera and the surface, like the rest of
+ * the underwater view.
  */
 export const undersideVertex = /* glsl */ `
 // (edits) ${fileName}
@@ -39,6 +41,8 @@ uniform vec3 depthAbsorption;
 uniform float undersideClarity;
 uniform float undersideMirror;
 uniform float undersideRipple;
+uniform float undersideRefraction;
+uniform samplerCube undersideAbove;
 varying vec3 vWorld;
 ${shaftPars}
 
@@ -64,32 +68,35 @@ void main() {
                       surfaceWave(vWorld.xz + vec2(0.0, e)) - surfaceWave(vWorld.xz - vec2(0.0, e))) / (2.0 * e);
     up = normalize(up - vec3(slope.x, 0.0, slope.y));
 
-    // Snell's window: within the critical angle (cos 0.66 for water) the world above shows through, rippled at its edge
-    float cosine = dot(view, up);
-    float window = smoothstep(0.6, 0.72, cosine);
-    // brightest towards its rim, where the light from low in the sky is bent in
-    float rim = smoothstep(0.6, 0.66, cosine) * (1.0 - smoothstep(0.66, 0.8, cosine));
+    // Snell's window: the view bent out into the air through this bit of the surface (Snell's law), looking up the
+    // world above along it; past the critical angle nothing gets out and the surface mirrors the depths instead. Less
+    // gets through towards the window's edge, where more is reflected (Fresnel, Schlick's approximation)
+    // (through the waves and ripples only partly: at full strength they marble the world above beyond recognition)
+    vec3 bending = normalize(mix(vec3(0.0, 1.0, 0.0), up, undersideRefraction));
+    vec3 air = refract(view, -bending, 1.33);
+    float through = 0.0;
+    vec3 above = vec3(0.0);
+    if (dot(air, air) > 0.0) {
+        float cosAir = max(dot(air, bending), 0.0);
+        through = (1.0 - (0.02 + 0.98 * pow(1.0 - cosAir, 5.0))) * undersideClarity;
+        above = textureCube(undersideAbove, air).rgb;
+    }
 
-    // the water between the camera and this point of the surface (what's seen through the window fades by its own
-    // whole distance: shaders/underwater.glsl.ts)
+    // the water between the camera and this point of the surface
     float transmitted = exp(-underwaterViewDensity * length(toSurface));
-    float see = window * undersideClarity;
 
     // the haze between here and the camera, lit like the water about one fog-length along the view (as everything else
     // under the water: shaders/underwater.glsl.ts)
     float hazeDepth = vWorld.y - (cameraPosition.y + view.y * min(length(toSurface), 1.0 / max(underwaterViewDensity, 0.05)));
     vec3 waterColor = underwaterColor * exp(-depthAbsorption * max(hazeDepth, 0.0));
-    // outside the window: the depths mirrored, a little lighter than the water itself
-    vec3 mirror = waterColor * (1.0 + undersideMirror * (1.0 - window));
-    vec3 color = mix(waterColor, mirror, transmitted) + waterColor * rim * transmitted * 0.8;
-    float alpha = 1.0 - see;
-    // the sun glittering where its light comes in (shaders/sun-shafts.glsl.ts): added over what shows through
-    // on finer ripples than the window's (many small facets each catching the sun), tilted by the same rolling waves
+    // the depths mirrored, a little lighter than the water itself
+    vec3 mirror = waterColor * (1.0 + undersideMirror);
+    vec3 color = mix(waterColor, mix(mirror, above, through), transmitted);
+    // the sun glittering where its light comes in (shaders/sun-shafts.glsl.ts), on finer ripples than the window's
+    // (many small facets each catching the sun), tilted by the same rolling waves
     vec4 fine = getNoise((vWorld.xz - flowOffset) * size * rippleScale * shaftGlitterScale);
     vec3 facets = normalize(normalize(fine.xzy * vec3(rippleAmp, 1.0, rippleAmp)) - vec3(slope.x, 0.0, slope.y));
-    vec3 glints = shaftGlitter(vWorld, view, facets) * transmitted;
-    float glint = min(max(glints.r, max(glints.g, glints.b)), 1.0);
-    float covered = alpha + (1.0 - alpha) * glint;
-    gl_FragColor = vec4((color * alpha + glints) / max(covered, 1e-3), covered);
+    color += shaftGlitter(vWorld, view, facets) * transmitted;
+    gl_FragColor = vec4(color, 1.0);
 }
 `;

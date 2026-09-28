@@ -544,6 +544,8 @@ export interface WaterLook {
     surfaceWaveHeight: number;
     surfaceWaveSpeed: number;
     undersideRipple: number;
+    /** how much the waves and ripples bend the view out through the window (1: as they tilt the surface) */
+    undersideRefraction: number;
     /** how far the impact's light spreads over the water */
     splashGlowRadius: number;
     /** the flash's fainter light reaching far across the water (falling off like a light does), where the pillars' long shadows show */
@@ -611,6 +613,7 @@ export const WATER_LOOK: WaterLook = {
     surfaceWaveSpeed: 1,
     undersideMirror: 0.6,
     undersideRipple: 1.5,
+    undersideRefraction: 0.35,
     splashGlowRadius: 3.5,
     splashWaterReach: 0.5,
     splashHighlight: 4,
@@ -1044,6 +1047,21 @@ export const GOD_RAYS: GodRaySettings = {
     forwardShafts: 5,
     forwardHaze: 0.8,
     forwardSpreadDeg: 20,
+};
+
+// the world above the water seen from under it, through the surface (environment/snell-window.ts)
+export interface SnellWindowSettings {
+    enabled: boolean;
+    /** of each face of the cube the world above is captured into (the murk softens it anyway) */
+    resolution: number;
+    /** how many of the cube's five faces are captured again each frame, in turn (all of them when the window first shows) */
+    facesPerFrame: number;
+}
+
+export const SNELL_WINDOW: SnellWindowSettings = {
+    enabled: true,
+    resolution: 256,
+    facesPerFrame: 1,
 };
 
 // at night, a volcano past the canyon's walls: a red glow on one horizon, and its light on the pillars

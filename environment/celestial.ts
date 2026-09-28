@@ -56,12 +56,6 @@ export class Celestial implements AnimatedEntity {
     public readonly direction = new Vector3(0, 1, 0);
     /** 0 below the horizon, 1 well above it */
     public up = 0;
-    /**
-     * while the camera is under the water, the disc (and its glow in the sky) is drawn where it's seen from there: bent
-     * steeper by the surface (Snell's law), inside the window overhead, where the shafts in the water point
-     */
-    public underwater = false;
-    private readonly seen = new Vector3();
 
     /**
      * @param index which of the fog's sun slots (shaders/sky-glow.glsl.ts) this one fills
@@ -120,19 +114,12 @@ export class Celestial implements AnimatedEntity {
 
         const size = 2 * Math.tan(degToRad(b.sizeDeg) / 2) * DISTANCE * b.haloScale;
         this.disc.scale.set(size, size, 1);
-        this.seen.copy(this.direction);
-        if (this.underwater) {
-            const horizontal = Math.hypot(this.direction.x, this.direction.z);
-            const sinWater = Math.min(horizontal, 1) / 1.33;
-            const scale = horizontal > 1e-4 ? sinWater / horizontal : 0;
-            this.seen.set(this.direction.x * scale, Math.sqrt(1 - sinWater * sinWater), this.direction.z * scale);
-        }
-        this.disc.position.copy(this.camera.position).addScaledVector(this.seen, DISTANCE);
+        this.disc.position.copy(this.camera.position).addScaledVector(this.direction, DISTANCE);
         this.disc.quaternion.copy(this.camera.quaternion);
 
         // the same sun, seen through the fog
         const g = skyGlowUniforms;
-        g.glowSunDirection.value[this.index].copy(this.seen);
+        g.glowSunDirection.value[this.index].copy(this.direction);
         g.glowSunRadiance.value[this.index].set(b.color).multiplyScalar(b.brightness * u.visibility.value);
         g.glowSunRadius.value[this.index] = degToRad(b.sizeDeg) / 2;
         g.glowSunHaloScale.value[this.index] = b.haloScale;

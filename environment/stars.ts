@@ -3,7 +3,6 @@ import GUI from 'three/addons/libs/lil-gui.module.min.js';
 import { degToRad } from 'three/src/math/MathUtils.js';
 
 import { AnimatedEntity } from '../entity/animated-entity';
-import { snellPars, snellUniforms } from '../shaders/snell-window.glsl';
 import { StarSettings } from '../constants';
 
 const pars = /* glsl */ `
@@ -94,14 +93,14 @@ export class Stars implements AnimatedEntity {
         const previous = skyMaterial.onBeforeCompile;
         skyMaterial.onBeforeCompile = (params, renderer) => {
             previous.call(skyMaterial, params, renderer);
-            Object.assign(params.uniforms, this.uniforms, snellUniforms);
+            Object.assign(params.uniforms, this.uniforms);
             params.vertexShader = params.vertexShader
                 .replace('#include <common>', '#include <common>\nvarying vec3 vStarWorld;')
                 .replace('#include <fog_vertex>', '#include <fog_vertex>\nvStarWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
             params.fragmentShader = params.fragmentShader
-                .replace('#include <common>', `#include <common>\n${pars}\n${snellPars}`)
+                .replace('#include <common>', `#include <common>\n${pars}`)
                 // before the aurora is added on top: it's glowing gas in front of them
-                .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (starAmount > 0.0) gl_FragColor.rgb += stars(snellAirDir(normalize(vStarWorld - cameraPosition))) * starAmount * snellThrough(normalize(vStarWorld - cameraPosition));');
+                .replace('#include <opaque_fragment>', '#include <opaque_fragment>\nif (starAmount > 0.0) gl_FragColor.rgb += stars(normalize(vStarWorld - cameraPosition)) * starAmount;');
         };
         skyMaterial.needsUpdate = true;
     }
