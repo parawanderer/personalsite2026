@@ -192,7 +192,7 @@ export const DAY_NIGHT: DayNightSettings = {
     nightSceneFog: '#1a2e2e',
     nightAmbientSky: '#94dfff',
     nightAmbientGround: '#00378f',
-    nightAmbientScale: 0.52,
+    nightAmbientScale: 0.4,
     nightSpotColor: '#60708a',
     nightSpotScale: 0.27,
     nightDiffuseColor: '#8a93a5',
@@ -229,7 +229,7 @@ export interface PillarReflectionSettings {
 }
 
 export const PILLAR_REFLECTIONS: PillarReflectionSettings = {
-    enabled: false,
+    enabled: true,
     intensity: 0.6,
     normalScale: 1,
     resolution: 128,
